@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class ShellRuntime {
+public class ShellRuntime implements Shell {
     private static final String LOG_TAG = "QZ:Shell";
 
     private final Runtime runtime = Runtime.getRuntime();

@@ -1,0 +1,31 @@
+package org.cagnulein.qzcompanionnordictracktreadmill;
+
+class X9iDevice extends TreadmillDevice {
+    private final ShellRuntime shellRuntime = new ShellRuntime();
+
+    X9iDevice() { super(332, 332); }
+
+    @Override
+    String displayName() { return "X9i Treadmill"; }
+
+    @Override
+    protected int speedX() { return 725; }
+
+    @Override
+    protected int targetSpeedY(double v) {
+        return (int) (345.6315 - 13.6315 * v);
+    }
+
+    @Override
+    protected int inclineX() { return 73; }
+
+    @Override
+    protected int targetInclineY(double v) {
+        return (int) (311.91 - 3.3478 * v);
+    }
+
+    @Override
+    protected void execute(String command) {
+        try { shellRuntime.exec(command); } catch (java.io.IOException ignored) {}
+    }
+}

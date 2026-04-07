@@ -12,16 +12,11 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.graphics.Rect;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.concurrent.atomic.AtomicLong;
 
 public class QZService extends Service {
     private static final String LOG_TAG = "QZ:Service";
@@ -37,26 +32,12 @@ public class QZService extends Service {
     DatagramPacket packet = new DatagramPacket(lmessage, lmessage.length);
     static InetAddress broadcastAddress = null;
 
-    AtomicLong filePointer = new AtomicLong();
-    String fileName = "";
-    RandomAccessFile bufferedReader = null;
     boolean firstTime = false;
-    static float lastSpeedFloat = 0;
-    static float lastInclinationFloat = 0;
-    static float lastResistanceFloat = 0;
-    static float lastGearFloat = 0;
-    static String lastSpeed = "";
-    static String lastInclination = "";
-    static String lastWattage = "";
-    static String lastCadence = "";
-    static String lastResistance = "";
-    String lastGear = "";
-    static String lastHeart = "";
     static SharedPreferences sharedPreferences;
 
-    static boolean ifit_v2 = false;
+    private final DeviceState state = DeviceState.INSTANCE;
 
-    int counterTruncate = 0;
+    boolean ifit_v2 = false;
 
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
@@ -100,107 +81,6 @@ public class QZService extends Service {
         }
     }
 
-    private boolean speed(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        boolean found = false;
-        while ((line = is.readLine()) != null) {
-            try {
-                String[] b = line.split(" ");
-                line = line.replaceAll(",", ".");
-                if (ifit_v2) {
-                    lastSpeed = "Changed KPH " + b[b.length - 2];
-                    lastSpeedFloat = Float.parseFloat(b[b.length - 2]);
-                } else {
-                    lastSpeed = line;
-                    lastSpeedFloat = Float.parseFloat(b[b.length - 1]);
-                }
-                found = true;
-            } catch (Exception e) {
-                writeLog("Error parsing speed: " + e.getMessage());
-            }
-        }
-        if(found) {
-            sendBroadcast(lastSpeed);
-            return true;
-        }
-        return  false;
-    }
-
-    private boolean incline(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        boolean found = false;
-        while ((line = is.readLine()) != null) {
-            try {
-                String[] b = line.split(" ");
-                line = line.replaceAll(",", ".");
-                if(ifit_v2) {
-                    lastInclination = "Changed Grade " + b[b.length-2];
-                    lastInclinationFloat = Float.parseFloat(b[b.length-2]);
-                } else {
-                    lastInclination = line;
-                    lastInclinationFloat = Float.parseFloat(b[b.length-1]);
-                }
-                found = true;
-            } catch (Exception e) {
-                writeLog("Error parsing incline: " + e.getMessage());
-            }
-        }
-        if(found) {
-            sendBroadcast(lastInclination);
-            return true;
-        }
-        return  false;
-    }
-
-    private boolean watt(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = is.readLine()) != null) {
-            lastWattage = line;
-            sendBroadcast(line);
-            return true;
-        }
-        return  false;
-    }
-
-    private boolean cadence(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = is.readLine()) != null) {
-            lastCadence = line;
-            sendBroadcast(line);
-            return true;
-        }
-        return  false;
-    }
-
-    private boolean gear(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = is.readLine()) != null) {
-            lastGear = line;
-            String[] b = line.split(" ");
-            lastGearFloat = Float.parseFloat(b[b.length-1]);
-            sendBroadcast(line);
-            return true;
-        }
-        return  false;
-    }
-
-    private boolean resistance(InputStream in) throws IOException {
-        BufferedReader is = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = is.readLine()) != null) {
-            lastResistance = line;
-            String[] b = line.split(" ");
-            lastResistanceFloat = Float.parseFloat(b[b.length-1]);
-            sendBroadcast(line);
-            return true;
-        }
-        return  false;
-    }
 
     private static Rect wattRectCache = null;
 
@@ -229,423 +109,105 @@ public class QZService extends Service {
 
     public String[] getOCR() {
         String textExtended = ScreenCaptureService.getLastTextExtended();
-        if (textExtended == null || textExtended.isEmpty()) {
-            return new String[2];
-        }
-
-        String[] result = new String[2];
+        if (textExtended == null || textExtended.isEmpty()) return new String[2];
 
         Log.i(LOG_TAG, "getOCR");
 
+        MetricSnapshot ocr = OcrParser.parse(textExtended);
+        if (ocr.speedKmh      != null) writeLog("OCRlines speed found!");
+        if (ocr.inclinePct    != null) writeLog("OCRlines incline found!");
+        if (ocr.resistanceLvl != null) writeLog("OCRlines resistance found!");
+        if (ocr.cadenceRpm    != null) writeLog("OCRlines cadence found!");
+        if (ocr.watts         != null) writeLog("OCRlines watts found!");
+
+        // Apply snapshot to static fields without broadcasting yet.
+        applySnapshot(ocr);
+
+        // Watt rect caching — requires Android Rect, kept here rather than in OcrParser.
         String[] ocrBlocks = textExtended.split("§§");
         String[] lines = new String[ocrBlocks.length];
         Rect[] rects = new Rect[ocrBlocks.length];
-
         for (int i = 0; i < ocrBlocks.length; i++) {
             String[] parts = ocrBlocks[i].split("\\$\\$");
-            if (parts.length == 2) {
-                lines[i] = parts[0];
-                rects[i] = rectFromString(parts[1]);
-            } else {
-                lines[i] = parts[0];
-                rects[i] = null;
-            }
+            lines[i] = parts[0];
+            rects[i] = parts.length == 2 ? rectFromString(parts[1]) : null;
         }
-
-        boolean wattFound = false;
-
         for (int i = 1; i < lines.length; i++) {
             writeLog("OCRlines " + i + " " + lines[i]);
-            if (lines[i].toLowerCase().contains("incline")) {
-                try {
-                    QZService.lastInclination = "Changed Grade " + lines[i-1].trim().replace(',', '.');
-                    QZService.lastInclinationFloat = Float.parseFloat(lines[i-1].trim().replace(',', '.'));
-                    writeLog("OCRlines incline found!");
-                } catch (Exception e) {
-                    QZService.lastInclination = "";
-                    QZService.lastInclinationFloat = 0.0f;
-                }
-
-            }
-            if (lines[i].toLowerCase().contains("cadence") || lines[i].toLowerCase().contains("rpm") || lines[i].toLowerCase().contains("strokes per min")) {
-                try {
-                    String potentialNumber = lines[i-1].trim();
-                    // Try to parse the number to check if it's valid
-                    Double.parseDouble(potentialNumber);
-                    if(Double.parseDouble(potentialNumber) > 20) {
-                        QZService.lastCadence = "Changed RPM " + potentialNumber;
-                        writeLog("OCRlines cadence found!");
-                    }
-                } catch (Exception e) {
-                    // If lines[i-1] isn't a number, try lines[i-2]
-                    try {
-                        String fallbackNumber = lines[i-2].trim();
-                        Double.parseDouble(fallbackNumber);
-                        if(Double.parseDouble(fallbackNumber) > 20) {
-                            QZService.lastCadence = "Changed RPM " + fallbackNumber;
-                            writeLog("OCRlines cadence2 found!");
-                        }
-                    } catch (Exception ex) {
-                        // If neither is a valid number, set to empty string
-                        QZService.lastCadence = "";
-                    }
-                }
-
-            }
-            if (lines[i].toLowerCase().contains("resistance")) {
-                try {
-                    QZService.lastResistance = "Changed Resistance " + lines[i-1].trim();
-                    QZService.lastResistanceFloat = Float.parseFloat(lines[i-1].trim());
-                    writeLog("OCRlines resistance found!");
-                } catch (Exception e) {
-                    QZService.lastResistance = "";
-                    QZService.lastResistanceFloat = 0.0f;
-                }
-
-            }
-            if (lines[i].toLowerCase().contains("watt")) {
-                try {
-                    String numberStr = lines[i-1].trim().replaceAll("[^0-9]", " ").trim();
-                    String[] numbers = numberStr.split("\\s+");
-                    if (numbers.length > 0) {
-                        int watts = Integer.parseInt(numbers[numbers.length - 1]);
-                        if(watts > 20) {
-                            QZService.lastWattage = "Changed Watts " + watts;
-                            writeLog("OCRlines watts found!");
-                            wattFound = true;
-                            if (rects[i-1] != null) {
-                                wattRectCache = rects[i-1];
-                                writeLog("OCRlines watts rect cached!");
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                }
-
-            }
-            if (lines[i].toLowerCase().contains("speed")) {
-                try {
-                    QZService.lastSpeed = "Changed KPH " + lines[i-1].trim();
-                    QZService.lastSpeedFloat = Float.parseFloat(lines[i-1].trim());
-                    writeLog("OCRlines speed found!");
-                } catch (Exception e) {
-                    QZService.lastSpeed = "";
-                    QZService.lastSpeedFloat = 0.0f;
-                }
-            }
-            if (lines[i].toLowerCase().contains("500 split") || lines[i].toLowerCase().contains("/500m")) {
-                try {
-                    String secondsStr = lines[i-1].trim();
-                    int totalSeconds = Integer.parseInt(secondsStr);
-                    
-                    if (totalSeconds > 0) {
-                        float speedKmh = 1800.0f / totalSeconds;
-                        QZService.lastSpeed = "Changed KPH " + String.format("%.1f", speedKmh);
-                        QZService.lastSpeedFloat = speedKmh;
-                        writeLog("OCRlines 500 split speed found: " + secondsStr + "s = " + speedKmh + " km/h");
-                    }
-                } catch (Exception e) {
-                    writeLog("OCRlines 500 split parsing failed: " + e.getMessage());
-                }
+            if (lines[i].toLowerCase().contains("watt") && ocr.watts != null && rects[i-1] != null) {
+                wattRectCache = rects[i-1];
+                writeLog("OCRlines watts rect cached!");
             }
         }
-
-        if (!wattFound && wattRectCache != null) {
+        if (ocr.watts == null && wattRectCache != null) {
             writeLog("OCRlines watts not found, trying with cache");
-            // Expand cached rect by 50% to handle different digit counts (97 vs 104)
             int expandedWidth = (int)(wattRectCache.width() * 1.5);
-            int expandedLeft = wattRectCache.left - (expandedWidth - wattRectCache.width()) / 2;
+            int expandedLeft  = wattRectCache.left - (expandedWidth - wattRectCache.width()) / 2;
             Rect expandedCache = new Rect(expandedLeft, wattRectCache.top, expandedLeft + expandedWidth, wattRectCache.bottom);
-
             for (int i = 0; i < lines.length; i++) {
                 if (rects[i] != null && Rect.intersects(expandedCache, rects[i])) {
-                     try {
-                        String numberStr = lines[i].trim().replaceAll("[^0-9]", " ").trim();
-                        String[] numbers = numberStr.split("\\s+");
-                        if (numbers.length > 0) {
-                            int watts = Integer.parseInt(numbers[numbers.length - 1]);
-                            if(watts > 20) {
-                                QZService.lastWattage = "Changed Watts " + watts;
-                                writeLog("OCRlines watts found with cache!");
-                            }
+                    try {
+                        String[] numbers = lines[i].trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
+                        int w = Integer.parseInt(numbers[numbers.length - 1]);
+                        if (w > 20) {
+                            state.lastSnapshot.watts = (float) w;
+                            writeLog("OCRlines watts found with cache!");
                         }
-                    } catch (Exception e) {
-                    }
+                    } catch (Exception ignored) {}
                 }
             }
         }
 
-
-        try {
-            if(!QZService.lastSpeed.equals(""))
-                sendBroadcast(QZService.lastSpeed);
-            if(!QZService.lastInclination.equals(""))
-                sendBroadcast(QZService.lastInclination);
-            if(!QZService.lastWattage.equals(""))
-                sendBroadcast(QZService.lastWattage);
-            if(!QZService.lastCadence.equals(""))
-                sendBroadcast(QZService.lastCadence);
-            if(!QZService.lastResistance.equals(""))
-                sendBroadcast(QZService.lastResistance);
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return result;
-        }
-        return result;
+        broadcastLastKnown();
+        return new String[2];
     }
 
     private void parse() {
-
         String file = pickLatestFileFromDownloads();
         writeLog("Parsing " + file);
+        if (file.isEmpty()) return;
 
-        if(!file.equals("")) {
-            try {
-                socket = new DatagramSocket();
-                socket.setBroadcast(true);
+        try {
+            socket = new DatagramSocket();
+            socket.setBroadcast(true);
+            writeLog("Device: " + (state.currentDevice != null ? state.currentDevice.displayName() : "none"));
 
-                writeLog("Device: " + UDPListenerService.device);
+            MetricReader reader = sharedPreferences.getBoolean("ADBLog", false)
+                    ? new DirectLogcatMetricReader()
+                    : state.currentDevice.defaultMetricReader(ifit_v2);
 
-				// this device doesn't have tail and grep capabilities
-				if((UDPListenerService.device == UDPListenerService._device.c1750 ||
-                UDPListenerService.device == UDPListenerService._device.c1750_2021 || 
-                UDPListenerService.device == UDPListenerService._device.c1750_2020 || 
-                UDPListenerService.device == UDPListenerService._device.c1750_2020_kph || 
-                UDPListenerService.device == UDPListenerService._device.x22i ||
-                UDPListenerService.device == UDPListenerService._device.s22i_NTEX02117_2 ||
-                UDPListenerService.device == UDPListenerService._device.x14i ||
-                UDPListenerService.device == UDPListenerService.device.proform_carbon_t14) && !sharedPreferences.getBoolean("ADBLog", false)) {
-					try {
-						InputStream speed2InputStream = shellRuntime.execAndGetOutput("cat " + file);
-						BufferedReader is = new BufferedReader(new InputStreamReader(speed2InputStream));
-						String line;
-						while ((line = is.readLine()) != null) {
-							if(line.contains("Changed KPH") || line.contains("Kph changed")) {
-								lastSpeed = line;
-                                String[] b = line.split(" ");
-                                lastSpeedFloat = Float.parseFloat(b[b.length-1]);
-							} else if(line.contains("Changed Grade") || line.contains("Grade changed")) {
-								lastInclination = line;
-                            } else if(line.contains("Changed Watts") || line.contains("Watts changed")) {
-                                lastWattage = line;
-                            } else if(line.contains("Changed RPM")) {
-                                lastCadence = line;
-                            } else if(line.contains("Changed CurrentGear")) {
-                                lastGear = line;
-                            } else if(line.contains("Changed Resistance")) {
-                                lastResistance = line;
-                            } else if(line.contains("HeartRateDataUpdate")) {
-                                lastHeart = line;
-                            }
-						}
-						if(!lastSpeed.equals(""))
-							sendBroadcast(lastSpeed);
-						if(!lastInclination.equals(""))
-							sendBroadcast(lastInclination);
-                        if(!lastWattage.equals(""))
-                            sendBroadcast(lastWattage);
-                        if(!lastCadence.equals(""))
-                            sendBroadcast(lastCadence);
-                        if(!lastGear.equals(""))
-                            sendBroadcast(lastGear);
-                        if(!lastResistance.equals(""))
-                            sendBroadcast(lastResistance);
-                        if(!lastHeart.equals(""))
-                            sendBroadcast(lastHeart);
-					} catch (IOException e) {
-						  // Handle Exception						
-						writeLog(e.getMessage());
-                    }					
-                } // this device doesn't log on the wolflog file
-				else if(UDPListenerService.device == UDPListenerService._device.t75s && !sharedPreferences.getBoolean("ADBLog", false)) {
-					try {
-                        String command = "logcat -b all -d > /sdcard/logcat.log";
-                        MainActivity.sendCommand(command);
-                        writeLog(command);                        
-						InputStream speed2InputStream = shellRuntime.execAndGetOutput("cat /sdcard/logcat.log");
-						BufferedReader is = new BufferedReader(new InputStreamReader(speed2InputStream));
-						String line;
-						while ((line = is.readLine()) != null) {
-							if(line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
-								lastSpeed = line.replaceAll("Actual ", "");
-                                String[] b = line.split(" ");
-                                lastSpeedFloat = Float.parseFloat(b[b.length-1]);                                
-							} else if(line.contains("Changed Grade") || line.contains("Changed Actual Grade")) {
-								lastInclination = line.replaceAll("Actual ", "");;
-                            } else if(line.contains("Changed Watts")) {
-                                lastWattage = line;
-                            } else if(line.contains("Changed RPM")) {
-                                lastCadence = line;
-                            } else if(line.contains("Changed CurrentGear")) {
-                                lastGear = line;
-                            } else if(line.contains("Changed Resistance")) {
-                                lastResistance = line;
-                            }
-						}
-						if(!lastSpeed.equals(""))
-							sendBroadcast(lastSpeed);
-						if(!lastInclination.equals(""))
-							sendBroadcast(lastInclination);
-                        if(!lastWattage.equals(""))
-                            sendBroadcast(lastWattage);
-                        if(!lastCadence.equals(""))
-                            sendBroadcast(lastCadence);
-                        if(!lastGear.equals(""))
-                            sendBroadcast(lastGear);
-                        if(!lastResistance.equals(""))
-                            sendBroadcast(lastResistance);
-					} catch (IOException e) {
-						  // Handle Exception						
-						writeLog(e.getMessage());
-                    }
-                } else if(UDPListenerService.device == UDPListenerService._device.grand_tour_pro ||
-                          UDPListenerService.device == UDPListenerService._device.NTEX71021 ||
-                          UDPListenerService.device == UDPListenerService._device.proform_carbon_c10 || sharedPreferences.getBoolean("ADBLog", false)) {
-                        try {
-                            //String command = "logcat -b all -d > /storage/sdcard0/logcat.log";
-                            //MainActivity.sendCommand(command);
-                            //writeLog(command);                        
-                            //InputStream speed2InputStream = shellRuntime.execAndGetOutput("cat /storage/sdcard0/logcat.log");
-                            try {
-                                String command = "logcat -b all -d";
-                                // Executes the command.
-                                Process process = Runtime.getRuntime().exec(command);
-                                writeLog(command);                        
-
-                                // Reads stdout.
-                                // NOTE: You can write to stdin of the command using
-                                //       process.getOutputStream().
-                                BufferedReader is = new BufferedReader(
-                                    new InputStreamReader(process.getInputStream()));
-                                String line;
-                                while ((line = is.readLine()) != null) {
-                                    if(!line.contains(LOG_TAG)) {
-                                        if(line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
-                                            lastSpeed = line.replaceAll("Actual ", "");;
-                                        } else if(line.contains("Changed Grade") || line.contains("Changed Actual Grade") || line.contains("Grade changed")) {
-                                            lastInclination = line.replaceAll("Actual ", "").replaceAll("Grade changed", "Changed Grade");
-                                        } else if(line.contains("Changed Watts")) {
-                                            lastWattage = line;
-                                        } else if(line.contains("Changed RPM")) {
-                                            lastCadence = line;
-                                        } else if(line.contains("Changed CurrentGear")) {
-                                            lastGear = line;
-                                        } else if(line.contains("Changed Resistance")) {
-                                            lastResistance = line;
-                                        }
-                                    }  
-                                }
-                                if(!lastSpeed.equals(""))
-                                    sendBroadcast(lastSpeed);
-                                if(!lastInclination.equals(""))
-                                    sendBroadcast(lastInclination);
-                                if(!lastWattage.equals(""))
-                                    sendBroadcast(lastWattage);
-                                if(!lastCadence.equals(""))
-                                    sendBroadcast(lastCadence);
-                                if(!lastGear.equals(""))
-                                    sendBroadcast(lastGear);
-                                if(!lastResistance.equals("")) {
-                                    sendBroadcast(lastResistance);
-                                    sendBroadcast(lastResistance);
-                                }
-
-                                is.close();
-                
-                                // Waits for the command to finish.
-                                process.waitFor();                    
-    
-                            } catch (IOException e) {
-                                    // Handle Exception						
-                                writeLog(e.getMessage());
-                            }		
-                        } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
-                        }                                                        			                    
-				} else {		
-                    boolean speedFound = true;			
-					InputStream speedInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed KPH\" | tail -n1");
-					if(!speed(speedInputStream)) {
-						InputStream speed2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed KPH\" " + file + "  | tail -n1");
-						if(!speed(speed2InputStream)) {                            
-                            InputStream speed3InputStream = shellRuntime.execAndGetOutput("cat " + file + " | grep -a \"Changed KPH\"");
-                            if(!speed(speed3InputStream)) {
-                                speedFound = false;
-                                sendBroadcast(lastSpeed);
-                            }
-                            speed3InputStream.close();
-						}
-						speed2InputStream.close();
-					}
-					speedInputStream.close();
-
-                    String sIncline = "Grade";
-                    if(ifit_v2)
-                        sIncline = "INCLINE";
-					InputStream inclineInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed " + sIncline + "\" | tail -n1");
-					if(!incline(inclineInputStream)) {
-						InputStream incline2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed " + sIncline + "\" " + file + "  | tail -n1");
-						if(!incline(incline2InputStream)) {
-                            InputStream incline3InputStream = shellRuntime.execAndGetOutput("cat " + file + " | grep -a \"Changed " + sIncline + "\"");
-                            if(!incline(incline3InputStream)) {
-							    sendBroadcast(lastInclination);
-                            }
-                            incline3InputStream.close();
-						}
-						incline2InputStream.close();
-					}
-					inclineInputStream.close();
-					InputStream procWattInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed Watts\" | tail -n1");
-					if(!watt(procWattInputStream)) {
-						InputStream watt2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed Watts\" " + file + "  | tail -n1");
-						if(!watt(watt2InputStream)) {
-							sendBroadcast(lastWattage);
-						}
-						watt2InputStream.close();
-					}
-					procWattInputStream.close();
-					InputStream cadenceInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed RPM\" | tail -n1");
-					if(!cadence(cadenceInputStream)) {
-						InputStream cadence2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed RPM\" " + file + "  | tail -n1");
-						if(!cadence(cadence2InputStream)) {
-							sendBroadcast(lastCadence);
-						}
-						cadence2InputStream.close();
-					}
-					cadenceInputStream.close();
-					InputStream gearInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed CurrentGear\" | tail -n1");
-					if(!gear(gearInputStream)) {
-						InputStream gear2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed CurrentGear\" " + file + "  | tail -n1");
-						if(!gear(gear2InputStream)) {
-							sendBroadcast(lastGear);
-						}
-						gear2InputStream.close();
-					}
-					gearInputStream.close();
-					InputStream resistanceInputStream = shellRuntime.execAndGetOutput("tail -n500 " + file + " | grep -a \"Changed Resistance\" | tail -n1");
-					if(!resistance(resistanceInputStream)) {
-						InputStream resistance2InputStream = shellRuntime.execAndGetOutput("grep -a \"Changed Resistance\" " + file + "  | tail -n1");
-						if(!resistance(resistance2InputStream)) {
-							sendBroadcast(lastResistance);
-						}
-						resistance2InputStream.close();
-					}
-					resistanceInputStream.close();
-
-					if(counterTruncate++ > 1200) {
-						writeLog("Truncating file...");
-						counterTruncate = 0;
-						shellRuntime.exec("truncate -s0 " + file);
-					}
-				}
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                return;
-            }
-            socket.close();
+            applyAndBroadcast(reader.read(file, shellRuntime));
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return;
         }
-
+        socket.close();
         handler.postDelayed(runnable, 100);
+    }
+
+    private void applySnapshot(MetricSnapshot m) {
+        if (m.speedKmh      != null) state.lastSnapshot.speedKmh      = m.speedKmh;
+        if (m.inclinePct    != null) state.lastSnapshot.inclinePct    = m.inclinePct;
+        if (m.resistanceLvl != null) state.lastSnapshot.resistanceLvl = m.resistanceLvl;
+        if (m.cadenceRpm    != null) state.lastSnapshot.cadenceRpm    = m.cadenceRpm;
+        if (m.watts         != null) state.lastSnapshot.watts         = m.watts;
+        if (m.gearLevel     != null) state.lastSnapshot.gearLevel     = m.gearLevel;
+        if (m.heartRate     != null) state.lastSnapshot.heartRate     = m.heartRate;
+    }
+
+    private void broadcastLastKnown() {
+        if (state.lastSnapshot.speedKmh      != null) sendBroadcast("Changed KPH "         + state.lastSnapshot.speedKmh);
+        if (state.lastSnapshot.inclinePct    != null) sendBroadcast("Changed Grade "       + state.lastSnapshot.inclinePct);
+        if (state.lastSnapshot.watts         != null) sendBroadcast("Changed Watts "       + state.lastSnapshot.watts.intValue());
+        if (state.lastSnapshot.cadenceRpm    != null) sendBroadcast("Changed RPM "         + state.lastSnapshot.cadenceRpm);
+        if (state.lastSnapshot.gearLevel     != null) sendBroadcast("Changed CurrentGear " + state.lastSnapshot.gearLevel);
+        if (state.lastSnapshot.resistanceLvl != null) sendBroadcast("Changed Resistance "  + state.lastSnapshot.resistanceLvl);
+        if (state.lastSnapshot.heartRate     != null) sendBroadcast("HeartRateDataUpdate " + state.lastSnapshot.heartRate.intValue());
+    }
+
+    private void applyAndBroadcast(MetricSnapshot m) {
+        applySnapshot(m);
+        broadcastLastKnown();
     }
 
     public static void sendBroadcast(String messageStr) {
