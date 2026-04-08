@@ -276,7 +276,7 @@ public class QZService extends Service {
         // The service is no longer used and is being destroyed
     }
 
-    public static String pickLatestFileFromDownloads() {
+    public String pickLatestFileFromDownloads() {
         File file = new File("/sdcard/android/data/com.ifit.glassos_service/files/.valinorlogs/log.latest.txt");
         if (file.exists()) {
             ifit_v2 = true;
