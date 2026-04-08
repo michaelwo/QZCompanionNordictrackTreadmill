@@ -43,7 +43,7 @@ jobs:
    - uses: r0adkll/sign-android-release@v1
      name: Sign app APK (For trusted sources)
      id: sign_app
-     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.check_permission.outputs.IS_REPO_OWNER == 'true'
+     if: github.repository == 'cagnulein/QZCompanionNordictrackTreadmill' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || steps.check_permission.outputs.IS_REPO_OWNER == 'true')
      with:
        releaseDirectory: app/build/outputs/apk/release/
        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
