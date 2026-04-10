@@ -433,6 +433,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             startService(new Intent(getApplicationContext(), TcpServerService.class));
         }*/
 
+        Device.commandExecutor = MainActivity::sendCommand;
+
         AlarmReceiver alarm = new AlarmReceiver();
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
         Intent inServer = new Intent(getApplicationContext(), UDPListenerService.class);
