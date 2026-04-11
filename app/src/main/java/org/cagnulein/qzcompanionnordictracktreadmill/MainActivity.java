@@ -96,13 +96,26 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     @Override
     public void notifyStreamFailed(DeviceConnection devConn, Exception e) {
         ADBConnected = false;
-        Log.e(LOG_TAG, e.getMessage());
+        Log.e(LOG_TAG, "notifyStreamFailed: " + e.getMessage() + " — scheduling reconnect");
+        scheduleReconnect();
     }
 
     @Override
     public void notifyStreamClosed(DeviceConnection devConn) {
         ADBConnected = false;
-        Log.e(LOG_TAG, "notifyStreamClosed");
+        Log.e(LOG_TAG, "notifyStreamClosed — scheduling reconnect");
+        scheduleReconnect();
+    }
+
+    private void scheduleReconnect() {
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            Log.i(LOG_TAG, "Attempting ADB reconnect to 127.0.0.1:5555");
+            if (binder != null) {
+                connection = startConnection("127.0.0.1", 5555);
+            } else {
+                Log.e(LOG_TAG, "scheduleReconnect: binder is null, cannot reconnect");
+            }
+        }, 3000);
     }
 
     @Override
@@ -473,6 +486,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
                 /* Bind the service if we're not bound already. After binding, the callback will
                  * perform the initial connection. */
+                Log.i(LOG_TAG, "Binding ShellService for ADB loopback...");
                 getApplicationContext().bindService(service, serviceConn, Service.BIND_AUTO_CREATE);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
