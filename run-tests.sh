@@ -105,7 +105,8 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/T85sDevice.java \
   $SRC/T95sDevice.java \
   $SRC/Tdf10Device.java \
-  $SRC/Tdf10InclinationDevice.java
+  $SRC/Tdf10InclinationDevice.java \
+  $SRC/UDPReceiveLoop.java
 
 # Compile tests
 javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
@@ -114,7 +115,8 @@ javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
   $TEST/BikeDeviceTest.java \
   $TEST/TreadmillDeviceTest.java \
   $TEST/MetricReaderTest.java \
-  $TEST/UdpPipelineTest.java
+  $TEST/UdpPipelineTest.java \
+  $TEST/ZwiftRideSimulationTest.java
 
 # Run tests
 java -cp $OUT:$JUNIT:$HAMCREST org.junit.runner.JUnitCore \
@@ -123,4 +125,5 @@ java -cp $OUT:$JUNIT:$HAMCREST org.junit.runner.JUnitCore \
   org.cagnulein.qzcompanionnordictracktreadmill.BikeDeviceTest \
   org.cagnulein.qzcompanionnordictracktreadmill.TreadmillDeviceTest \
   org.cagnulein.qzcompanionnordictracktreadmill.MetricReaderTest \
-  org.cagnulein.qzcompanionnordictracktreadmill.UdpPipelineTest
+  org.cagnulein.qzcompanionnordictracktreadmill.UdpPipelineTest \
+  org.cagnulein.qzcompanionnordictracktreadmill.ZwiftRideSimulationTest

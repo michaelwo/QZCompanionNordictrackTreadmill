@@ -13,6 +13,13 @@ abstract class Device {
         void send(String command);
     }
 
+    /**
+     * Always-on logger installed by the Android layer (MainActivity) at startup.
+     * Default is no-op so device classes compile and run without Android dependencies.
+     */
+    interface Logger { void log(String tag, String msg); }
+    static Logger logger = (tag, msg) -> {};
+
     abstract String displayName();
 
     /**
@@ -54,6 +61,8 @@ abstract class Device {
     }
 
     protected void swipe(int x, int y1, int y2) {
-        execute("input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200");
+        String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200";
+        logger.log("QZ:Device", "swipe -> " + cmd);
+        execute(cmd);
     }
 }

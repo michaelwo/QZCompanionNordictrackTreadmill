@@ -69,8 +69,11 @@ class CommandDispatcher {
                         lastRequested.resistanceLvl = incline;
                         lastSwipeMs = now;
                         cached.resistanceLvl = null;
+                    } else {
+                        log.write("de-dup: skipping incline " + incline + " (already at " + lastRequested.resistanceLvl + ")");
                     }
                 } else {
+                    log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
                     cached.resistanceLvl = incline;
                 }
             }
@@ -86,7 +89,11 @@ class CommandDispatcher {
                         lastRequested.resistanceLvl = resistance;
                         lastSwipeMs = now;
                         cached.resistanceLvl = null;
+                    } else {
+                        log.write("de-dup: skipping resistance " + resistance + " (already at " + lastRequested.resistanceLvl + ")");
                     }
+                } else {
+                    log.write("throttle: cached resistance " + resistance + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
                 }
             }
 
@@ -103,6 +110,11 @@ class CommandDispatcher {
                     lastSwipeMs = now;
                     cached.speedKmh = null;
                 } else {
+                    if (current.speed() <= 0) {
+                        log.write("speed gate: cached " + speed + " (treadmill stopped, speed=" + current.speed() + ")");
+                    } else {
+                        log.write("throttle: cached speed " + speed + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                    }
                     cached.speedKmh = speed;
                 }
             }
@@ -117,7 +129,7 @@ class CommandDispatcher {
                     lastSwipeMs = now;
                     cached.inclinePct = null;
                 } else {
-                    log.write("requestInclination not handled due to lastSwipeMs: " + incline);
+                    log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
                     cached.inclinePct = incline;
                 }
             }

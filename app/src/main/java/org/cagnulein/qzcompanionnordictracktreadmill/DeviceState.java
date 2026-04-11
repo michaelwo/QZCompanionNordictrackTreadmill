@@ -25,5 +25,6 @@ class DeviceState {
     void selectDevice(DeviceRegistry.DeviceId id) {
         selectedDeviceId = id;
         currentDevice = DeviceRegistry.forId(id);
+        Device.logger.log("QZ:DeviceState", "Device selected: " + (currentDevice != null ? currentDevice.displayName() : String.valueOf(id)));
     }
 }

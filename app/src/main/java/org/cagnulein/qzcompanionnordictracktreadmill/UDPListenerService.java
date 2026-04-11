@@ -22,7 +22,7 @@ import android.widget.TextView;
  * #socat - UDP-DATAGRAM:192.168.1.255:8002,broadcast,sp=8002
  */
 public class UDPListenerService extends Service {
-    private static final String LOG_TAG = "QZ:UDPListenerService";
+    private static final String LOG_TAG = "QZ:UDP";
 
     static String UDP_BROADCAST = "UDPBroadcast";
 
@@ -30,8 +30,8 @@ public class UDPListenerService extends Service {
 
     static SharedPreferences sharedPreferences;
 
-    private final ShellRuntime shellRuntime = new ShellRuntime();
     private CommandDispatcher dispatcher;
+    private UDPReceiveLoop receiveLoop;
 
     private void writeLog(String command) {
         if (sharedPreferences.getBoolean("debugLog", false)) {
@@ -47,32 +47,25 @@ public class UDPListenerService extends Service {
                 "MyApp::MyWakelockTag");
         wakeLock.acquire();
 
-        DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
-        char decimalSeparator = symbols.getDecimalSeparator();
-
-        byte[] recvBuf = new byte[15000];
         if (socket == null || socket.isClosed()) {
+            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
+            char decimalSeparator = symbols.getDecimalSeparator();
             socket = new DatagramSocket(port);
             socket.setBroadcast(true);
+            receiveLoop = new UDPReceiveLoop(dispatcher, decimalSeparator);
         }
-        //socket.setSoTimeout(1000);
-        DatagramPacket packet = new DatagramPacket(recvBuf, recvBuf.length);
+
         writeLog("Waiting for UDP broadcast");
-        socket.receive(packet);
 
-        String senderIP = packet.getAddress().getHostAddress();
-        String message = new String(packet.getData()).trim();
-
-        writeLog("Got UDP broadcast from " + senderIP + ", message: " + message);
-
-        writeLog(message);
         Device currentDevice = DeviceState.INSTANCE.currentDevice;
         if (currentDevice != null) {
-            dispatcher.dispatch(message, decimalSeparator, currentDevice, DeviceState.INSTANCE.lastSnapshot);
+            receiveLoop.receiveOne(socket, currentDevice, DeviceState.INSTANCE.lastSnapshot);
+        } else {
+            // No device selected yet — receive and discard the packet.
+            byte[] buf = new byte[15000];
+            socket.receive(new DatagramPacket(buf, buf.length));
+            writeLog("Packet discarded: no device selected");
         }
-
-        broadcastIntent(senderIP, message);
-        //socket.close();
     }
 
     private void broadcastIntent(String senderIP, String message) {
@@ -132,6 +125,9 @@ public class UDPListenerService extends Service {
     public void onCreate() {
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
         dispatcher = new CommandDispatcher(this::writeLog);
+        Device currentDevice = DeviceState.INSTANCE.currentDevice;
+        Log.i(LOG_TAG, "QZCompanion starting, listening on UDP port 8003");
+        Log.i(LOG_TAG, "Device: " + (currentDevice != null ? currentDevice.displayName() : "none selected"));
     }
 
     @Override
@@ -144,6 +140,7 @@ public class UDPListenerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         shouldRestartSocketListen = true;
         startListenForUDPBroadcast();
+        Log.i(LOG_TAG, "UDP listener started on port 8003");
         writeLog("Service started");
         return START_STICKY;
     }

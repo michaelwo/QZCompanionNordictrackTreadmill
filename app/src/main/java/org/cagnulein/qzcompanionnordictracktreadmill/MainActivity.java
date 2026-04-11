@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     private ShellService.ShellServiceBinder binder;
     private static DeviceConnection connection;
     private Intent service;
-    private static final String LOG_TAG = "QZ:AdbRemote";
+    private static final String LOG_TAG = "QZ:ADB";
     private static String lastCommand = "";
     private static boolean ADBConnected = false;
     private static String appLogs = "";
@@ -447,6 +447,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         }*/
 
         Device.commandExecutor = MainActivity::sendCommand;
+        Device.logger = (tag, msg) -> Log.i(tag, msg);
 
         AlarmReceiver alarm = new AlarmReceiver();
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
@@ -539,6 +540,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
     static public void sendCommand(String command) {
         if(ADBConnected) {
+            Log.d(LOG_TAG, "sendCommand [ADB UP]: " + command);
             StringBuilder commandBuffer = new StringBuilder();
 
             commandBuffer.append(command);
@@ -549,7 +551,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             /* Send it to the device */
             connection.queueCommand(commandBuffer.toString());
         } else {
-            Log.e(LOG_TAG, "sendCommand ADB is not connected!");
+            Log.e(LOG_TAG, "sendCommand [ADB DOWN]: " + command);
         }
     }
 
