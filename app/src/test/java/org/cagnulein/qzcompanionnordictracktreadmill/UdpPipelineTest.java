@@ -26,9 +26,6 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class UdpPipelineTest {
 
-    /** Port used by UDPListenerService in production. */
-    private static final int UDP_PORT = 8003;
-
     private DatagramSocket serverSocket;
     private Thread         listenerThread;
     private String         lastCommand;
@@ -38,9 +35,9 @@ public class UdpPipelineTest {
     public void setUp() throws Exception {
         lastCommand = null;
         Device.commandExecutor = cmd -> lastCommand = cmd;
-        serverSocket = new DatagramSocket(null);
-        serverSocket.setReuseAddress(true);
-        serverSocket.bind(new java.net.InetSocketAddress(UDP_PORT));
+        // Port 0 lets the OS assign a free ephemeral port, avoiding conflicts when
+        // Gradle runs test methods in parallel across multiple threads.
+        serverSocket = new DatagramSocket(0);
         dispatcher   = new CommandDispatcher();
     }
 
@@ -80,12 +77,12 @@ public class UdpPipelineTest {
     }
 
     /** Sends a UDP datagram to the server socket on loopback. */
-    private static void sendUdp(String message) throws Exception {
+    private void sendUdp(String message) throws Exception {
         try (DatagramSocket sender = new DatagramSocket()) {
             byte[] data = message.getBytes("UTF-8");
             sender.send(new DatagramPacket(
                     data, data.length,
-                    InetAddress.getLoopbackAddress(), UDP_PORT));
+                    InetAddress.getLoopbackAddress(), serverSocket.getLocalPort()));
         }
     }
 
