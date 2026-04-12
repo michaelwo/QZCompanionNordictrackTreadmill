@@ -38,15 +38,21 @@ public class UdpPipelineTest {
     public void setUp() throws Exception {
         lastCommand = null;
         Device.commandExecutor = cmd -> lastCommand = cmd;
-        serverSocket = new DatagramSocket(UDP_PORT);
+        serverSocket = new DatagramSocket(null);
+        serverSocket.setReuseAddress(true);
+        serverSocket.bind(new java.net.InetSocketAddress(UDP_PORT));
         dispatcher   = new CommandDispatcher();
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         Device.commandExecutor = cmd -> {};
-        if (listenerThread != null) listenerThread.interrupt();
+        // Close socket first so any blocking receive() throws and the thread exits.
         if (serverSocket  != null) serverSocket.close();
+        if (listenerThread != null) {
+            listenerThread.interrupt();
+            listenerThread.join(1000);
+        }
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
