@@ -27,6 +27,11 @@ import java.util.List;
  *   grade 8%  → y2=469   (sent as 8.5)
  *   grade 10% → y2=435   (sent as 10.5)
  *
+ * Incoming grades are quantized to the nearest 0.5% before comparison and dispatch.
+ * This ensures swipes only target valid iFit snap positions (0.0, 0.5, 1.0, ...) so
+ * that Zwift's sub-0.5% jitter (e.g. 6.7, 6.8, 6.9) never fires a swipe that can't
+ * move the physical slider.
+ *
  * Run via run-tests.sh (pure JVM, no Android SDK required).
  */
 public class ZwiftRideSimulationTest {
@@ -214,37 +219,38 @@ public class ZwiftRideSimulationTest {
         assertEquals(swipe(targetY(2f), finalY), commands.get(commands.size() - 1));
     }
 
-    // ── test 7: sub-threshold changes are suppressed ──────────────────────────
+    // ── test 7: sub-grid changes are suppressed via quantization ─────────────
 
     /**
-     * Changes smaller than 0.5% must be suppressed — they produce 1–2 pixel swipes
-     * that don't cross any snap boundary and leave the physical slider unchanged.
+     * Grades are quantized to the nearest 0.5% before dispatching.
+     * 6.7% quantizes to 7.0% (same as last fired), so no swipe fires.
+     * 6.5% quantizes to 6.5% (different), so a swipe fires.
      */
     @Test
     public void subThresholdChange_belowHalfPercent_suppressed() {
         CommandDispatcher d = dispatcher();
         S22iDevice bike = new S22iDevice();
 
-        send(d, bike, 7.0f, 600);  // fires
-        send(d, bike, 6.7f, 600);  // delta=0.3 < 0.5 → suppressed
-        send(d, bike, 6.5f, 600);  // delta=0.5 from last FIRED (7.0) → fires
+        send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
+        send(d, bike, 6.7f, 600);  // quantized 7.0 → de-dup (same as last)
+        send(d, bike, 6.5f, 600);  // quantized 6.5 → fires
 
-        assertEquals("only changes ≥ 0.5% should fire; 0.3% delta must be skipped", 2, commands.size());
+        assertEquals("only snap-grid changes should fire; 6.7→7.0 quantizes to same as last", 2, commands.size());
         assertEquals(swipe(618,           targetY(7.0f)), commands.get(0));
         assertEquals(swipe(targetY(7.0f), targetY(6.5f)), commands.get(1));
     }
 
     /**
-     * A change of exactly 0.5% must fire — it's the minimum that crosses one
-     * iFit snap increment (~8.6 pixels).
+     * A grade that quantizes to a different 0.5% snap point must fire.
+     * 6.5% quantizes to 6.5%, which differs from last fired 7.0%.
      */
     @Test
     public void exactThreshold_halfPercent_fires() {
         CommandDispatcher d = dispatcher();
         S22iDevice bike = new S22iDevice();
 
-        send(d, bike, 7.0f, 600);  // fires
-        send(d, bike, 6.5f, 600);  // delta=0.5 exactly → must fire
+        send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
+        send(d, bike, 6.5f, 600);  // quantized 6.5 → different snap point → fires
 
         assertEquals(2, commands.size());
         assertEquals(swipe(targetY(7.0f), targetY(6.5f)), commands.get(1));

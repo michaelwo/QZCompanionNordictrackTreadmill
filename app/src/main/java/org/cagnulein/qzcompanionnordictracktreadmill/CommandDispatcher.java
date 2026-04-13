@@ -61,17 +61,20 @@ class CommandDispatcher {
             // incline (2-part message)
             Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.resistanceLvl;
             if (incline != null) {
-                log.write("requestIncline(bike): " + incline + " last=" + lastRequested.resistanceLvl);
+                // Quantize to nearest 0.5% — the S22i snap grid. Swipes targeting
+                // off-grid values (e.g. 0.1, 0.3, 1.3) don't move the physical slider.
+                float quantized = Math.round(incline * 2) / 2.0f;
+                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastRequested.resistanceLvl);
                 if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
-                    float lastIncline = lastRequested.resistanceLvl != null ? lastRequested.resistanceLvl : Float.MAX_VALUE;
-                    if (Math.abs(incline - lastIncline) >= 0.5f) {
-                        bike.applyIncline(incline, current);
-                        log.write("applyIncline(bike): " + incline);
-                        lastRequested.resistanceLvl = incline;
+                    float lastQuantized = lastRequested.resistanceLvl != null ? lastRequested.resistanceLvl : Float.MAX_VALUE;
+                    if (quantized != lastQuantized) {
+                        bike.applyIncline(quantized, current);
+                        log.write("applyIncline(bike): " + quantized);
+                        lastRequested.resistanceLvl = quantized;
                         lastSwipeMs = now;
                         cached.resistanceLvl = null;
                     } else {
-                        log.write("de-dup: skipping incline " + incline + " (delta " + Math.abs(incline - lastIncline) + " < 0.5)");
+                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastQuantized + ")");
                     }
                 } else {
                     log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
