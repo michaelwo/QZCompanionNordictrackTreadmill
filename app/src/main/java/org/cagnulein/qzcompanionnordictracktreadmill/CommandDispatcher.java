@@ -63,14 +63,15 @@ class CommandDispatcher {
             if (incline != null) {
                 log.write("requestIncline(bike): " + incline + " last=" + lastRequested.resistanceLvl);
                 if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
-                    if (!incline.equals(lastRequested.resistanceLvl)) {
+                    float lastIncline = lastRequested.resistanceLvl != null ? lastRequested.resistanceLvl : Float.MAX_VALUE;
+                    if (Math.abs(incline - lastIncline) >= 0.5f) {
                         bike.applyIncline(incline, current);
                         log.write("applyIncline(bike): " + incline);
                         lastRequested.resistanceLvl = incline;
                         lastSwipeMs = now;
                         cached.resistanceLvl = null;
                     } else {
-                        log.write("de-dup: skipping incline " + incline + " (already at " + lastRequested.resistanceLvl + ")");
+                        log.write("de-dup: skipping incline " + incline + " (delta " + Math.abs(incline - lastIncline) + " < 0.5)");
                     }
                 } else {
                     log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");

@@ -213,4 +213,110 @@ public class ZwiftRideSimulationTest {
         assertEquals("final position should be flat", 616, finalY);
         assertEquals(swipe(targetY(2f), finalY), commands.get(commands.size() - 1));
     }
+
+    // ── test 7: sub-threshold changes are suppressed ──────────────────────────
+
+    /**
+     * Changes smaller than 0.5% must be suppressed — they produce 1–2 pixel swipes
+     * that don't cross any snap boundary and leave the physical slider unchanged.
+     */
+    @Test
+    public void subThresholdChange_belowHalfPercent_suppressed() {
+        CommandDispatcher d = dispatcher();
+        S22iDevice bike = new S22iDevice();
+
+        send(d, bike, 7.0f, 600);  // fires
+        send(d, bike, 6.7f, 600);  // delta=0.3 < 0.5 → suppressed
+        send(d, bike, 6.5f, 600);  // delta=0.5 from last FIRED (7.0) → fires
+
+        assertEquals("only changes ≥ 0.5% should fire; 0.3% delta must be skipped", 2, commands.size());
+        assertEquals(swipe(618,           targetY(7.0f)), commands.get(0));
+        assertEquals(swipe(targetY(7.0f), targetY(6.5f)), commands.get(1));
+    }
+
+    /**
+     * A change of exactly 0.5% must fire — it's the minimum that crosses one
+     * iFit snap increment (~8.6 pixels).
+     */
+    @Test
+    public void exactThreshold_halfPercent_fires() {
+        CommandDispatcher d = dispatcher();
+        S22iDevice bike = new S22iDevice();
+
+        send(d, bike, 7.0f, 600);  // fires
+        send(d, bike, 6.5f, 600);  // delta=0.5 exactly → must fire
+
+        assertEquals(2, commands.size());
+        assertEquals(swipe(targetY(7.0f), targetY(6.5f)), commands.get(1));
+    }
+
+    // ── test 8: Mountain Mash regression — slow descent in 0.1% steps ────────
+
+    /**
+     * Regression for the Mountain Mash route: Zwift descends in 0.1% increments
+     * (~1.7 px each), which left the bike stuck at the peak grade.
+     *
+     * With the 0.5% threshold, only 1-in-5 messages fires a swipe.  Each fired
+     * swipe covers ~8.6 pixels — enough to reliably cross a snap boundary.
+     *
+     * Descending from 7.0% to 5.0%:
+     *   fires at 7.0%, 6.5%, 6.0%, 5.5%, 5.0%  (5 swipes, not 21)
+     */
+    @Test
+    public void mountainMash_slowDescent_firesEveryHalfPercent() {
+        CommandDispatcher d = dispatcher();
+        S22iDevice bike = new S22iDevice();
+
+        // Peak grade — fires immediately
+        send(d, bike, 7.0f, 600);
+
+        // Descend in 0.1% steps from 6.9% to 5.0%
+        for (int i = 69; i >= 50; i--) {
+            send(d, bike, i / 10.0f, 600);
+        }
+
+        // Expected fires: 7.0, 6.5, 6.0, 5.5, 5.0
+        float[] expectedGrades = {7.0f, 6.5f, 6.0f, 5.5f, 5.0f};
+        assertEquals("descent in 0.1% steps should fire at every 0.5% boundary",
+                expectedGrades.length, commands.size());
+
+        int y1 = 618;
+        for (int i = 0; i < expectedGrades.length; i++) {
+            int y2 = targetY(expectedGrades[i]);
+            assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
+                    swipe(y1, y2), commands.get(i));
+            y1 = y2;
+        }
+    }
+
+    /**
+     * Symmetric ascent: Zwift climbs in 0.1% steps from 5.0% to 7.0%.
+     * Fires at 5.0%, 5.5%, 6.0%, 6.5%, 7.0% — same 0.5% cadence.
+     */
+    @Test
+    public void mountainMash_slowAscent_firesEveryHalfPercent() {
+        CommandDispatcher d = dispatcher();
+        S22iDevice bike = new S22iDevice();
+
+        // Starting grade
+        send(d, bike, 5.0f, 600);
+
+        // Ascend in 0.1% steps from 5.1% to 7.0%
+        for (int i = 51; i <= 70; i++) {
+            send(d, bike, i / 10.0f, 600);
+        }
+
+        // Expected fires: 5.0, 5.5, 6.0, 6.5, 7.0
+        float[] expectedGrades = {5.0f, 5.5f, 6.0f, 6.5f, 7.0f};
+        assertEquals("ascent in 0.1% steps should fire at every 0.5% boundary",
+                expectedGrades.length, commands.size());
+
+        int y1 = 618;
+        for (int i = 0; i < expectedGrades.length; i++) {
+            int y2 = targetY(expectedGrades[i]);
+            assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
+                    swipe(y1, y2), commands.get(i));
+            y1 = y2;
+        }
+    }
 }
