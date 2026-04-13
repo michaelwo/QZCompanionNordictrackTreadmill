@@ -35,6 +35,7 @@ class DeviceRegistry {
         c1750_2021,
         s22i_NTEX02121_5,
         s22i_NTEX02117_2,
+        s22i_noadb,
         x32i_NTL39221,
         c1750_2020,
         elite1000,
@@ -84,6 +85,7 @@ class DeviceRegistry {
         m.put(DeviceId.c1750_2021,                   new C1750_2021Device());
         m.put(DeviceId.s22i_NTEX02121_5,            new S22iNtex02121Device());
         m.put(DeviceId.s22i_NTEX02117_2,            new S22iNtex02117Device());
+        m.put(DeviceId.s22i_noadb,                   new S22iNoAdbDevice());
         m.put(DeviceId.x32i_NTL39221,               new X32iNtl39221Device());
         m.put(DeviceId.c1750_2020,                   new C1750_2020Device());
         m.put(DeviceId.elite1000,                    new Elite1000Device("Elite 1000 Treadmill"));

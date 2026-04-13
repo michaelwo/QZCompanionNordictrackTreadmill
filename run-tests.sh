@@ -68,6 +68,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/T65sDevice.java \
   $SRC/OtherDevice.java \
   $SRC/S22iDevice.java \
+  $SRC/S22iNoAdbDevice.java \
   $SRC/S22iNtex02117Device.java \
   $SRC/S22iNtex02121Device.java \
   $SRC/S27iDevice.java \

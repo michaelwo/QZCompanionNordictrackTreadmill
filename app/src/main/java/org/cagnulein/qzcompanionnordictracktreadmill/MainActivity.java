@@ -331,6 +331,12 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
                     DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s15i);
                 } else if(i == R.id.s22i) {
                     DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i);
+                } else if(i == R.id.s22i_noadb) {
+                    if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
+                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                        startActivity(intent);
+                    }
+                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i_noadb);
                 } else if(i == R.id.s27i) {
                     DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s27i);
                 } else if(i == R.id.s22i_NTEX02121_5) {
