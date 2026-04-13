@@ -23,6 +23,7 @@ class CommandDispatcher {
 
     private final MetricSnapshot cached        = new MetricSnapshot();
     private final MetricSnapshot lastRequested = new MetricSnapshot();
+    private float lastAppliedIncline = Float.MAX_VALUE;  // last quantized incline sent to bike
     private long lastSwipeMs = 0;
 
     /** Production constructor: wall clock, silent logger. */
@@ -59,26 +60,25 @@ class CommandDispatcher {
             BikeDevice bike = (BikeDevice) device;
 
             // incline (2-part message)
-            Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.resistanceLvl;
+            Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
             if (incline != null) {
-                // Quantize to nearest 0.5% — the S22i snap grid. Swipes targeting
-                // off-grid values (e.g. 0.1, 0.3, 1.3) don't move the physical slider.
-                float quantized = Math.round(incline * 2) / 2.0f;
-                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastRequested.resistanceLvl);
+                // Ask the device to quantize to its physical snap grid (e.g. 0.5% for S22i).
+                // Other devices return the value unchanged.
+                float quantized = bike.quantizeIncline(incline);
+                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastAppliedIncline);
                 if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
-                    float lastQuantized = lastRequested.resistanceLvl != null ? lastRequested.resistanceLvl : Float.MAX_VALUE;
-                    if (quantized != lastQuantized) {
+                    if (quantized != lastAppliedIncline) {
                         bike.applyIncline(quantized, current);
                         log.write("applyIncline(bike): " + quantized);
-                        lastRequested.resistanceLvl = quantized;
+                        lastAppliedIncline = quantized;
                         lastSwipeMs = now;
-                        cached.resistanceLvl = null;
+                        cached.inclinePct = null;
                     } else {
-                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastQuantized + ")");
+                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastAppliedIncline + ")");
                     }
                 } else {
                     log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                    cached.resistanceLvl = incline;
+                    cached.inclinePct = incline;
                 }
             }
 

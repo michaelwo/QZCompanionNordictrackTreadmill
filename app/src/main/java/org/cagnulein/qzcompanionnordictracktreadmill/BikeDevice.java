@@ -13,6 +13,13 @@ abstract class BikeDevice extends Device {
     protected abstract int targetInclineY(double value);
     protected int currentInclineY(MetricSnapshot current) { return yIncline; }
 
+    /**
+     * Quantizes an incoming grade to the nearest value this device can physically reach.
+     * Default: identity (no quantization). Override for devices whose slider snaps to
+     * a fixed grid (e.g. S22i snaps to 0.5% increments).
+     */
+    protected float quantizeIncline(float grade) { return grade; }
+
     protected int resistanceX()               { return -1; }
     protected int targetResistanceY(double v) { return -1; }
     protected int currentResistanceY(MetricSnapshot current) { return yResistance; }

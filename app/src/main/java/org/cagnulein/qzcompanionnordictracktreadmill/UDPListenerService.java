@@ -32,6 +32,7 @@ public class UDPListenerService extends Service {
 
     private CommandDispatcher dispatcher;
     private UDPReceiveLoop receiveLoop;
+    private PowerManager.WakeLock wakeLock;
 
     private void writeLog(String command) {
         if (sharedPreferences.getBoolean("debugLog", false)) {
@@ -42,11 +43,6 @@ public class UDPListenerService extends Service {
     }
 
     private void listenAndWaitAndThrowIntent(InetAddress broadcastIP, Integer port) throws Exception {
-        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
-        PowerManager.WakeLock wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                "MyApp::MyWakelockTag");
-        wakeLock.acquire();
-
         if (socket == null || socket.isClosed()) {
             DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
             char decimalSeparator = symbols.getDecimalSeparator();
@@ -57,14 +53,19 @@ public class UDPListenerService extends Service {
 
         writeLog("Waiting for UDP broadcast");
 
-        Device currentDevice = DeviceState.INSTANCE.currentDevice;
-        if (currentDevice != null) {
-            receiveLoop.receiveOne(socket, currentDevice, DeviceState.INSTANCE.lastSnapshot);
-        } else {
-            // No device selected yet — receive and discard the packet.
-            byte[] buf = new byte[15000];
-            socket.receive(new DatagramPacket(buf, buf.length));
-            writeLog("Packet discarded: no device selected");
+        wakeLock.acquire(10_000L); // 10-second timeout — auto-releases if receive hangs
+        try {
+            Device currentDevice = DeviceState.INSTANCE.currentDevice;
+            if (currentDevice != null) {
+                receiveLoop.receiveOne(socket, currentDevice, DeviceState.INSTANCE.lastSnapshot);
+            } else {
+                // No device selected yet — receive and discard the packet.
+                byte[] buf = new byte[15000];
+                socket.receive(new DatagramPacket(buf, buf.length));
+                writeLog("Packet discarded: no device selected");
+            }
+        } finally {
+            if (wakeLock.isHeld()) wakeLock.release();
         }
     }
 
@@ -114,7 +115,7 @@ public class UDPListenerService extends Service {
         UDPBroadcastThread.start();
     }
 
-    private Boolean shouldRestartSocketListen=true;
+    private volatile boolean shouldRestartSocketListen = true;
 
     void stopListen() {
         shouldRestartSocketListen = false;
@@ -125,6 +126,8 @@ public class UDPListenerService extends Service {
     public void onCreate() {
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
         dispatcher = new CommandDispatcher(this::writeLog);
+        PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
         Device currentDevice = DeviceState.INSTANCE.currentDevice;
         Log.i(LOG_TAG, "QZCompanion starting, listening on UDP port 8003");
         Log.i(LOG_TAG, "Device: " + (currentDevice != null ? currentDevice.displayName() : "none selected"));

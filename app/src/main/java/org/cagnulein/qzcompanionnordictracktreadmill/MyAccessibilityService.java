@@ -30,7 +30,11 @@ public class MyAccessibilityService extends AccessibilityService {
     }
 
     public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
-        if (instance == null) return;
+        if (instance == null) {
+            Log.w("QZ:Accessibility", "performSwipe called but AccessibilityService is not connected — " +
+                    "enable QZCompanion in Android Accessibility Settings");
+            return;
+        }
 
         Path path = new Path();
         path.moveTo(startX, startY);
