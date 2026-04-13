@@ -90,7 +90,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     @Override
     public void notifyConnectionFailed(DeviceConnection devConn, Exception e) {
         ADBConnected = false;
-        Log.e(LOG_TAG, e.getMessage());
+        Log.e(LOG_TAG, "notifyConnectionFailed: " + e.getMessage() + " — scheduling reconnect");
+        scheduleReconnect();
     }
 
     @Override
