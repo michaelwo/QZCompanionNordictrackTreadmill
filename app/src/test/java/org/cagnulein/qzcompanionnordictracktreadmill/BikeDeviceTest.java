@@ -43,16 +43,16 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = new S22iDevice();
         dev.applyIncline(10.0, new MetricSnapshot());
-        // y2 = (int)(616.18 - 172.23) = (int)443.95 = 443
-        assertEquals("input swipe 75 618 75 443 200", lastCommand);
+        // grade > 3, so overshoot +0.5: y2 = (int)(616.18 - 17.223 * 10.5) = (int)435.34 = 435
+        assertEquals("input swipe 75 618 75 435 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = new S22iDevice();
-        dev.applyIncline(10.0, new MetricSnapshot()); // y2 = 443; currentInclineY becomes 443
-        dev.applyIncline(5.0, new MetricSnapshot());  // y2 = (int)(616.18 - 86.115) = (int)530.065 = 530; y1 = 443
-        assertEquals("input swipe 75 443 75 530 200", lastCommand);
+        dev.applyIncline(10.0, new MetricSnapshot()); // grade>3: y2=(int)(616.18-17.223*10.5)=435; currentInclineY=435
+        dev.applyIncline(5.0, new MetricSnapshot());  // grade>3: y2=(int)(616.18-17.223*5.5)=521; y1=435
+        assertEquals("input swipe 75 435 75 521 200", lastCommand);
     }
 
     @Test

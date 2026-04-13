@@ -19,12 +19,13 @@ import java.util.List;
  * All assertions verify both the swipe command format and the y1→y2 chain
  * (confirming that state tracking is correct across calls).
  *
- * S22i formula: x=75, y2 = (int)(616.18 - 17.223 * grade)
+ * S22i formula: x=75, y2 = (int)(616.18 - 17.223 * (grade > 3.0 ? grade + 0.5 : grade))
+ * Grades ≤ 3% use the raw value; above 3% a +0.5 overshoot corrects iFit's 0.5% snap rounding.
  *   grade 0%  → y2=616   (initial y1=618)
- *   grade 5%  → y2=530
- *   grade 10% → y2=443
- *   grade 8%  → y2=478
  *   grade 3%  → y2=564
+ *   grade 5%  → y2=521   (sent as 5.5)
+ *   grade 8%  → y2=469   (sent as 8.5)
+ *   grade 10% → y2=435   (sent as 10.5)
  *
  * Run via run-tests.sh (pure JVM, no Android SDK required).
  */
@@ -60,9 +61,9 @@ public class ZwiftRideSimulationTest {
         return "input swipe 75 " + y1 + " 75 " + y2 + " 200";
     }
 
-    /** S22i target y for a given grade percentage. */
+    /** S22i target y for a given grade percentage, matching the snap-corrected formula. */
     private static int targetY(float grade) {
-        return (int) (616.18 - 17.223 * grade);
+        return (int) (616.18 - 17.223 * (grade > 3.0f ? grade + 0.5f : grade));
     }
 
     // ── test 1: full Zwift ride — correct swipe chain ─────────────────────────
