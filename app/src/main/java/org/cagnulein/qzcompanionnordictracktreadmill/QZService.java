@@ -40,6 +40,14 @@ public class QZService extends Service {
 
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
+    /** Tracks the last value broadcast for each metric — only changed values are sent. */
+    private final MetricSnapshot lastBroadcast = new MetricSnapshot();
+
+    /** Log file and UDP broadcast poll interval. The iFit firmware writes metrics at ~1 Hz;
+     *  250 ms gives four reads per source update — fast enough to catch every change while
+     *  reducing CPU, shell-exec, and network load by 60% versus the previous 100 ms. */
+    private static final int POLL_INTERVAL_MS = 250;
+
     @Override
     public void onCreate() {
 
@@ -61,7 +69,7 @@ public class QZService extends Service {
                     writeLog( "Service run");
                     if(sharedPreferences.getBoolean("OCR", false)) {
                         getOCR();
-                        handler.postDelayed(runnable, 100);
+                        handler.postDelayed(runnable, POLL_INTERVAL_MS);
                     }
                     else
                         parse();
@@ -71,7 +79,7 @@ public class QZService extends Service {
 
         if(runnable != null) {
             writeLog( "Service postDelayed");
-            handler.postDelayed(runnable, 100);
+            handler.postDelayed(runnable, POLL_INTERVAL_MS);
         }
     }
 
@@ -160,7 +168,7 @@ public class QZService extends Service {
         String file = pickLatestFileFromDownloads();
         writeLog("Parsing " + file);
         if (file.isEmpty()) {
-            handler.postDelayed(runnable, 100);
+            handler.postDelayed(runnable, POLL_INTERVAL_MS);
             return;
         }
 
@@ -175,7 +183,7 @@ public class QZService extends Service {
         } catch (Exception ex) {
             Log.e(LOG_TAG, "parse error: " + ex.getMessage());
         }
-        handler.postDelayed(runnable, 100);
+        handler.postDelayed(runnable, POLL_INTERVAL_MS);
     }
 
     private void applySnapshot(MetricSnapshot m) {
@@ -189,13 +197,35 @@ public class QZService extends Service {
     }
 
     private void broadcastLastKnown() {
-        if (state.lastSnapshot.speedKmh      != null) sendBroadcast("Changed KPH "         + state.lastSnapshot.speedKmh);
-        if (state.lastSnapshot.inclinePct    != null) sendBroadcast("Changed Grade "       + state.lastSnapshot.inclinePct);
-        if (state.lastSnapshot.watts         != null) sendBroadcast("Changed Watts "       + state.lastSnapshot.watts.intValue());
-        if (state.lastSnapshot.cadenceRpm    != null) sendBroadcast("Changed RPM "         + state.lastSnapshot.cadenceRpm);
-        if (state.lastSnapshot.gearLevel     != null) sendBroadcast("Changed CurrentGear " + state.lastSnapshot.gearLevel);
-        if (state.lastSnapshot.resistanceLvl != null) sendBroadcast("Changed Resistance "  + state.lastSnapshot.resistanceLvl);
-        if (state.lastSnapshot.heartRate     != null) sendBroadcast("HeartRateDataUpdate " + state.lastSnapshot.heartRate.intValue());
+        MetricSnapshot s = state.lastSnapshot;
+        if (s.speedKmh      != null && !s.speedKmh.equals(lastBroadcast.speedKmh)) {
+            sendBroadcast("Changed KPH "         + s.speedKmh);
+            lastBroadcast.speedKmh      = s.speedKmh;
+        }
+        if (s.inclinePct    != null && !s.inclinePct.equals(lastBroadcast.inclinePct)) {
+            sendBroadcast("Changed Grade "       + s.inclinePct);
+            lastBroadcast.inclinePct    = s.inclinePct;
+        }
+        if (s.watts         != null && !s.watts.equals(lastBroadcast.watts)) {
+            sendBroadcast("Changed Watts "       + s.watts.intValue());
+            lastBroadcast.watts         = s.watts;
+        }
+        if (s.cadenceRpm    != null && !s.cadenceRpm.equals(lastBroadcast.cadenceRpm)) {
+            sendBroadcast("Changed RPM "         + s.cadenceRpm);
+            lastBroadcast.cadenceRpm    = s.cadenceRpm;
+        }
+        if (s.gearLevel     != null && !s.gearLevel.equals(lastBroadcast.gearLevel)) {
+            sendBroadcast("Changed CurrentGear " + s.gearLevel);
+            lastBroadcast.gearLevel     = s.gearLevel;
+        }
+        if (s.resistanceLvl != null && !s.resistanceLvl.equals(lastBroadcast.resistanceLvl)) {
+            sendBroadcast("Changed Resistance "  + s.resistanceLvl);
+            lastBroadcast.resistanceLvl = s.resistanceLvl;
+        }
+        if (s.heartRate     != null && !s.heartRate.equals(lastBroadcast.heartRate)) {
+            sendBroadcast("HeartRateDataUpdate " + s.heartRate.intValue());
+            lastBroadcast.heartRate     = s.heartRate;
+        }
     }
 
     private void applyAndBroadcast(MetricSnapshot m) {
