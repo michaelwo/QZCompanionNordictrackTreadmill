@@ -144,7 +144,7 @@ public class MetricReaderTest {
         String[] captured = {null};
         LogcatDumpMetricReader.adbSender = cmd -> captured[0] = cmd;
         new LogcatDumpMetricReader().read("any.log", fixedShell(""));
-        assertEquals("logcat -b all -d > /sdcard/logcat.log", captured[0]);
+        assertEquals("logcat -b all -d -t 500 > /sdcard/logcat.log", captured[0]);
     }
 
     // ── DirectLogcatMetricReader ──────────────────────────────────────────────

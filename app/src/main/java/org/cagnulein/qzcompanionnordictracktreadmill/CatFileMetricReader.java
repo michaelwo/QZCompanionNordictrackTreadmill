@@ -14,27 +14,27 @@ class CatFileMetricReader implements MetricReader {
     @Override
     public MetricSnapshot read(String file, Shell shell) throws IOException {
         MetricSnapshot m = new MetricSnapshot();
-        InputStream in = shell.execAndGetOutput("cat " + file);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.contains("Changed KPH") || line.contains("Kph changed")) {
-                m.speedKmh = lastFloat(line);
-            } else if (line.contains("Changed Grade") || line.contains("Grade changed")) {
-                m.inclinePct = lastFloat(line);
-            } else if (line.contains("Changed Watts") || line.contains("Watts changed")) {
-                m.watts = lastFloat(line);
-            } else if (line.contains("Changed RPM")) {
-                m.cadenceRpm = lastFloat(line);
-            } else if (line.contains("Changed CurrentGear")) {
-                m.gearLevel = lastFloat(line);
-            } else if (line.contains("Changed Resistance")) {
-                m.resistanceLvl = lastFloat(line);
-            } else if (line.contains("HeartRateDataUpdate")) {
-                m.heartRate = lastFloat(line);
+        try (InputStream in = shell.execAndGetOutput("cat " + file);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Changed KPH") || line.contains("Kph changed")) {
+                    m.speedKmh = lastFloat(line);
+                } else if (line.contains("Changed Grade") || line.contains("Grade changed")) {
+                    m.inclinePct = lastFloat(line);
+                } else if (line.contains("Changed Watts") || line.contains("Watts changed")) {
+                    m.watts = lastFloat(line);
+                } else if (line.contains("Changed RPM")) {
+                    m.cadenceRpm = lastFloat(line);
+                } else if (line.contains("Changed CurrentGear")) {
+                    m.gearLevel = lastFloat(line);
+                } else if (line.contains("Changed Resistance")) {
+                    m.resistanceLvl = lastFloat(line);
+                } else if (line.contains("HeartRateDataUpdate")) {
+                    m.heartRate = lastFloat(line);
+                }
             }
         }
-        in.close();
         return m;
     }
 

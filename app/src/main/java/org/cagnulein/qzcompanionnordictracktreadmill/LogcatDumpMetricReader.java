@@ -17,28 +17,30 @@ class LogcatDumpMetricReader implements MetricReader {
 
     @Override
     public MetricSnapshot read(String file, Shell shell) throws IOException {
-        adbSender.send("logcat -b all -d > /sdcard/logcat.log");
+        // -t 500: limit to last 500 entries so the file stays bounded in size
+        // regardless of how long the session has been running.
+        adbSender.send("logcat -b all -d -t 500 > /sdcard/logcat.log");
 
         MetricSnapshot m = new MetricSnapshot();
-        InputStream in = shell.execAndGetOutput("cat /sdcard/logcat.log");
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            if (line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
-                m.speedKmh = lastFloat(line);
-            } else if (line.contains("Changed Grade") || line.contains("Changed Actual Grade")) {
-                m.inclinePct = lastFloat(line);
-            } else if (line.contains("Changed Watts")) {
-                m.watts = lastFloat(line);
-            } else if (line.contains("Changed RPM")) {
-                m.cadenceRpm = lastFloat(line);
-            } else if (line.contains("Changed CurrentGear")) {
-                m.gearLevel = lastFloat(line);
-            } else if (line.contains("Changed Resistance")) {
-                m.resistanceLvl = lastFloat(line);
+        try (InputStream in = shell.execAndGetOutput("cat /sdcard/logcat.log");
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
+                    m.speedKmh = lastFloat(line);
+                } else if (line.contains("Changed Grade") || line.contains("Changed Actual Grade")) {
+                    m.inclinePct = lastFloat(line);
+                } else if (line.contains("Changed Watts")) {
+                    m.watts = lastFloat(line);
+                } else if (line.contains("Changed RPM")) {
+                    m.cadenceRpm = lastFloat(line);
+                } else if (line.contains("Changed CurrentGear")) {
+                    m.gearLevel = lastFloat(line);
+                } else if (line.contains("Changed Resistance")) {
+                    m.resistanceLvl = lastFloat(line);
+                }
             }
         }
-        in.close();
         return m;
     }
 

@@ -48,19 +48,19 @@ class TailGrepMetricReader implements MetricReader {
 
     private boolean trySpeed(MetricSnapshot m, Shell shell, String cmd, boolean v2)
             throws IOException {
-        InputStream in = shell.execAndGetOutput(cmd);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line;
-        boolean found = false;
-        while ((line = reader.readLine()) != null) {
-            try {
-                String[] b = line.replaceAll(",", ".").split(" ");
-                m.speedKmh = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
-                found = true;
-            } catch (Exception ignored) {}
+        try (InputStream in = shell.execAndGetOutput(cmd);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            String line;
+            boolean found = false;
+            while ((line = reader.readLine()) != null) {
+                try {
+                    String[] b = line.replaceAll(",", ".").split(" ");
+                    m.speedKmh = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
+                    found = true;
+                } catch (Exception ignored) {}
+            }
+            return found;
         }
-        in.close();
-        return found;
     }
 
     private void findIncline(MetricSnapshot m, Shell shell, String file, boolean v2)
@@ -73,19 +73,19 @@ class TailGrepMetricReader implements MetricReader {
 
     private boolean tryIncline(MetricSnapshot m, Shell shell, String cmd, boolean v2)
             throws IOException {
-        InputStream in = shell.execAndGetOutput(cmd);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line;
-        boolean found = false;
-        while ((line = reader.readLine()) != null) {
-            try {
-                String[] b = line.replaceAll(",", ".").split(" ");
-                m.inclinePct = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
-                found = true;
-            } catch (Exception ignored) {}
+        try (InputStream in = shell.execAndGetOutput(cmd);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            String line;
+            boolean found = false;
+            while ((line = reader.readLine()) != null) {
+                try {
+                    String[] b = line.replaceAll(",", ".").split(" ");
+                    m.inclinePct = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
+                    found = true;
+                } catch (Exception ignored) {}
+            }
+            return found;
         }
-        in.close();
-        return found;
     }
 
     @FunctionalInterface
@@ -98,15 +98,15 @@ class TailGrepMetricReader implements MetricReader {
     }
 
     private boolean trySingle(Shell shell, String cmd, Setter setter) throws IOException {
-        InputStream in = shell.execAndGetOutput(cmd);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-        String line = reader.readLine();
-        in.close();
-        if (line != null) {
-            setter.set(line);
-            return true;
+        try (InputStream in = shell.execAndGetOutput(cmd);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+            String line = reader.readLine();
+            if (line != null) {
+                setter.set(line);
+                return true;
+            }
+            return false;
         }
-        return false;
     }
 
     private static Float lastFloat(String line) {

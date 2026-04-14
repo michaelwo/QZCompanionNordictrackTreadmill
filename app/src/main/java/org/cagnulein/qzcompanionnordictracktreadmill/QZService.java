@@ -26,7 +26,6 @@ public class QZService extends Service {
     static int clientPort = 8002;
     Handler handler = new Handler();
     Runnable runnable = null;
-    static DatagramSocket socket = null;
 
     byte[] lmessage = new byte[1024];
     DatagramPacket packet = new DatagramPacket(lmessage, lmessage.length);
@@ -68,11 +67,6 @@ public class QZService extends Service {
                         parse();
                 }
             };
-        } finally {
-            if(socket != null){
-                socket.close();
-                writeLog("socket.close()");
-            }
         }
 
         if(runnable != null) {
@@ -165,11 +159,12 @@ public class QZService extends Service {
     private void parse() {
         String file = pickLatestFileFromDownloads();
         writeLog("Parsing " + file);
-        if (file.isEmpty()) return;
+        if (file.isEmpty()) {
+            handler.postDelayed(runnable, 100);
+            return;
+        }
 
         try {
-            socket = new DatagramSocket();
-            socket.setBroadcast(true);
             writeLog("Device: " + (state.currentDevice != null ? state.currentDevice.displayName() : "none"));
 
             MetricReader reader = sharedPreferences.getBoolean("ADBLog", false)
@@ -178,10 +173,8 @@ public class QZService extends Service {
 
             applyAndBroadcast(reader.read(file, shellRuntime));
         } catch (Exception ex) {
-            ex.printStackTrace();
-            return;
+            Log.e(LOG_TAG, "parse error: " + ex.getMessage());
         }
-        socket.close();
         handler.postDelayed(runnable, 100);
     }
 
@@ -211,23 +204,19 @@ public class QZService extends Service {
     }
 
     public static void sendBroadcast(String messageStr) {
-        try {
-            socket = new DatagramSocket();
-            socket.setBroadcast(true);
+        if (broadcastAddress == null) {
+            Log.e(LOG_TAG, "Broadcast address is null, cannot send packet");
+            return;
+        }
 
-            StrictMode.ThreadPolicy policy = new   StrictMode.ThreadPolicy.Builder().permitAll().build();
-            StrictMode.setThreadPolicy(policy);
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
-            if (broadcastAddress == null) {
-                Log.e(LOG_TAG, "Broadcast address is null, cannot send packet");
-                return;
-            }
-
+        try (DatagramSocket s = new DatagramSocket()) {
+            s.setBroadcast(true);
             byte[] sendData = messageStr.getBytes();
             DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcastAddress, clientPort);
-            socket.send(sendPacket);
-
-            socket.close();
+            s.send(sendPacket);
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
         }
@@ -273,7 +262,7 @@ public class QZService extends Service {
     }
     @Override
     public void onDestroy() {
-        // The service is no longer used and is being destroyed
+        if (runnable != null) handler.removeCallbacks(runnable);
     }
 
     public String pickLatestFileFromDownloads() {
