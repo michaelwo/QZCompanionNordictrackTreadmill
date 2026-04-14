@@ -62,20 +62,18 @@ public class QZService extends Service {
         //Toast.makeText(this, "Service created!", Toast.LENGTH_LONG).show();
         writeLog( "Service onCreate");
 
-        try {
-            runnable = new Runnable() {
-                @Override
-                public void run() {
-                    writeLog( "Service run");
-                    if(sharedPreferences.getBoolean("OCR", false)) {
-                        getOCR();
-                        handler.postDelayed(runnable, POLL_INTERVAL_MS);
-                    }
-                    else
-                        parse();
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                writeLog( "Service run");
+                if(sharedPreferences.getBoolean("OCR", false)) {
+                    getOCR();
+                    handler.postDelayed(runnable, POLL_INTERVAL_MS);
                 }
-            };
-        }
+                else
+                    parse();
+            }
+        };
 
         if(runnable != null) {
             writeLog( "Service postDelayed");
