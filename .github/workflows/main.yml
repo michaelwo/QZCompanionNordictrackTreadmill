@@ -18,11 +18,18 @@ jobs:
      with:
          java-version: 17
          distribution: 'temurin'
+         cache: 'gradle'
    - name: Get the version
      id: get_version
      run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
    - name: Run unit tests
-     run: ./gradlew testDebugUnitTest
+     run: ./gradlew testDebugUnitTest --stacktrace 2>&1 | tee /tmp/test-output.txt; exit ${PIPESTATUS[0]}
+   - name: Upload test output on failure
+     uses: actions/upload-artifact@v4
+     if: failure()
+     with:
+       name: gradle-test-output
+       path: /tmp/test-output.txt
    - name: Publish test results
      uses: dorny/test-reporter@v1
      if: always()
