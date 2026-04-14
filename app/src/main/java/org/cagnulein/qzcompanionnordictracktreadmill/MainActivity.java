@@ -267,6 +267,24 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             }
         });
 
+        // ── BLE FTMS canary toggle ────────────────────────────────────────────
+        final boolean[] bleCanaryRunning = {false};
+        Button bleCanaryButton = findViewById(R.id.bleCanaryButton);
+        bleCanaryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent bleIntent = new Intent(getApplicationContext(), BleCanaryService.class);
+                if (bleCanaryRunning[0]) {
+                    stopService(bleIntent);
+                    bleCanaryButton.setText("Start BLE FTMS Canary");
+                } else {
+                    startService(bleIntent);
+                    bleCanaryButton.setText("Stop BLE FTMS Canary");
+                }
+                bleCanaryRunning[0] = !bleCanaryRunning[0];
+            }
+        });
+
         radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(RadioGroup radioGroup, int i) {

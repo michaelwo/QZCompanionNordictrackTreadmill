@@ -58,6 +58,13 @@
                     android:layout_weight="1"
                     android:text="Use ADB Log" />
             </LinearLayout>
+
+            <Button
+                android:id="@+id/bleCanaryButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Start BLE FTMS Canary" />
+
         </LinearLayout>
 
         <ScrollView
