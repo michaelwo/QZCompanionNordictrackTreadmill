@@ -26,6 +26,8 @@ import java.net.InetAddress;
 
 public class QZService extends Service {
     private static final String LOG_TAG = "QZ:Service";
+    IBinder binder;
+    boolean allowRebind;
     static int clientPort = 8002;
     Handler handler = new Handler();
     Runnable runnable = null;
