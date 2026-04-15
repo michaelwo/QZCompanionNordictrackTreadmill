@@ -1,4 +1,5 @@
 name: Test Report
+run-name: "Test Report for '${{ github.event.workflow_run.head_branch }}' (CI run #${{ github.event.workflow_run.run_number }})"
 on:
   workflow_run:
     workflows: ["CI"]
