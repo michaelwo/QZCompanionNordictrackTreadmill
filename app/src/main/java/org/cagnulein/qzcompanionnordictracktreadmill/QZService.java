@@ -20,9 +20,6 @@ import java.net.InetAddress;
 
 public class QZService extends Service {
     private static final String LOG_TAG = "QZ:Service";
-    int startMode;       // indicates how to behave if the service is killed
-    IBinder binder;      // interface for clients that bind
-    boolean allowRebind; // indicates whether onRebind should be used    
     static int clientPort = 8002;
     Handler handler = new Handler();
     Runnable runnable = null;

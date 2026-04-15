@@ -1,24 +1,9 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
-import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.text.DecimalFormatSymbols;
-import java.util.Calendar;
-import java.util.Locale;
-
-import android.app.Service;
 import android.content.Context;
-import android.content.Intent;
-import android.net.DhcpInfo;
-import android.net.wifi.WifiManager;
-import android.os.IBinder;
-import android.os.PowerManager;
-import android.util.Log;
-import android.widget.TextView;
-
 import android.content.SharedPreferences;
+import android.util.Log;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 

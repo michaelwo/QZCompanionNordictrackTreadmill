@@ -23,8 +23,6 @@ import android.view.Display;
 import android.view.OrientationEventListener;
 import android.view.WindowManager;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Objects;
@@ -34,16 +32,13 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import android.media.ImageReader.OnImageAvailableListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 
 import android.graphics.Rect;
-import android.graphics.Point;
 
 import androidx.core.util.Pair;
-import android.util.Log;
 import android.os.Build;
 
 public class ScreenCaptureService extends Service {
@@ -56,13 +51,10 @@ public class ScreenCaptureService extends Service {
     private static final String STOP = "STOP";
     private static final String SCREENCAP_NAME = "screencap";
 
-    private static int IMAGES_PRODUCED;
-
     private static final String EXTRA_FOREGROUND_SERVICE_TYPE = "FOREGROUND_SERVICE_TYPE";
     private static final int FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE = 0x10;
 
     private MediaProjection mMediaProjection;
-    private String mStoreDir;
     private ImageReader mImageReader;
     private Handler mHandler;
     private Display mDisplay;
@@ -244,23 +236,6 @@ public class ScreenCaptureService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
-        // create store dir
-        File externalFilesDir = getExternalFilesDir(null);
-        if (externalFilesDir != null) {
-            mStoreDir = externalFilesDir.getAbsolutePath() + "/screenshots/";
-            File storeDirectory = new File(mStoreDir);
-            if (!storeDirectory.exists()) {
-                boolean success = storeDirectory.mkdirs();
-                if (!success) {
-                    Log.e(TAG, "failed to create file storage directory.");
-                    stopSelf();
-                }
-            }
-        } else {
-            Log.e(TAG, "failed to create file storage directory, getExternalFilesDir is null.");
-            stopSelf();
-        }
 
         // start capture handling thread
         new Thread() {
