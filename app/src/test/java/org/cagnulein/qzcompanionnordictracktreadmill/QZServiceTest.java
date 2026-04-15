@@ -13,9 +13,6 @@ import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-
 import static org.junit.Assert.*;
 
 /**
@@ -37,14 +34,12 @@ public class QZServiceTest {
 
     @Before
     public void setUp() {
-        DeviceState.INSTANCE.currentDevice = null;
-        DeviceState.INSTANCE.lastSnapshot  = new MetricSnapshot();
+        Device.instance = null;
     }
 
     @After
     public void tearDown() {
-        DeviceState.INSTANCE.currentDevice = null;
-        DeviceState.INSTANCE.lastSnapshot  = new MetricSnapshot();
+        Device.instance = null;
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
         }

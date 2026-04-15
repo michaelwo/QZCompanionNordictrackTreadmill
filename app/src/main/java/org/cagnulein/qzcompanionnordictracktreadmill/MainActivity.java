@@ -47,7 +47,6 @@ import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQU
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
 
 import com.cgutman.androidremotedebugger.AdbUtils;
 import com.cgutman.androidremotedebugger.console.ConsoleBuffer;
@@ -290,107 +289,107 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             public void onCheckedChanged(RadioGroup radioGroup, int i) {
                 RadioButton radioButton = findViewById(i);
                 if(i == R.id.x11i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x11i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x11i);
                 } else if(i == R.id.x22i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x22i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i);
                 } else if(i == R.id.x22i_v2) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x22i_v2);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i_v2);
                 } else if(i == R.id.x22i_noadb) {
                     if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
                         Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                         startActivity(intent);
                     }
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x22i_noadb);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i_noadb);
                 } else if(i == R.id.x14i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x14i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x14i);
                 } else if(i == R.id.x9i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x9i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x9i);
 				} else if(i == R.id.t85s) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.t85s);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.t85s);
                 } else if(i == R.id.x32i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x32i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i);
                 } else if(i == R.id.x32i_NTL39019) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x32i_NTL39019);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i_NTL39019);                    
                 } else if(i == R.id.x32i_NTL39221) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.x32i_NTL39221);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i_NTL39221);
                 } else if(i == R.id.s40) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s40);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s40);
                 } else if(i == R.id.exp7i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.exp7i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.exp7i);
                 } else if(i == R.id.nordictrack_2950) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.nordictrack_2950);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2950);
                 } else if(i == R.id.nordictrack_2450) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.nordictrack_2450);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2450);
                 } else if(i == R.id.nordictrack_2950_maxspeed22) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.nordictrack_2950_maxspeed22);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2950_maxspeed22);
                 } else if(i == R.id.proform_2000) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_2000);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_2000);
                 } else if(i == R.id.proform_pro_9000) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_pro_9000);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_pro_9000);
                 } else if(i == R.id.proform_carbon_e7) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_carbon_e7);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_e7);
                 } else if(i == R.id.se9i_elliptical) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.se9i_elliptical);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.se9i_elliptical);
                 } else if(i == R.id.s15i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s15i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s15i);
                 } else if(i == R.id.s22i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i);
                 } else if(i == R.id.s22i_noadb) {
                     if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
                         Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                         startActivity(intent);
                     }
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i_noadb);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_noadb);
                 } else if(i == R.id.s27i) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s27i);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s27i);
                 } else if(i == R.id.s22i_NTEX02121_5) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i_NTEX02121_5);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_NTEX02121_5);
                 } else if(i == R.id.s22i_NTEX02117_2) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.s22i_NTEX02117_2);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_NTEX02117_2);
                 } else if(i == R.id.tdf10) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.tdf10);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.tdf10);
                 } else if(i == R.id.tdf10_inclination) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.tdf10_inclination);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.tdf10_inclination);
                 } else if(i == R.id.c1750) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750);
                 } else if(i == R.id.c1750_2021) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750_2021);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2021);                    
                 } else if(i == R.id.proform_carbon_t14) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_carbon_t14);                                        
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_t14);                                        
                 } else if(i == R.id.c1750_2020) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750_2020);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2020);
                 } else if(i == R.id.c1750_2020_kph) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750_2020_kph);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2020_kph);                    
                 } else if(i == R.id.elite1000) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.elite1000);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.elite1000);
                 } else if(i == R.id.proform_pro_2000) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_pro_2000);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_pro_2000);
                 } else if(i == R.id.elite900) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.elite900);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.elite900);
                 } else if(i == R.id.c1750_mph_minus3grade) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750_mph_minus3grade);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_mph_minus3grade);                    
                 } else if(i == R.id.c1750_NTL14122_2_MPH) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.c1750_NTL14122_2_MPH);                                        
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_NTL14122_2_MPH);                                        
                 } else if(i == R.id.t65s) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.t65s);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.t65s);
                 } else if(i == R.id.t75s) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.t75s);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.t75s);
                 } else if(i == R.id.t95s) {
                     if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
                         Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                         startActivity(intent);
                     }                    
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.t95s);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.t95s);                    
                 } else if(i == R.id.grand_tour_pro) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.grand_tour_pro);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.grand_tour_pro);
                 } else if(i == R.id.proform_carbon_c10) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_carbon_c10);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_c10);
                 } else if(i == R.id.proform_studio_bike_pro22) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.proform_studio_bike_pro22);                    
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_studio_bike_pro22);                    
                 } else if(i == R.id.NTEX71021) {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.NTEX71021);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.NTEX71021);
                 } else {
-                    DeviceState.INSTANCE.selectDevice(DeviceRegistry.DeviceId.other);
+                    Device.instance = DeviceRegistry.forId(DeviceRegistry.DeviceId.other);
                 }
                 SharedPreferences.Editor myEdit = sharedPreferences.edit();
                 myEdit.putInt("device", i);

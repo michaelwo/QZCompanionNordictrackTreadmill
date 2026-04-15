@@ -12,7 +12,7 @@ OUT=/tmp/qztest-classes
 rm -rf $OUT && mkdir -p $OUT
 
 # Stubs for Android-dependent classes
-# QZService stub only needs ifit_v2; lastSnapshot moved to DeviceState.
+# QZService stub only needs ifit_v2; lastSnapshot lives on Device.
 mkdir -p /tmp/stubs/org/cagnulein/qzcompanionnordictracktreadmill
 cat > /tmp/stubs/org/cagnulein/qzcompanionnordictracktreadmill/QZService.java << 'EOF'
 package org.cagnulein.qzcompanionnordictracktreadmill;
@@ -64,7 +64,6 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/device/Device.java \
   $SRC/device/BikeDevice.java \
   $SRC/device/TreadmillDevice.java \
-  $SRC/device/DeviceState.java \
   $SRC/device/OtherDevice.java \
   $SRC/device/T65sDevice.java \
   $SRC/device/S22iDevice.java \

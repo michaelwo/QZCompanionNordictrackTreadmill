@@ -1,7 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.UDPReceiveLoop;
 
@@ -60,9 +59,9 @@ public class UDPListenerService extends Service {
 
         wakeLock.acquire(10_000L); // 10-second timeout — auto-releases if receive hangs
         try {
-            Device currentDevice = DeviceState.INSTANCE.currentDevice;
+            Device currentDevice = Device.instance;
             if (currentDevice != null) {
-                receiveLoop.receiveOne(socket, currentDevice, DeviceState.INSTANCE.lastSnapshot);
+                receiveLoop.receiveOne(socket, currentDevice, currentDevice.lastSnapshot);
             } else {
                 // No device selected yet — receive and discard the packet.
                 byte[] buf = new byte[15000];
@@ -133,9 +132,8 @@ public class UDPListenerService extends Service {
         dispatcher = new CommandDispatcher(this::writeLog);
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
-        Device currentDevice = DeviceState.INSTANCE.currentDevice;
         Log.i(LOG_TAG, "QZCompanion starting, listening on UDP port 8003");
-        Log.i(LOG_TAG, "Device: " + (currentDevice != null ? currentDevice.displayName() : "none selected"));
+        Log.i(LOG_TAG, "Device: " + (Device.instance != null ? Device.instance.displayName() : "none selected"));
     }
 
     @Override

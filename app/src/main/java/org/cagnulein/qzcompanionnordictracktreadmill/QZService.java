@@ -12,7 +12,7 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.graphics.Rect;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
@@ -38,8 +38,6 @@ public class QZService extends Service {
 
     boolean firstTime = false;
     static SharedPreferences sharedPreferences;
-
-    private final DeviceState state = DeviceState.INSTANCE;
 
     boolean ifit_v2 = false;
 
@@ -155,7 +153,7 @@ public class QZService extends Service {
                         String[] numbers = lines[i].trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
                         int w = Integer.parseInt(numbers[numbers.length - 1]);
                         if (w > 20) {
-                            state.lastSnapshot.watts = (float) w;
+                            if (Device.instance != null) Device.instance.lastSnapshot.watts = (float) w;
                             writeLog("OCRlines watts found with cache!");
                         }
                     } catch (Exception ignored) {}
@@ -176,11 +174,11 @@ public class QZService extends Service {
         }
 
         try {
-            writeLog("Device: " + (state.currentDevice != null ? state.currentDevice.displayName() : "none"));
+            writeLog("Device: " + (Device.instance != null ? Device.instance.displayName() : "none"));
 
             MetricReader reader = sharedPreferences.getBoolean("ADBLog", false)
                     ? new DirectLogcatMetricReader()
-                    : state.currentDevice.defaultMetricReader(ifit_v2);
+                    : Device.instance.defaultMetricReader(ifit_v2);
 
             applyAndBroadcast(reader.read(file, shellRuntime));
         } catch (Exception ex) {
@@ -190,17 +188,20 @@ public class QZService extends Service {
     }
 
     private void applySnapshot(MetricSnapshot m) {
-        if (m.speedKmh      != null) state.lastSnapshot.speedKmh      = m.speedKmh;
-        if (m.inclinePct    != null) state.lastSnapshot.inclinePct    = m.inclinePct;
-        if (m.resistanceLvl != null) state.lastSnapshot.resistanceLvl = m.resistanceLvl;
-        if (m.cadenceRpm    != null) state.lastSnapshot.cadenceRpm    = m.cadenceRpm;
-        if (m.watts         != null) state.lastSnapshot.watts         = m.watts;
-        if (m.gearLevel     != null) state.lastSnapshot.gearLevel     = m.gearLevel;
-        if (m.heartRate     != null) state.lastSnapshot.heartRate     = m.heartRate;
+        if (Device.instance == null) return;
+        MetricSnapshot s = Device.instance.lastSnapshot;
+        if (m.speedKmh      != null) s.speedKmh      = m.speedKmh;
+        if (m.inclinePct    != null) s.inclinePct    = m.inclinePct;
+        if (m.resistanceLvl != null) s.resistanceLvl = m.resistanceLvl;
+        if (m.cadenceRpm    != null) s.cadenceRpm    = m.cadenceRpm;
+        if (m.watts         != null) s.watts         = m.watts;
+        if (m.gearLevel     != null) s.gearLevel     = m.gearLevel;
+        if (m.heartRate     != null) s.heartRate     = m.heartRate;
     }
 
     private void broadcastLastKnown() {
-        MetricSnapshot s = state.lastSnapshot;
+        if (Device.instance == null) return;
+        MetricSnapshot s = Device.instance.lastSnapshot;
         if (s.speedKmh      != null && !s.speedKmh.equals(lastBroadcast.speedKmh)) {
             sendBroadcast("Changed KPH "         + s.speedKmh);
             lastBroadcast.speedKmh      = s.speedKmh;

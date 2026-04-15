@@ -5,6 +5,12 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.TailGrepMetricReader;
 
 public abstract class Device {
+    /** The currently active device. Set by MainActivity when the user selects one. */
+    public static Device instance = null;
+
+    /** Latest observed metrics from the fitness device. Written by QZService. */
+    public MetricSnapshot lastSnapshot = new MetricSnapshot();
+
     /**
      * Command executor installed by the Android layer (MainActivity) at startup.
      * Default is no-op so device classes compile and run without Android dependencies.
