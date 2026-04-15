@@ -6,6 +6,11 @@ public abstract class BikeDevice extends Device {
     private int yIncline;
     private int yResistance;
 
+    /** Last quantized incline applied to this bike — used by CommandDispatcher for de-dup. */
+    public float lastAppliedIncline    = Float.MAX_VALUE;
+    /** Last resistance level applied to this bike — used by CommandDispatcher for de-dup. */
+    public Float lastAppliedResistance = null;
+
     protected BikeDevice(int initialInclineY, int initialResistanceY) {
         this.yIncline = initialInclineY;
         this.yResistance = initialResistanceY;

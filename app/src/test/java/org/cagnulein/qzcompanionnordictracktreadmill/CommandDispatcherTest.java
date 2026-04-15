@@ -114,12 +114,13 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_throttle_secondMessageWithinWindowIsCached() {
+        X11iDevice device = new X11iDevice();
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', new X11iDevice(), moving()); // applied at t=1000
+        d.dispatch("8.0;3.0", '.', device, moving()); // applied at t=1000
         lastCommand = null;
 
         time[0] += 200; // still within 500 ms window
-        d.dispatch("9.0;3.0", '.', new X11iDevice(), moving()); // throttled
+        d.dispatch("9.0;3.0", '.', device, moving()); // throttled — same device instance
         assertNull(lastCommand);
     }
 

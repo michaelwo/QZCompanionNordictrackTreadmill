@@ -64,6 +64,12 @@ public abstract class Device {
         commandExecutor.send(command);
     }
 
+    /**
+     * Timestamp (ms) of the last command sent to this device.
+     * Owned here so CommandDispatcher can throttle per-device without holding device state itself.
+     */
+    public long lastCommandMs = 0;
+
     protected void swipe(int x, int y1, int y2) {
         String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200";
         logger.log("QZ:Device", "swipe -> " + cmd);

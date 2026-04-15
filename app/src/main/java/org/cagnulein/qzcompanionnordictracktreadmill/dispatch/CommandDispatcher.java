@@ -7,8 +7,10 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 /**
  * Parses a raw UDP message and dispatches the resulting command to the active device.
- * Encapsulates the throttle, caching, and de-duplication logic that was previously
- * inline in UDPListenerService.
+ * Encapsulates the throttle and caching logic that was previously inline in UDPListenerService.
+ *
+ * De-duplication state (lastAppliedIncline, lastAppliedResistance) lives on the Device
+ * subclasses where it belongs — this class is a thin routing and throttle layer.
  *
  * Extracted as a plain Java class so it can be tested without Android dependencies.
  * UDPListenerService creates one instance at startup and calls dispatch() per message.
@@ -26,10 +28,8 @@ public class CommandDispatcher {
     private final Clock clock;
     private final Log   log;
 
-    private final MetricSnapshot cached        = new MetricSnapshot();
-    private final MetricSnapshot lastRequested = new MetricSnapshot();
-    private float lastAppliedIncline = Float.MAX_VALUE;  // last quantized incline sent to bike
-    private long lastSwipeMs = 0;
+    /** Holds values that arrived during a throttle window — flushed on the next dispatch. */
+    private final MetricSnapshot cached = new MetricSnapshot();
 
     /** Production constructor: wall clock, silent logger. */
     public CommandDispatcher() {
@@ -67,22 +67,20 @@ public class CommandDispatcher {
             // incline (2-part message)
             Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
             if (incline != null) {
-                // Ask the device to quantize to its physical snap grid (e.g. 0.5% for S22i).
-                // Other devices return the value unchanged.
                 float quantized = bike.quantizeIncline(incline);
-                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastAppliedIncline);
-                if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
-                    if (quantized != lastAppliedIncline) {
+                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + bike.lastAppliedIncline);
+                if (bike.lastCommandMs + SWIPE_THROTTLE_MS < now) {
+                    if (quantized != bike.lastAppliedIncline) {
                         bike.applyIncline(quantized, current);
                         log.write("applyIncline(bike): " + quantized);
-                        lastAppliedIncline = quantized;
-                        lastSwipeMs = now;
+                        bike.lastAppliedIncline = quantized;
+                        bike.lastCommandMs = now;
                         cached.inclinePct = null;
                     } else {
-                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastAppliedIncline + ")");
+                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + bike.lastAppliedIncline + ")");
                     }
                 } else {
-                    log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                    log.write("throttle: cached incline " + incline + " (window open in " + (bike.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                     cached.inclinePct = incline;
                 }
             }
@@ -90,19 +88,19 @@ public class CommandDispatcher {
             // resistance (1-part message)
             Float resistance = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
             if (resistance != null) {
-                log.write("requestResistance(bike): " + resistance + " last=" + lastRequested.resistanceLvl);
-                if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
-                    if (!resistance.equals(lastRequested.resistanceLvl)) {
+                log.write("requestResistance(bike): " + resistance + " last=" + bike.lastAppliedResistance);
+                if (bike.lastCommandMs + SWIPE_THROTTLE_MS < now) {
+                    if (!resistance.equals(bike.lastAppliedResistance)) {
                         bike.applyResistance(resistance, current);
                         log.write("applyResistance(bike): " + resistance);
-                        lastRequested.resistanceLvl = resistance;
-                        lastSwipeMs = now;
+                        bike.lastAppliedResistance = resistance;
+                        bike.lastCommandMs = now;
                         cached.resistanceLvl = null;
                     } else {
-                        log.write("de-dup: skipping resistance " + resistance + " (already at " + lastRequested.resistanceLvl + ")");
+                        log.write("de-dup: skipping resistance " + resistance + " (already at " + bike.lastAppliedResistance + ")");
                     }
                 } else {
-                    log.write("throttle: cached resistance " + resistance + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                    log.write("throttle: cached resistance " + resistance + " (window open in " + (bike.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                 }
             }
 
@@ -113,16 +111,16 @@ public class CommandDispatcher {
             Float speed = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
             if (speed != null) {
                 log.write("requestSpeed: " + speed + " lastSpeed=" + current.speed() + " cachedSpeed=" + cached.speedKmh);
-                if (lastSwipeMs + SWIPE_THROTTLE_MS < now && current.speed() > 0) {
+                if (treadmill.lastCommandMs + SWIPE_THROTTLE_MS < now && current.speed() > 0) {
                     treadmill.applySpeed(speed, current);
                     log.write("applySpeed: " + speed);
-                    lastSwipeMs = now;
+                    treadmill.lastCommandMs = now;
                     cached.speedKmh = null;
                 } else {
                     if (current.speed() <= 0) {
                         log.write("speed gate: cached " + speed + " (treadmill stopped, speed=" + current.speed() + ")");
                     } else {
-                        log.write("throttle: cached speed " + speed + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                        log.write("throttle: cached speed " + speed + " (window open in " + (treadmill.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                     }
                     cached.speedKmh = speed;
                 }
@@ -132,13 +130,13 @@ public class CommandDispatcher {
             Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
             if (incline != null) {
                 log.write("requestInclination: " + incline + " cached=" + cached.inclinePct);
-                if (lastSwipeMs + SWIPE_THROTTLE_MS < now) {
+                if (treadmill.lastCommandMs + SWIPE_THROTTLE_MS < now) {
                     treadmill.applyIncline(incline, current);
                     log.write("applyIncline: " + incline);
-                    lastSwipeMs = now;
+                    treadmill.lastCommandMs = now;
                     cached.inclinePct = null;
                 } else {
-                    log.write("throttle: cached incline " + incline + " (window open in " + (lastSwipeMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                    log.write("throttle: cached incline " + incline + " (window open in " + (treadmill.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                     cached.inclinePct = incline;
                 }
             }
