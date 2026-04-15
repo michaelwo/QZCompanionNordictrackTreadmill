@@ -11,6 +11,22 @@ public abstract class Device {
     /** Latest observed metrics from the fitness device. Written by QZService. */
     public MetricSnapshot lastSnapshot = new MetricSnapshot();
 
+    /** Throttle window — commands within this window of the last apply are cached, not sent. */
+    public static final int SWIPE_THROTTLE_MS = 500;
+
+    /** Holds values that arrived during a throttle window — flushed on the next dispatch. */
+    protected final MetricSnapshot cached = new MetricSnapshot();
+
+    /**
+     * Applies a parsed command to this device, honouring the throttle window and
+     * any device-specific de-dup or gating rules.
+     *
+     * @param cmd     parsed command snapshot (non-null fields = requested values)
+     * @param now     current timestamp in ms (injected by CommandDispatcher)
+     * @param current latest observed metrics (used for speed-gate and swipe origins)
+     */
+    public abstract void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current);
+
     /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
     public void updateSnapshot(MetricSnapshot m) {
         if (m.speedKmh      != null) lastSnapshot.speedKmh      = m.speedKmh;

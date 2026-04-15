@@ -28,7 +28,7 @@ public class CommandDispatcherTest {
     private final long[] time = {1_000L};
 
     private CommandDispatcher dispatcher() {
-        return new CommandDispatcher(() -> time[0], msg -> {});
+        return new CommandDispatcher(() -> time[0]);
     }
 
     /** Running snapshot: device is in motion at 5 km/h. */
@@ -82,11 +82,12 @@ public class CommandDispatcherTest {
         // Incline is cached on first dispatch (speed takes the throttle slot).
         // After the throttle window, a second dispatch applies the cached incline.
         // X11i: inclineX=75, initialInclineY=557, targetInclineY(3.0)=(int)(565.491-25.32)=540
+        X11iDevice device = new X11iDevice();
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', new X11iDevice(), moving()); // speed applied, incline cached
+        d.dispatch("8.0;3.0", '.', device, moving()); // speed applied, incline cached
 
-        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", '.', new X11iDevice(), moving()); // sentinels: flush cached incline
+        time[0] += Device.SWIPE_THROTTLE_MS + 100;
+        d.dispatch("-1;-100", '.', device, moving()); // sentinels: flush cached incline
         assertEquals("input swipe 75 557 75 540 200", lastCommand);
     }
 
@@ -107,7 +108,7 @@ public class CommandDispatcherTest {
         d.dispatch("8.0;-100", '.', device, stopped()); // cached, no command
         assertNull(lastCommand);
 
-        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        time[0] += Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1;-100", '.', device, moving()); // flush cached 8.0
         assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
     }
@@ -135,7 +136,7 @@ public class CommandDispatcherTest {
         time[0] += 200;
         d.dispatch("9.0;-100", '.', device, moving()); // throttled → cached
 
-        time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1;-100", '.', device, moving()); // flush cached 9.0, y 447→425
         assertEquals("input swipe 1207 447 1207 425 200", lastCommand);
     }
@@ -180,7 +181,7 @@ public class CommandDispatcherTest {
         d.dispatch("10.0", '.', device, stopped()); // applied
         lastCommand = null;
 
-        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        time[0] += Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("10.0", '.', device, stopped()); // same value — skipped
         assertNull(lastCommand);
     }
@@ -211,7 +212,7 @@ public class CommandDispatcherTest {
         d.dispatch("12.0", '.', device, stopped()); // throttled — dropped
         assertNull(lastCommand);  // nothing was applied
 
-        time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("12.0", '.', device, stopped()); // sent again after window — applied
         assertEquals("input swipe 1848 790 1848 513 200", lastCommand);
     }

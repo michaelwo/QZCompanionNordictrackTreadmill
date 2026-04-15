@@ -129,7 +129,7 @@ public class UDPListenerService extends Service {
     @Override
     public void onCreate() {
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
-        dispatcher = new CommandDispatcher(this::writeLog);
+        dispatcher = new CommandDispatcher();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
         Log.i(LOG_TAG, "QZCompanion starting, listening on UDP port 8003");

@@ -45,7 +45,7 @@ public class ZwiftRideSimulationTest {
     private final long[] time = {1_000L};
 
     private CommandDispatcher dispatcher() {
-        return new CommandDispatcher(() -> time[0], msg -> {});
+        return new CommandDispatcher(() -> time[0]);
     }
 
     @Before
@@ -169,8 +169,8 @@ public class ZwiftRideSimulationTest {
 
     @Test
     public void decimalSeparator_commaAndDot_identicalSwipes() {
-        CommandDispatcher dotDispatcher   = new CommandDispatcher(() -> time[0], msg -> {});
-        CommandDispatcher commaDispatcher = new CommandDispatcher(() -> time[0] + 1, msg -> {});
+        CommandDispatcher dotDispatcher   = new CommandDispatcher(() -> time[0]);
+        CommandDispatcher commaDispatcher = new CommandDispatcher(() -> time[0] + 1);
 
         S22iDevice bikeDot   = new S22iDevice();
         S22iDevice bikeComma = new S22iDevice();

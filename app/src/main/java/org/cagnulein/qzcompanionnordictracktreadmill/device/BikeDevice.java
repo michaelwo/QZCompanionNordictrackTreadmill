@@ -48,6 +48,47 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
+    public final void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current) {
+        // incline (2-part message)
+        Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
+        if (incline != null) {
+            float quantized = quantizeIncline(incline);
+            logger.log("QZ:Dispatch", "requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastAppliedIncline());
+            if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
+                if (quantized != lastAppliedIncline()) {
+                    applyIncline(quantized, current);
+                    logger.log("QZ:Dispatch", "applyIncline(bike): " + quantized);
+                    lastCommandMs = now;
+                    cached.inclinePct = null;
+                } else {
+                    logger.log("QZ:Dispatch", "de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastAppliedIncline() + ")");
+                }
+            } else {
+                logger.log("QZ:Dispatch", "throttle: cached incline " + incline + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                cached.inclinePct = incline;
+            }
+        }
+
+        // resistance (1-part message)
+        Float resistance = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
+        if (resistance != null) {
+            logger.log("QZ:Dispatch", "requestResistance(bike): " + resistance + " last=" + lastAppliedResistance());
+            if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
+                if (!resistance.equals(lastAppliedResistance())) {
+                    applyResistance(resistance, current);
+                    logger.log("QZ:Dispatch", "applyResistance(bike): " + resistance);
+                    lastCommandMs = now;
+                    cached.resistanceLvl = null;
+                } else {
+                    logger.log("QZ:Dispatch", "de-dup: skipping resistance " + resistance + " (already at " + lastAppliedResistance() + ")");
+                }
+            } else {
+                logger.log("QZ:Dispatch", "throttle: cached resistance " + resistance + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+            }
+        }
+    }
+
+    @Override
     public MetricSnapshot parseCommand(String[] parts, char decimalSeparator) {
         MetricSnapshot.Builder b = new MetricSnapshot.Builder();
         if (parts.length == 2) {
