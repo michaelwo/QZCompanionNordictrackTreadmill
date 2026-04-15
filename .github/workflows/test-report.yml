@@ -12,6 +12,9 @@ jobs:
       pull-requests: write
       actions: read
     steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
     - name: Download test results
       uses: actions/download-artifact@v4
       with:
@@ -26,6 +29,5 @@ jobs:
         name: Unit Tests
         path: test-results/**/*.xml
         reporter: java-junit
-        commit: ${{ github.event.workflow_run.head_sha }}
         fail-on-error: true
         fail-on-empty: false
