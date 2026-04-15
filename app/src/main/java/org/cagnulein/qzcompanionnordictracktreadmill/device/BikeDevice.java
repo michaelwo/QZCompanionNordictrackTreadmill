@@ -6,10 +6,11 @@ public abstract class BikeDevice extends Device {
     private int yIncline;
     private int yResistance;
 
-    /** Last quantized incline applied to this bike — used by CommandDispatcher for de-dup. */
-    public float lastAppliedIncline    = Float.MAX_VALUE;
-    /** Last resistance level applied to this bike — used by CommandDispatcher for de-dup. */
-    public Float lastAppliedResistance = null;
+    private float lastAppliedIncline    = Float.MAX_VALUE;
+    private Float lastAppliedResistance = null;
+
+    public float lastAppliedIncline()    { return lastAppliedIncline; }
+    public Float lastAppliedResistance() { return lastAppliedResistance; }
 
     protected BikeDevice(int initialInclineY, int initialResistanceY) {
         this.yIncline = initialInclineY;
@@ -35,6 +36,7 @@ public abstract class BikeDevice extends Device {
         int y2 = targetInclineY(value);
         swipe(inclineX(), currentInclineY(current), y2);
         yIncline = y2;
+        lastAppliedIncline = (float) value;
     }
 
     public final void applyResistance(double level, MetricSnapshot current) {
@@ -42,6 +44,7 @@ public abstract class BikeDevice extends Device {
         int y2 = targetResistanceY(level);
         swipe(resistanceX(), currentResistanceY(current), y2);
         yResistance = y2;
+        lastAppliedResistance = (float) level;
     }
 
     @Override

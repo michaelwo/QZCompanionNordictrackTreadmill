@@ -68,16 +68,15 @@ public class CommandDispatcher {
             Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
             if (incline != null) {
                 float quantized = bike.quantizeIncline(incline);
-                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + bike.lastAppliedIncline);
+                log.write("requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + bike.lastAppliedIncline());
                 if (bike.lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                    if (quantized != bike.lastAppliedIncline) {
+                    if (quantized != bike.lastAppliedIncline()) {
                         bike.applyIncline(quantized, current);
                         log.write("applyIncline(bike): " + quantized);
-                        bike.lastAppliedIncline = quantized;
                         bike.lastCommandMs = now;
                         cached.inclinePct = null;
                     } else {
-                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + bike.lastAppliedIncline + ")");
+                        log.write("de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + bike.lastAppliedIncline() + ")");
                     }
                 } else {
                     log.write("throttle: cached incline " + incline + " (window open in " + (bike.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
@@ -88,16 +87,15 @@ public class CommandDispatcher {
             // resistance (1-part message)
             Float resistance = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
             if (resistance != null) {
-                log.write("requestResistance(bike): " + resistance + " last=" + bike.lastAppliedResistance);
+                log.write("requestResistance(bike): " + resistance + " last=" + bike.lastAppliedResistance());
                 if (bike.lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                    if (!resistance.equals(bike.lastAppliedResistance)) {
+                    if (!resistance.equals(bike.lastAppliedResistance())) {
                         bike.applyResistance(resistance, current);
                         log.write("applyResistance(bike): " + resistance);
-                        bike.lastAppliedResistance = resistance;
                         bike.lastCommandMs = now;
                         cached.resistanceLvl = null;
                     } else {
-                        log.write("de-dup: skipping resistance " + resistance + " (already at " + bike.lastAppliedResistance + ")");
+                        log.write("de-dup: skipping resistance " + resistance + " (already at " + bike.lastAppliedResistance() + ")");
                     }
                 } else {
                     log.write("throttle: cached resistance " + resistance + " (window open in " + (bike.lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
