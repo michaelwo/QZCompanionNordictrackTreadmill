@@ -11,6 +11,17 @@ public abstract class Device {
     /** Latest observed metrics from the fitness device. Written by QZService. */
     public MetricSnapshot lastSnapshot = new MetricSnapshot();
 
+    /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
+    public void updateSnapshot(MetricSnapshot m) {
+        if (m.speedKmh      != null) lastSnapshot.speedKmh      = m.speedKmh;
+        if (m.inclinePct    != null) lastSnapshot.inclinePct    = m.inclinePct;
+        if (m.resistanceLvl != null) lastSnapshot.resistanceLvl = m.resistanceLvl;
+        if (m.cadenceRpm    != null) lastSnapshot.cadenceRpm    = m.cadenceRpm;
+        if (m.watts         != null) lastSnapshot.watts         = m.watts;
+        if (m.gearLevel     != null) lastSnapshot.gearLevel     = m.gearLevel;
+        if (m.heartRate     != null) lastSnapshot.heartRate     = m.heartRate;
+    }
+
     /**
      * Command executor installed by the Android layer (MainActivity) at startup.
      * Default is no-op so device classes compile and run without Android dependencies.

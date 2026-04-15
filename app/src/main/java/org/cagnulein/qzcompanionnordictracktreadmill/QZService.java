@@ -124,7 +124,7 @@ public class QZService extends Service {
         if (ocr.watts         != null) writeLog("OCRlines watts found!");
 
         // Apply snapshot to static fields without broadcasting yet.
-        applySnapshot(ocr);
+        if (Device.instance != null) Device.instance.updateSnapshot(ocr);
 
         // Watt rect caching — requires Android Rect, kept here rather than in OcrParser.
         String[] ocrBlocks = textExtended.split("§§");
@@ -153,7 +153,7 @@ public class QZService extends Service {
                         String[] numbers = lines[i].trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
                         int w = Integer.parseInt(numbers[numbers.length - 1]);
                         if (w > 20) {
-                            if (Device.instance != null) Device.instance.lastSnapshot.watts = (float) w;
+                            if (Device.instance != null) Device.instance.updateSnapshot(new MetricSnapshot.Builder().watts((float) w).build());
                             writeLog("OCRlines watts found with cache!");
                         }
                     } catch (Exception ignored) {}
@@ -185,18 +185,6 @@ public class QZService extends Service {
             Log.e(LOG_TAG, "parse error: " + ex.getMessage());
         }
         handler.postDelayed(runnable, POLL_INTERVAL_MS);
-    }
-
-    private void applySnapshot(MetricSnapshot m) {
-        if (Device.instance == null) return;
-        MetricSnapshot s = Device.instance.lastSnapshot;
-        if (m.speedKmh      != null) s.speedKmh      = m.speedKmh;
-        if (m.inclinePct    != null) s.inclinePct    = m.inclinePct;
-        if (m.resistanceLvl != null) s.resistanceLvl = m.resistanceLvl;
-        if (m.cadenceRpm    != null) s.cadenceRpm    = m.cadenceRpm;
-        if (m.watts         != null) s.watts         = m.watts;
-        if (m.gearLevel     != null) s.gearLevel     = m.gearLevel;
-        if (m.heartRate     != null) s.heartRate     = m.heartRate;
     }
 
     private void broadcastLastKnown() {
@@ -233,7 +221,7 @@ public class QZService extends Service {
     }
 
     private void applyAndBroadcast(MetricSnapshot m) {
-        applySnapshot(m);
+        if (Device.instance != null) Device.instance.updateSnapshot(m);
         broadcastLastKnown();
     }
 
