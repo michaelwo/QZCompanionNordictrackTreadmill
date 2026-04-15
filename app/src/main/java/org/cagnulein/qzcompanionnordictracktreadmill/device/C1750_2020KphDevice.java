@@ -16,41 +16,34 @@ public class C1750_2020KphDevice extends TreadmillDevice {
         {14.5, 248}, {15.0, 240}
     };
 
-    public C1750_2020KphDevice() { super(598, 525); }
+    public C1750_2020KphDevice() {         super(
+            new Slider(598) {
+                public int trackX() { return 1205; }
+                public int targetY(double v) {
+                    if (v <= 11) return (int)(v + 16.0 - 16.0 * 592);
+                    else if (v < 12) return (int)(v + 8.0 - 16.0 * 592);
+                    else return (int)(v + 0.0 - 16.0 * 592);
+                }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
+            },
+            new Slider(525) {
+                public int trackX() { return 75; }
+                public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "C1750 Treadmill (2020 KPH)"; }
 
-    @Override
-    protected int speedX() { return 1205; }
 
-    @Override
-    protected int targetSpeedY(double v) {
-        if (v <= 11) return (int)(v + 16.0 - 16.0 * 592);
-        else if (v < 12) return (int)(v + 8.0 - 16.0 * 592);
-        else return (int)(v + 0.0 - 16.0 * 592);
-    }
 
-    @Override
-    protected int currentSpeedY(MetricSnapshot current) {
-        return targetSpeedY(current.speed());
-    }
 
     @Override
     public MetricReader defaultMetricReader(boolean ifitV2) { return new CatFileMetricReader(); }
 
-    @Override
-    protected int inclineX() { return 75; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return lookupStep(INCLINE_TABLE, v);
-    }
 
-    @Override
-    protected int currentInclineY(MetricSnapshot current) {
-        return targetInclineY(current.incline());
-    }
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];

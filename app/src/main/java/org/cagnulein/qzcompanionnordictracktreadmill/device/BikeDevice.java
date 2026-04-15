@@ -3,87 +3,72 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public abstract class BikeDevice extends Device {
-    private int yIncline;
-    private int yResistance;
 
-    private float lastAppliedIncline    = Float.MAX_VALUE;
-    private Float lastAppliedResistance = null;
+    private final Slider incline;
+    private final Slider resistance;  // null if this device has no resistance control
 
-    public float lastAppliedIncline()    { return lastAppliedIncline; }
-    public Float lastAppliedResistance() { return lastAppliedResistance; }
-
-    protected BikeDevice(int initialInclineY, int initialResistanceY) {
-        this.yIncline = initialInclineY;
-        this.yResistance = initialResistanceY;
+    protected BikeDevice(Slider incline, Slider resistance) {
+        this.incline    = incline;
+        this.resistance = resistance;
     }
 
-    protected abstract int inclineX();
-    protected abstract int targetInclineY(double value);
-    protected int currentInclineY(MetricSnapshot current) { return yIncline; }
+    public float lastAppliedIncline() {
+        Float v = incline.lastApplied();
+        return v != null ? v : Float.MAX_VALUE;
+    }
 
-    /**
-     * Quantizes an incoming grade to the nearest value this device can physically reach.
-     * Default: identity (no quantization). Override for devices whose slider snaps to
-     * a fixed grid (e.g. S22i snaps to 0.5% increments).
-     */
-    public float quantizeIncline(float grade) { return grade; }
-
-    protected int resistanceX()               { return -1; }
-    protected int targetResistanceY(double v) { return -1; }
-    protected int currentResistanceY(MetricSnapshot current) { return yResistance; }
+    public Float lastAppliedResistance() {
+        return resistance != null ? resistance.lastApplied() : null;
+    }
 
     public final void applyIncline(double value, MetricSnapshot current) {
-        int y2 = targetInclineY(value);
-        swipe(inclineX(), currentInclineY(current), y2);
-        yIncline = y2;
-        lastAppliedIncline = (float) value;
+        incline.moveTo(value, this, current);
     }
 
     public final void applyResistance(double level, MetricSnapshot current) {
-        if (resistanceX() == -1) return;
-        int y2 = targetResistanceY(level);
-        swipe(resistanceX(), currentResistanceY(current), y2);
-        yResistance = y2;
-        lastAppliedResistance = (float) level;
+        if (resistance == null) return;
+        resistance.moveTo(level, this, current);
     }
 
     @Override
     public final void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current) {
         // incline (2-part message)
-        Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
-        if (incline != null) {
-            float quantized = quantizeIncline(incline);
-            logger.log("QZ:Dispatch", "requestIncline(bike): " + incline + " quantized=" + quantized + " last=" + lastAppliedIncline());
+        Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
+        if (inclineVal != null) {
+            float quantized = incline.quantize(inclineVal);
+            Float last = incline.lastApplied();
+            logger.log("QZ:Dispatch", "requestIncline(bike): " + inclineVal + " quantized=" + quantized + " last=" + lastAppliedIncline());
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                if (quantized != lastAppliedIncline()) {
+                if (last == null || quantized != last) {
                     applyIncline(quantized, current);
                     logger.log("QZ:Dispatch", "applyIncline(bike): " + quantized);
                     lastCommandMs = now;
                     cached.inclinePct = null;
                 } else {
-                    logger.log("QZ:Dispatch", "de-dup: skipping incline " + incline + " (quantized=" + quantized + " already at " + lastAppliedIncline() + ")");
+                    logger.log("QZ:Dispatch", "de-dup: skipping incline " + inclineVal + " (quantized=" + quantized + " already at " + lastAppliedIncline() + ")");
                 }
             } else {
-                logger.log("QZ:Dispatch", "throttle: cached incline " + incline + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.inclinePct = incline;
+                logger.log("QZ:Dispatch", "throttle: cached incline " + inclineVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                cached.inclinePct = inclineVal;
             }
         }
 
         // resistance (1-part message)
-        Float resistance = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
-        if (resistance != null) {
-            logger.log("QZ:Dispatch", "requestResistance(bike): " + resistance + " last=" + lastAppliedResistance());
+        Float resistanceVal = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
+        if (resistanceVal != null && resistance != null) {
+            Float last = resistance.lastApplied();
+            logger.log("QZ:Dispatch", "requestResistance(bike): " + resistanceVal + " last=" + lastAppliedResistance());
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                if (!resistance.equals(lastAppliedResistance())) {
-                    applyResistance(resistance, current);
-                    logger.log("QZ:Dispatch", "applyResistance(bike): " + resistance);
+                if (last == null || !resistanceVal.equals(last)) {
+                    applyResistance(resistanceVal, current);
+                    logger.log("QZ:Dispatch", "applyResistance(bike): " + resistanceVal);
                     lastCommandMs = now;
                     cached.resistanceLvl = null;
                 } else {
-                    logger.log("QZ:Dispatch", "de-dup: skipping resistance " + resistance + " (already at " + lastAppliedResistance() + ")");
+                    logger.log("QZ:Dispatch", "de-dup: skipping resistance " + resistanceVal + " (already at " + lastAppliedResistance() + ")");
                 }
             } else {
-                logger.log("QZ:Dispatch", "throttle: cached resistance " + resistance + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                logger.log("QZ:Dispatch", "throttle: cached resistance " + resistanceVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
             }
         }
     }

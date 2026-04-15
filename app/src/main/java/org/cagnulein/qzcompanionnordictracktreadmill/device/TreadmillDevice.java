@@ -3,67 +3,56 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public abstract class TreadmillDevice extends Device {
-    private int ySpeed;
-    private int yIncline;
 
-    protected TreadmillDevice(int initialSpeedY, int initialInclineY) {
-        this.ySpeed = initialSpeedY;
-        this.yIncline = initialInclineY;
+    private final Slider speed;
+    private final Slider incline;
+
+    protected TreadmillDevice(Slider speed, Slider incline) {
+        this.speed   = speed;
+        this.incline = incline;
     }
 
-    protected abstract int speedX();
-    protected abstract int targetSpeedY(double kmh);
-    protected int currentSpeedY(MetricSnapshot current) { return ySpeed; }
-
-    protected abstract int inclineX();
-    protected abstract int targetInclineY(double pct);
-    protected int currentInclineY(MetricSnapshot current) { return yIncline; }
-
     public final void applySpeed(double kmh, MetricSnapshot current) {
-        int y2 = targetSpeedY(kmh);
-        swipe(speedX(), currentSpeedY(current), y2);
-        ySpeed = y2;
+        speed.moveTo(kmh, this, current);
     }
 
     public final void applyIncline(double pct, MetricSnapshot current) {
-        int y2 = targetInclineY(pct);
-        swipe(inclineX(), currentInclineY(current), y2);
-        yIncline = y2;
+        incline.moveTo(pct, this, current);
     }
 
     @Override
     public final void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current) {
         // speed (2-part message, first field)
-        Float speed = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
-        if (speed != null) {
-            logger.log("QZ:Dispatch", "requestSpeed: " + speed + " lastSpeed=" + current.speed() + " cachedSpeed=" + cached.speedKmh);
+        Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
+        if (speedVal != null) {
+            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + current.speed() + " cachedSpeed=" + cached.speedKmh);
             if (lastCommandMs + SWIPE_THROTTLE_MS < now && current.speed() > 0) {
-                applySpeed(speed, current);
-                logger.log("QZ:Dispatch", "applySpeed: " + speed);
+                applySpeed(speedVal, current);
+                logger.log("QZ:Dispatch", "applySpeed: " + speedVal);
                 lastCommandMs = now;
                 cached.speedKmh = null;
             } else {
                 if (current.speed() <= 0) {
-                    logger.log("QZ:Dispatch", "speed gate: cached " + speed + " (treadmill stopped, speed=" + current.speed() + ")");
+                    logger.log("QZ:Dispatch", "speed gate: cached " + speedVal + " (treadmill stopped, speed=" + current.speed() + ")");
                 } else {
-                    logger.log("QZ:Dispatch", "throttle: cached speed " + speed + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                    logger.log("QZ:Dispatch", "throttle: cached speed " + speedVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                 }
-                cached.speedKmh = speed;
+                cached.speedKmh = speedVal;
             }
         }
 
         // incline (2-part message, second field)
-        Float incline = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
-        if (incline != null) {
-            logger.log("QZ:Dispatch", "requestInclination: " + incline + " cached=" + cached.inclinePct);
+        Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
+        if (inclineVal != null) {
+            logger.log("QZ:Dispatch", "requestInclination: " + inclineVal + " cached=" + cached.inclinePct);
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                applyIncline(incline, current);
-                logger.log("QZ:Dispatch", "applyIncline: " + incline);
+                applyIncline(inclineVal, current);
+                logger.log("QZ:Dispatch", "applyIncline: " + inclineVal);
                 lastCommandMs = now;
                 cached.inclinePct = null;
             } else {
-                logger.log("QZ:Dispatch", "throttle: cached incline " + incline + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.inclinePct = incline;
+                logger.log("QZ:Dispatch", "throttle: cached incline " + inclineVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                cached.inclinePct = inclineVal;
             }
         }
     }

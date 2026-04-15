@@ -30,39 +30,30 @@ public class X14iDevice extends TreadmillDevice {
         {39.0, 308}, {39.5, 302}, {40.0, 295}
     };
 
-    public X14iDevice() { super(785, 645); }
+    public X14iDevice() {         super(
+            new Slider(785) {
+                public int trackX() { return 1845; }
+                public int targetY(double v) { return 807 - (int) ((v - 1.0) * 31); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
+            },
+            new Slider(645) {
+                public int trackX() { return 75; }
+                public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "X14i Treadmill"; }
 
-    @Override
-    protected int speedX() { return 1845; }
 
-    @Override
-    protected int targetSpeedY(double v) {
-        return 807 - (int) ((v - 1.0) * 31);
-    }
 
-    @Override
-    protected int currentSpeedY(MetricSnapshot current) {
-        return targetSpeedY(current.speed());
-    }
 
     @Override
     public MetricReader defaultMetricReader(boolean ifitV2) { return new CatFileMetricReader(); }
 
-    @Override
-    protected int inclineX() { return 75; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return lookupStep(INCLINE_TABLE, v);
-    }
 
-    @Override
-    protected int currentInclineY(MetricSnapshot current) {
-        return targetInclineY(current.incline());
-    }
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];

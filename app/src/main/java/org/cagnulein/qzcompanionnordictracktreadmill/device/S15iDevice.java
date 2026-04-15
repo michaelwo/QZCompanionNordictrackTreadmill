@@ -3,34 +3,25 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class S15iDevice extends BikeDevice {
-    public S15iDevice() { super(618, 790); }
+    public S15iDevice() {         super(
+            new Slider(618) {
+                public int trackX() { return 75; }
+                public int targetY(double v) { return 616 - (int) (v * 17.65); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
+            },
+            new Slider(790) {
+                public int trackX() { return 1848; }
+                public int targetY(double v) { return 790 - (int) (v * 23.16); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.gear()); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "S15i Bike"; }
 
-    @Override
-    protected int inclineX() { return 75; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return 616 - (int) (v * 17.65);
-    }
 
-    @Override
-    protected int currentInclineY(MetricSnapshot current) {
-        return targetInclineY(current.incline());
-    }
 
-    @Override
-    protected int resistanceX() { return 1848; }
 
-    @Override
-    protected int targetResistanceY(double v) {
-        return 790 - (int) (v * 23.16);
-    }
 
-    @Override
-    protected int currentResistanceY(MetricSnapshot current) {
-        return targetResistanceY(current.gear());
-    }
 }

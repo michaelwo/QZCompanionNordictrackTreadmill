@@ -62,6 +62,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $STUBS/MyAccessibilityService.java \
   $STUBS/ShellRuntime.java \
   $SRC/device/Device.java \
+  $SRC/device/Slider.java \
   $SRC/device/BikeDevice.java \
   $SRC/device/TreadmillDevice.java \
   $SRC/device/OtherDevice.java \

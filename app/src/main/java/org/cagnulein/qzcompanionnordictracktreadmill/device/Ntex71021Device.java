@@ -4,7 +4,13 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricRe
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 
 public class Ntex71021Device extends BikeDevice {
-    public Ntex71021Device() { super(480, 480); }
+    public Ntex71021Device() {         super(
+            new Slider(480) {
+                public int trackX() { return 950; }
+                public int targetY(double v) { return (int) (493 - 13.57 * v); }
+            },
+            null
+        ); }
 
     @Override
     public String displayName() { return "NTEX71021 Bike"; }
@@ -12,11 +18,5 @@ public class Ntex71021Device extends BikeDevice {
     @Override
     public MetricReader defaultMetricReader(boolean ifitV2) { return new DirectLogcatMetricReader(); }
 
-    @Override
-    protected int inclineX() { return 950; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return (int) (493 - 13.57 * v);
-    }
 }

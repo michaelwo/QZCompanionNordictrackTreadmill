@@ -1,24 +1,21 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 public class S40Device extends TreadmillDevice {
-    public S40Device() { super(482, 490); }
+    public S40Device() {         super(
+            new Slider(482) {
+                public int trackX() { return 949; }
+                public int targetY(double v) { return (int) (507 - 12.5 * v); }
+            },
+            new Slider(490) {
+                public int trackX() { return 75; }
+                public int targetY(double v) { return (int) (490 - 21.4 * v); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "S40 Treadmill"; }
 
-    @Override
-    protected int speedX() { return 949; }
 
-    @Override
-    protected int targetSpeedY(double v) {
-        return (int) (507 - 12.5 * v);
-    }
 
-    @Override
-    protected int inclineX() { return 75; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return (int) (490 - 21.4 * v);
-    }
 }

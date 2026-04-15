@@ -5,32 +5,26 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class C1750_2021Device extends TreadmillDevice {
-    public C1750_2021Device() { super(592, 547); }
+    public C1750_2021Device() {         super(
+            new Slider(592) {
+                public int trackX() { return 1205; }
+                public int targetY(double v) { return 620 - (int) ((v - 1.0) * 20.73); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
+            },
+            new Slider(547) {
+                public int trackX() { return 79; }
+                public int targetY(double v) { return (int) (553 - 22 * v); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "C1750 Treadmill (2021)"; }
 
-    @Override
-    protected int speedX() { return 1205; }
 
-    @Override
-    protected int targetSpeedY(double v) {
-        return 620 - (int) ((v - 1.0) * 20.73);
-    }
 
-    @Override
-    protected int currentSpeedY(MetricSnapshot current) {
-        return targetSpeedY(current.speed());
-    }
 
     @Override
     public MetricReader defaultMetricReader(boolean ifitV2) { return new CatFileMetricReader(); }
 
-    @Override
-    protected int inclineX() { return 79; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return (int) (553 - 22 * v);
-    }
 }

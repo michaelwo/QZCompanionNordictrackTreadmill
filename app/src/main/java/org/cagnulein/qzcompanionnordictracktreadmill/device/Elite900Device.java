@@ -3,34 +3,25 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Elite900Device extends TreadmillDevice {
-    public Elite900Device() { super(450, 450); }
+    public Elite900Device() {         super(
+            new Slider(450) {
+                public int trackX() { return 950; }
+                public int targetY(double v) { return 450 - (int) (v * 14.705); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
+            },
+            new Slider(450) {
+                public int trackX() { return 76; }
+                public int targetY(double v) { return 450 - (int) (v * 20.83); }
+                protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
+            }
+        ); }
 
     @Override
     public String displayName() { return "Elite 900 Treadmill"; }
 
-    @Override
-    protected int speedX() { return 950; }
 
-    @Override
-    protected int targetSpeedY(double v) {
-        return 450 - (int) (v * 14.705);
-    }
 
-    @Override
-    protected int currentSpeedY(MetricSnapshot current) {
-        return targetSpeedY(current.speed());
-    }
 
-    @Override
-    protected int inclineX() { return 76; }
 
-    @Override
-    protected int targetInclineY(double v) {
-        return 450 - (int) (v * 20.83);
-    }
 
-    @Override
-    protected int currentInclineY(MetricSnapshot current) {
-        return targetInclineY(current.incline());
-    }
 }
