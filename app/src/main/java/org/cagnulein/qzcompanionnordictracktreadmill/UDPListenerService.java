@@ -1,5 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.UDPReceiveLoop;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;

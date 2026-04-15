@@ -12,6 +12,12 @@ import android.os.StrictMode;
 import android.util.Log;
 import android.graphics.Rect;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceState;
+import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;

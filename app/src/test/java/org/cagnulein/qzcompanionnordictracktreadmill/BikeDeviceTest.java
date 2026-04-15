@@ -1,5 +1,18 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Ntex71021Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ProformStudioBikePro22Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.S22iNtex02117Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.S22iNtex02121Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Se9iEllipticalDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Tdf10Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

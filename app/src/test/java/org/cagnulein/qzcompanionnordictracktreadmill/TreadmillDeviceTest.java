@@ -1,5 +1,17 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.C1750Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Elite1000Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Nordictrack2950Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.T65sDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.X22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.X32iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.X9iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

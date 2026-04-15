@@ -1,5 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+
 import org.junit.Test;
 import static org.junit.Assert.*;
 

@@ -1,5 +1,12 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.TailGrepMetricReader;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

@@ -1,5 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
+
 import android.util.Log;
 
 import androidx.annotation.NonNull;
