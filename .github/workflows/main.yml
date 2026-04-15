@@ -56,7 +56,7 @@ jobs:
        BUILD_TOOLS_VERSION: ${{ env.BUILD_TOOL_VERSION }}
        
    - name: Find unsigned APK
-     if: github.repository != 'cagnulein/QZCompanionNordictrackTreadmill'
+     if: github.repository != 'cagnulein/QZCompanionNordictrackTreadmill' || steps.sign_app.outcome == 'skipped'
      id: find_apk
      run: |
        APK_PATH=$(find app/build/outputs/apk/release/ -name "*.apk" | head -n 1)
