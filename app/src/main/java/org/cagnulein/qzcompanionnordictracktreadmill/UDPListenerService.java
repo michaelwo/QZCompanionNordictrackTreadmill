@@ -132,7 +132,9 @@ public class UDPListenerService extends Service {
         dispatcher = new CommandDispatcher();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
-        Log.i(LOG_TAG, "QZCompanion starting, listening on UDP port 8003");
+        Log.i(LOG_TAG, "QZCompanion v" + BuildConfig.VERSION_NAME
+                + " (" + BuildConfig.VERSION_CODE + ") starting");
+        Log.i(LOG_TAG, "Listening on UDP port 8003");
         Log.i(LOG_TAG, "Device: " + (Device.instance != null ? Device.instance.displayName() : "none selected"));
     }
 
