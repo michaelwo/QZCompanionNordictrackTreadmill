@@ -5,7 +5,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -48,16 +47,15 @@ public class ZwiftRideSimulationTest {
         return new CommandDispatcher(() -> time[0]);
     }
 
-    @Before
-    public void setup() {
-        commands.clear();
-        Device.commandExecutor = cmd -> commands.add(cmd);
+    /** Creates a S22iDevice that captures swipes into the shared commands list. */
+    private S22iDevice bike() {
+        S22iDevice dev = new S22iDevice();
+        dev.commandExecutor = cmd -> commands.add(cmd);
+        return dev;
     }
 
-    @After
-    public void restore() {
-        Device.commandExecutor = cmd -> {};
-    }
+    @Before
+    public void setup() { commands.clear(); }
 
     /** Advances time by ms and dispatches one Zwift grade message (2-part format). */
     private void send(CommandDispatcher d, S22iDevice bike, float grade, long advanceMs) {
@@ -86,7 +84,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void fullRide_fiveGradeChanges_correctSwipeChain() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         float[] grades = {0f, 5f, 10f, 5f, 0f};
         for (float g : grades) {
@@ -114,7 +112,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void throttle_rapidMessages_onlyFirstAndCachedFire() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         // All three within the 500ms window: t=1100, t=1200, t=1300
         send(d, bike, 5f,  100);  // fires (window fresh)
@@ -137,7 +135,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void dedup_sameGradeTwice_onlyFirstSwipeFires() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         send(d, bike, 7f, 600);  // fires
         send(d, bike, 7f, 600);  // de-dup: same as last, skipped
@@ -155,7 +153,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void sentinelFlood_noSwipesFire() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         for (int i = 0; i < 20; i++) {
             time[0] += 600;
@@ -173,16 +171,15 @@ public class ZwiftRideSimulationTest {
         CommandDispatcher commaDispatcher = new CommandDispatcher(() -> time[0] + 1);
 
         S22iDevice bikeDot   = new S22iDevice();
-        S22iDevice bikeComma = new S22iDevice();
+        S22iDevice bikeComma = bike();
 
         List<String> dotCmds   = new ArrayList<>();
         List<String> commaCmds = new ArrayList<>();
 
-        Device.commandExecutor = cmd -> dotCmds.add(cmd);
+        bikeDot.commandExecutor   = cmd -> dotCmds.add(cmd);
+        bikeComma.commandExecutor = cmd -> commaCmds.add(cmd);
         time[0] += 600;
         dotDispatcher.dispatch("5.0;0", '.', bikeDot);
-
-        Device.commandExecutor = cmd -> commaCmds.add(cmd);
         commaDispatcher.dispatch("5,0;0", ',', bikeComma);
 
         assertEquals(1, dotCmds.size());
@@ -201,7 +198,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void alpeProfile_climbAndDescent_correctSequence() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         float[] profile = {2f, 5f, 8f, 10f, 8f, 5f, 2f, 0f};
         for (float g : profile) {
@@ -234,7 +231,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void subThresholdChange_belowHalfPercent_suppressed() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
         send(d, bike, 6.7f, 600);  // quantized 7.0 → de-dup (same as last)
@@ -252,7 +249,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void exactThreshold_halfPercent_fires() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
         send(d, bike, 6.5f, 600);  // quantized 6.5 → different snap point → fires
@@ -276,7 +273,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void mountainMash_slowDescent_firesEveryHalfPercent() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         // Peak grade — fires immediately
         send(d, bike, 7.0f, 600);
@@ -307,7 +304,7 @@ public class ZwiftRideSimulationTest {
     @Test
     public void mountainMash_slowAscent_firesEveryHalfPercent() {
         CommandDispatcher d = dispatcher();
-        S22iDevice bike = new S22iDevice();
+        S22iDevice bike = bike();
 
         // Starting grade
         send(d, bike, 5.0f, 600);

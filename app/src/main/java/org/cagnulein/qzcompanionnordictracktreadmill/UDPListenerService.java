@@ -2,7 +2,6 @@ package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.UDPReceiveLoop;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -35,7 +34,7 @@ public class UDPListenerService extends Service {
     static SharedPreferences sharedPreferences;
 
     private CommandDispatcher dispatcher;
-    private UDPReceiveLoop receiveLoop;
+    private char decimalSeparator;
     private PowerManager.WakeLock wakeLock;
 
     private void writeLog(String command) {
@@ -48,11 +47,9 @@ public class UDPListenerService extends Service {
 
     private void listenAndWaitAndThrowIntent(InetAddress broadcastIP, Integer port) throws Exception {
         if (socket == null || socket.isClosed()) {
-            DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.getDefault());
-            char decimalSeparator = symbols.getDecimalSeparator();
+            decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
             socket = new DatagramSocket(port);
             socket.setBroadcast(true);
-            receiveLoop = new UDPReceiveLoop(dispatcher, decimalSeparator);
         }
 
         writeLog("Waiting for UDP broadcast");
@@ -61,7 +58,11 @@ public class UDPListenerService extends Service {
         try {
             Device currentDevice = Device.instance;
             if (currentDevice != null) {
-                receiveLoop.receiveOne(socket, currentDevice);
+                byte[] buf = new byte[15000];
+                DatagramPacket pkt = new DatagramPacket(buf, buf.length);
+                socket.receive(pkt);
+                String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
+                dispatcher.dispatch(msg, decimalSeparator, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
                 byte[] buf = new byte[15000];

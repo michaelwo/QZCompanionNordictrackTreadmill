@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.dispatch;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 /**
  * Parses a raw UDP message and dispatches the resulting command to the active device.
@@ -36,12 +36,11 @@ public class CommandDispatcher {
      * @param message          raw semicolon-delimited UDP string
      * @param decimalSeparator locale decimal separator for numeric parsing
      * @param device           the currently active device
-     * @param current          latest observed metrics snapshot
      */
     public void dispatch(String message, char decimalSeparator, Device device) {
         String[] parts = message.split(";");
         long now = clock.now();
-        MetricSnapshot cmd = device.decodeCommand(parts, decimalSeparator);
+        Command cmd = device.decodeCommand(parts, decimalSeparator);
         device.applyCommand(cmd, now);
     }
 }

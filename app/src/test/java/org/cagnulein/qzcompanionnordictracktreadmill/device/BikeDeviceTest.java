@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -13,6 +13,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,15 +30,19 @@ public class BikeDeviceTest {
     /** Captures the last command sent via Device.commandExecutor. */
     private String lastCommand;
 
+    /** Wraps a device to capture its swipe commands into lastCommand. */
+    private <T extends Device> T dev(T d) {
+        d.commandExecutor = cmd -> lastCommand = cmd;
+        return d;
+    }
+
     @Before
     public void installCaptureExecutor() {
         lastCommand = null;
-        Device.commandExecutor = cmd -> lastCommand = cmd;
     }
 
     @After
     public void restoreDefaultExecutor() {
-        Device.commandExecutor = cmd -> {};
     }
 
     // ── S22iDevice ────────────────────────────────────────────────────────────
@@ -46,7 +51,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22i_applyIncline_atZero_generatesCorrectSwipe() {
-        S22iDevice dev = new S22iDevice();
+        S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(0.0);
         // y2 = (int)(616.18 - 0) = 616; y1 = 618 (initial)
         assertEquals("input swipe 75 618 75 616 200", lastCommand);
@@ -54,7 +59,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
-        S22iDevice dev = new S22iDevice();
+        S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0);
         // grade > 3, so overshoot +0.5: y2 = (int)(616.18 - 17.223 * 10.5) = (int)435.34 = 435
         assertEquals("input swipe 75 618 75 435 200", lastCommand);
@@ -62,7 +67,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
-        S22iDevice dev = new S22iDevice();
+        S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0); // grade>3: y2=(int)(616.18-17.223*10.5)=435; currentInclineY=435
         dev.applyIncline(5.0);  // grade>3: y2=(int)(616.18-17.223*5.5)=521; y1=435
         assertEquals("input swipe 75 435 75 521 200", lastCommand);
@@ -87,7 +92,7 @@ public class BikeDeviceTest {
         // In test mode, ShellRuntime is not available but execute() catches IOException.
         // The command is still computed correctly; the capture executor won't fire because
         // ShellRuntime overrides execute().  We test the formula via the parent S22iDevice.
-        S22iDevice base = new S22iDevice();
+        S22iDevice base = dev(new S22iDevice());
         base.applyIncline(0.0);
         assertEquals("input swipe 75 618 75 616 200", lastCommand);
     }
@@ -137,7 +142,7 @@ public class BikeDeviceTest {
 
     @Test
     public void tdf10_applyIncline_atZero_generatesCorrectSwipe() {
-        Tdf10Device dev = new Tdf10Device();
+        Tdf10Device dev = dev(new Tdf10Device());
         dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(619.91 - 0) = 619; initialY = 604 (constructor)
         assertEquals("input swipe 1205 604 1205 619 200", lastCommand);
@@ -152,7 +157,7 @@ public class BikeDeviceTest {
 
     @Test
     public void proformStudioBikePro22_applyIncline_atZero_generatesCorrectSwipe() {
-        ProformStudioBikePro22Device dev = new ProformStudioBikePro22Device();
+        ProformStudioBikePro22Device dev = dev(new ProformStudioBikePro22Device());
         dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(826.25 - 0) = 826; initialY = 805 (constructor)
         assertEquals("input swipe 1828 805 1828 826 200", lastCommand);
@@ -169,71 +174,71 @@ public class BikeDeviceTest {
 
     @Test
     public void decodeCommand_onePart_setsResistanceLvl() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.0"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.0"}, '.');
         assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_twoParts_setsInclinePct() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"5.0", "unused"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"5.0", "unused"}, '.');
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeCommand_roundsToOneDecimal() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.25"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.25"}, '.');
         assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOne_resistance_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-1"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1"}, '.');
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOneHundred_resistance_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-100"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100"}, '.');
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOne_incline_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-1", "unused"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1", "unused"}, '.');
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-100", "unused"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100", "unused"}, '.');
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.5"}, ',');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.5"}, ',');
         assertEquals(8.5f, cmd.resistanceLvl, 0.001f);
     }
 
     @Test
     public void decodeCommand_unparseable_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"abc"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"abc"}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_zeroParts_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_threeParts_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
@@ -242,7 +247,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22i_applyResistance_withNoResistanceSlider_doesNothing() {
-        S22iDevice dev = new S22iDevice();
+        S22iDevice dev = dev(new S22iDevice());
         lastCommand = "unchanged";
         dev.applyResistance(10.0);
         // S22iDevice has no resistance slider (resistanceX() returns -1)
@@ -254,7 +259,7 @@ public class BikeDeviceTest {
 
     @Test
     public void ntex71021_applyIncline_atZero_generatesCorrectSwipe() {
-        Ntex71021Device dev = new Ntex71021Device();
+        Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(493 - 0) = 493; initialY = 480
         assertEquals("input swipe 950 480 950 493 200", lastCommand);
@@ -262,7 +267,7 @@ public class BikeDeviceTest {
 
     @Test
     public void ntex71021_applyIncline_atTen_generatesCorrectSwipe() {
-        Ntex71021Device dev = new Ntex71021Device();
+        Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(10.0);
         // targetInclineY(10) = (int)(493 - 135.7) = (int)357.3 = 357; initialY = 480
         assertEquals("input swipe 950 480 950 357 200", lastCommand);
@@ -270,7 +275,7 @@ public class BikeDeviceTest {
 
     @Test
     public void ntex71021_applyIncline_updatesCurrentY() {
-        Ntex71021Device dev = new Ntex71021Device();
+        Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(10.0); // y2=357; currentY becomes 357
         dev.applyIncline(5.0);  // y2=(int)(493 - 67.85) = (int)425.15 = 425; y1=357
         assertEquals("input swipe 950 357 950 425 200", lastCommand);
@@ -278,10 +283,10 @@ public class BikeDeviceTest {
 
     @Test
     public void ntex71021_isMonotonicallyDecreasing_forIncline() {
-        Ntex71021Device dev = new Ntex71021Device();
+        Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(0.0);
         int y0 = Integer.parseInt(lastCommand.split(" ")[5]);
-        Ntex71021Device dev2 = new Ntex71021Device();
+        Ntex71021Device dev2 = dev(new Ntex71021Device());
         dev2.applyIncline(20.0);
         int y20 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at inclination=20 should be less than Y at inclination=0", y20 < y0);

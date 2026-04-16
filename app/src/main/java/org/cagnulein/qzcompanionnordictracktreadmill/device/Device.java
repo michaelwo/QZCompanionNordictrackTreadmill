@@ -15,7 +15,7 @@ public abstract class Device {
     public static final int SWIPE_THROTTLE_MS = 500;
 
     /** Holds values that arrived during a throttle window — flushed on the next dispatch. */
-    protected final MetricSnapshot cached = new MetricSnapshot();
+    protected final Command cached = new Command();
 
     /**
      * Applies a parsed command to this device, honouring the throttle window and
@@ -24,7 +24,7 @@ public abstract class Device {
      * @param cmd     parsed command snapshot (non-null fields = requested values)
      * @param now current timestamp in ms (injected by CommandDispatcher)
      */
-    public abstract void applyCommand(MetricSnapshot cmd, long now);
+    public abstract void applyCommand(Command cmd, long now);
 
     /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
     public void updateSnapshot(MetricSnapshot m) {
@@ -37,24 +37,17 @@ public abstract class Device {
         if (m.heartRate     != null) lastSnapshot.heartRate     = m.heartRate;
     }
 
-    /**
-     * Command executor installed by the Android layer (MainActivity) at startup.
-     * Default is no-op so device classes compile and run without Android dependencies.
-     * Tests override execute() in anonymous subclasses to capture commands.
-     */
-    public static CommandExecutor commandExecutor = command -> {};
-
     /** Functional interface so the executor can be set without Android imports. */
-    public interface CommandExecutor {
-        void send(String command);
-    }
+    public interface CommandExecutor { void send(String command); }
 
-    /**
-     * Always-on logger installed by the Android layer (MainActivity) at startup.
-     * Default is no-op so device classes compile and run without Android dependencies.
-     */
+    /** Executes shell commands on this device. No-op by default; set by MainActivity. */
+    public CommandExecutor commandExecutor = command -> {};
+
+    /** Functional interface for log output. */
     public interface Logger { void log(String tag, String msg); }
-    public static Logger logger = (tag, msg) -> {};
+
+    /** Logger for this device. No-op by default; set by MainActivity. */
+    public Logger logger = (tag, msg) -> {};
 
     public abstract String displayName();
 
@@ -63,7 +56,7 @@ public abstract class Device {
      * Returns a MetricSnapshot whose non-null fields represent the requested values.
      * Fields not relevant to this device type (or absent from the message) are null.
      */
-    public abstract MetricSnapshot decodeCommand(String[] parts, char decimalSeparator);
+    public abstract Command decodeCommand(String[] parts, char decimalSeparator);
 
     /** Rounds to one decimal place (e.g. 5.25 → 5.3). */
     public static float roundToOneDecimal(float value) {
@@ -92,10 +85,6 @@ public abstract class Device {
         return new TailGrepMetricReader(ifitV2);
     }
 
-    protected void execute(String command) {
-        commandExecutor.send(command);
-    }
-
     /**
      * Timestamp (ms) of the last command sent to this device.
      * Owned here so CommandDispatcher can throttle per-device without holding device state itself.
@@ -105,6 +94,6 @@ public abstract class Device {
     protected void swipe(int x, int y1, int y2) {
         String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200";
         logger.log("QZ:Device", "swipe -> " + cmd);
-        execute(cmd);
+        commandExecutor.send(cmd);
     }
 }

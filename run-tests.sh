@@ -62,6 +62,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/ocr/Ocr.java \
   $STUBS/MyAccessibilityService.java \
   $STUBS/ShellRuntime.java \
+  $SRC/device/Command.java \
   $SRC/device/Device.java \
   $SRC/device/Slider.java \
   $SRC/device/BikeDevice.java \
@@ -109,15 +110,14 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/device/Tdf10Device.java \
   $SRC/device/Tdf10InclinationDevice.java \
   $SRC/device/DeviceRegistry.java \
-  $SRC/dispatch/CommandDispatcher.java \
-  $SRC/dispatch/UDPReceiveLoop.java
+  $SRC/dispatch/CommandDispatcher.java
 
 # Compile tests
 javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
   $TEST/OcrTest.java \
   $TEST/CommandDispatcherTest.java \
-  $TEST/BikeDeviceTest.java \
-  $TEST/TreadmillDeviceTest.java \
+  $TEST/device/BikeDeviceTest.java \
+  $TEST/device/TreadmillDeviceTest.java \
   $TEST/MetricReaderTest.java \
   $TEST/UdpPipelineTest.java \
   $TEST/ZwiftRideSimulationTest.java
@@ -126,8 +126,8 @@ javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
 java -cp $OUT:$JUNIT:$HAMCREST org.junit.runner.JUnitCore \
   org.cagnulein.qzcompanionnordictracktreadmill.OcrTest \
   org.cagnulein.qzcompanionnordictracktreadmill.CommandDispatcherTest \
-  org.cagnulein.qzcompanionnordictracktreadmill.BikeDeviceTest \
-  org.cagnulein.qzcompanionnordictracktreadmill.TreadmillDeviceTest \
+  org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDeviceTest \
+  org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDeviceTest \
   org.cagnulein.qzcompanionnordictracktreadmill.MetricReaderTest \
   org.cagnulein.qzcompanionnordictracktreadmill.UdpPipelineTest \
   org.cagnulein.qzcompanionnordictracktreadmill.ZwiftRideSimulationTest

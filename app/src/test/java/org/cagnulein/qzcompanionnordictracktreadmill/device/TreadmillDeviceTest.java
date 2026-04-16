@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.C1750Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -12,6 +12,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.X32iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.X9iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,15 +29,19 @@ public class TreadmillDeviceTest {
     /** Captures the last command sent via Device.commandExecutor. */
     private String lastCommand;
 
+    /** Wraps a device to capture its swipe commands into lastCommand. */
+    private <T extends Device> T dev(T d) {
+        d.commandExecutor = cmd -> lastCommand = cmd;
+        return d;
+    }
+
     @Before
     public void installCaptureExecutor() {
         lastCommand = null;
-        Device.commandExecutor = cmd -> lastCommand = cmd;
     }
 
     @After
     public void restoreDefaultExecutor() {
-        Device.commandExecutor = cmd -> {};
     }
 
     // ── X11iDevice ────────────────────────────────────────────────────────────
@@ -45,7 +50,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applySpeed_atZero_generatesCorrectSwipe() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applySpeed(0.0);
         // y2=(int)(621.997 - 0) = 621; y1=600
         assertEquals("input swipe 1207 600 1207 621 200", lastCommand);
@@ -53,7 +58,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applySpeed_atTen_generatesCorrectSwipe() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applySpeed(10.0);
         // y2=(int)(621.997 - 217.85) = (int)404.147 = 404; y1=600
         assertEquals("input swipe 1207 600 1207 404 200", lastCommand);
@@ -61,7 +66,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applySpeed_updatesCurrentY() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applySpeed(10.0); // y2=404; currentSpeedY becomes 404
         dev.applySpeed(5.0);  // y2=(int)(621.997 - 108.925) = (int)513.072 = 513; y1=404
         assertEquals("input swipe 1207 404 1207 513 200", lastCommand);
@@ -69,7 +74,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applyIncline_atZero_generatesCorrectSwipe() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applyIncline(0.0);
         // y2=(int)(565.491 - 0) = 565; y1=557
         assertEquals("input swipe 75 557 75 565 200", lastCommand);
@@ -77,7 +82,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applyIncline_atTen_generatesCorrectSwipe() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applyIncline(10.0);
         // y2=(int)(565.491 - 84.4) = (int)481.091 = 481; y1=557
         assertEquals("input swipe 75 557 75 481 200", lastCommand);
@@ -85,7 +90,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_applyIncline_updatesCurrentY() {
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applyIncline(10.0); // y2=481; currentInclineY becomes 481
         dev.applyIncline(5.0);  // y2=(int)(565.491 - 42.2) = (int)523.291 = 523; y1=481
         assertEquals("input swipe 75 481 75 523 200", lastCommand);
@@ -155,63 +160,63 @@ public class TreadmillDeviceTest {
 
     @Test
     public void decodeCommand_twoParts_setsBothFields() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "5.0"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "5.0"}, '.');
         assertEquals(8.0f, cmd.speedKmh,   0.001f);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_roundsToOneDecimal() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.25", "5.14"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.25", "5.14"}, '.');
         assertEquals(8.3f, cmd.speedKmh,   0.001f);
         assertEquals(5.1f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOne_speed_returnsNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"-1", "5.0"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"-1", "5.0"}, '.');
         assertNull(cmd.speedKmh);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "-100"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "-100"}, '.');
         assertEquals(8.0f, cmd.speedKmh, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_bothSentinels_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.5", "3.0"}, ',');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.5", "3.0"}, ',');
         assertEquals(8.5f, cmd.speedKmh,   0.001f);
         assertEquals(3.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_onePart_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_zeroParts_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_threeParts_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
+        Command cmd = new X11iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
@@ -221,11 +226,11 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_speedY_isMonotonicallyDecreasing() {
         // Higher speed → lower Y (slider moves up = less Y value)
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applySpeed(5.0);
         int y5 = Integer.parseInt(lastCommand.split(" ")[5]);
         // Reset by using a fresh device
-        X11iDevice dev2 = new X11iDevice();
+        X11iDevice dev2 = dev(new X11iDevice());
         dev2.applySpeed(10.0);
         int y10 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at speed=10 should be less than Y at speed=5", y10 < y5);
@@ -234,10 +239,10 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_inclineY_isMonotonicallyDecreasing() {
         // Higher incline → lower Y (slider moves up = less Y value)
-        X11iDevice dev = new X11iDevice();
+        X11iDevice dev = dev(new X11iDevice());
         dev.applyIncline(5.0);
         int y5 = Integer.parseInt(lastCommand.split(" ")[5]);
-        X11iDevice dev2 = new X11iDevice();
+        X11iDevice dev2 = dev(new X11iDevice());
         dev2.applyIncline(10.0);
         int y10 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at incline=10 should be less than Y at incline=5", y10 < y5);

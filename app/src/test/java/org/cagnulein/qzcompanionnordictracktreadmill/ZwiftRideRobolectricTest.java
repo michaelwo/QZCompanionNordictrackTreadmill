@@ -49,14 +49,10 @@ public class ZwiftRideRobolectricTest {
     private final List<String> commands = new ArrayList<>();
 
     @Before
-    public void setUp() {
-        commands.clear();
-        Device.commandExecutor = cmd -> commands.add(cmd);
-    }
+    public void setUp() { commands.clear(); }
 
     @After
     public void tearDown() {
-        Device.commandExecutor = cmd -> {};
         Device.instance = null;
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
@@ -105,10 +101,10 @@ public class ZwiftRideRobolectricTest {
      */
     @Test
     public void s22i_threeGradeChanges_correctSwipeChain() throws Exception {
-        Device.instance = new S22iDevice();
-
+        S22iDevice device = new S22iDevice();
         CountDownLatch latch = new CountDownLatch(3);
-        Device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        Device.instance = device;
 
         startService();
 
@@ -134,10 +130,10 @@ public class ZwiftRideRobolectricTest {
      */
     @Test
     public void s22i_duplicateGrade_onlyOneSwipeFires() throws Exception {
-        Device.instance = new S22iDevice();
-
+        S22iDevice device = new S22iDevice();
         CountDownLatch firstSwipe = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { commands.add(cmd); firstSwipe.countDown(); };
+        device.commandExecutor = cmd -> { commands.add(cmd); firstSwipe.countDown(); }
+        Device.instance = device;
 
         startService();
 
@@ -146,7 +142,7 @@ public class ZwiftRideRobolectricTest {
 
         // Send the same grade again — should be de-duped
         CountDownLatch secondSwipe = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { commands.add(cmd); secondSwipe.countDown(); };
+        Device.instance.commandExecutor = cmd -> { commands.add(cmd); secondSwipe.countDown(); };
         sendGrade(7f);
 
         assertFalse("duplicate grade should be suppressed by de-dup",
@@ -160,10 +156,10 @@ public class ZwiftRideRobolectricTest {
      */
     @Test
     public void s22i_sentinelMessage_noSwipeFires() throws Exception {
-        Device.instance = new S22iDevice();
-
+        S22iDevice device = new S22iDevice();
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        Device.instance = device;
 
         startService();
         Thread.sleep(200);
@@ -184,9 +180,8 @@ public class ZwiftRideRobolectricTest {
     @Test
     public void noDevice_messageDiscarded() throws Exception {
         Device.instance = null;
-
+        // No device selected — no executor to configure; any dispatch would be discarded.
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
 
         startService();
         Thread.sleep(200);
@@ -210,10 +205,9 @@ public class ZwiftRideRobolectricTest {
     public void x11i_speedMessage_producesExpectedSwipe() throws Exception {
         X11iDevice x11i = new X11iDevice();
         x11i.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        Device.instance = x11i;
-
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        x11i.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
+        Device.instance = x11i;
 
         startService();
         Thread.sleep(200);

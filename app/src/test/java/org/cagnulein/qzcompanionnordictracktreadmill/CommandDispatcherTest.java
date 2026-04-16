@@ -7,7 +7,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -37,22 +36,21 @@ public class CommandDispatcherTest {
     }
 
     @Before
-    public void installCaptureExecutor() {
-        lastCommand = null;
-        Device.commandExecutor = cmd -> lastCommand = cmd;
+    public void reset() { lastCommand = null; }
+
+    /** Wraps a device to capture its swipe commands into lastCommand. */
+    private <T extends Device> T dev(T d) {
+        d.commandExecutor = cmd -> lastCommand = cmd;
+        return d;
     }
 
-    @After
-    public void restoreDefaultExecutor() {
-        Device.commandExecutor = cmd -> {};
-    }
 
     // ── Treadmill: basic dispatch ─────────────────────────────────────────────
 
     @Test
     public void treadmill_speedAndIncline_appliesSpeedSwipe() {
         // X11i: speedX=1207, initialSpeedY=600, targetSpeedY(8.0)=(int)(621.997-174.28)=447
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", '.', device);
@@ -64,9 +62,8 @@ public class CommandDispatcherTest {
         // Speed is applied first, updating lastSwipeMs=now, so the incline check
         // (lastSwipeMs + 500 < now) is false in the same dispatch — incline is cached.
         int[] count = {0};
-        Device.commandExecutor = cmd -> { lastCommand = cmd; count[0]++; };
-
         X11iDevice device = new X11iDevice();
+        device.commandExecutor = cmd -> { lastCommand = cmd; count[0]++; };
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", '.', device);
@@ -81,7 +78,7 @@ public class CommandDispatcherTest {
         // Incline is cached on first dispatch (speed takes the throttle slot).
         // After the throttle window, a second dispatch applies the cached incline.
         // X11i: inclineX=75, initialInclineY=557, targetInclineY(3.0)=(int)(565.491-25.32)=540
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", '.', device); // speed applied, incline cached
@@ -96,14 +93,14 @@ public class CommandDispatcherTest {
         // Speed must not be applied when current speed is 0 (device not yet running).
         // Use sentinel incline (-100) so that path also produces no command.
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", '.', new X11iDevice());
+        d.dispatch("8.0;-100", '.', dev(new X11iDevice()));
         assertNull(lastCommand);
     }
 
     @Test
     public void treadmill_cachedSpeed_appliedWhenDeviceMovesAndWindowOpen() {
         // Speed cached while stopped. Once moving and throttle window passes, applies.
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;-100", '.', device); // cached, no command (device stopped)
         assertNull(lastCommand);
@@ -116,7 +113,7 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_throttle_secondMessageWithinWindowIsCached() {
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", '.', device); // applied at t=1000
@@ -131,7 +128,7 @@ public class CommandDispatcherTest {
     public void treadmill_cachedSpeed_appliedAfterThrottleWindow() {
         // X11i targetSpeedY(9.0) = (int)(621.997 - 21.785*9.0) = (int)(425.932) = 425
         // Reuse the same device so initialSpeedY carries over correctly: 600→447 after first dispatch.
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;-100", '.', device); // speed 8.0 applied, y 600→447
@@ -147,13 +144,13 @@ public class CommandDispatcherTest {
     @Test
     public void treadmill_sentinelMessage_noCommandGenerated() {
         CommandDispatcher d = dispatcher();
-        d.dispatch("-1;-100", '.', new X11iDevice());
+        d.dispatch("-1;-100", '.', dev(new X11iDevice()));
         assertNull(lastCommand);
     }
 
     @Test
     public void treadmill_commaLocale_parsesCorrectly() {
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", ',', device);
@@ -167,7 +164,7 @@ public class CommandDispatcherTest {
         // S15i: resistanceX=1848, initialResistanceY=790
         // targetResistanceY(10.0) = 790 - (int)(23.16*10) = 790 - 231 = 559
         CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", '.', new S15iDevice());
+        d.dispatch("10.0", '.', dev(new S15iDevice()));
         assertEquals("input swipe 1848 790 1848 559 200", lastCommand);
     }
 
@@ -175,13 +172,13 @@ public class CommandDispatcherTest {
     public void bike_incline_appliesInclineSwipe() {
         // S22i grade>3: overshoot+0.5 → targetInclineY(5.0)=(int)(616.18-17.223*5.5)=521
         CommandDispatcher d = dispatcher();
-        d.dispatch("5.0;0", '.', new S22iDevice());
+        d.dispatch("5.0;0", '.', dev(new S22iDevice()));
         assertEquals("input swipe 75 618 75 521 200", lastCommand);
     }
 
     @Test
     public void bike_duplicateResistance_notReapplied() {
-        S15iDevice device = new S15iDevice();
+        S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
         d.dispatch("10.0", '.', device); // applied
         lastCommand = null;
@@ -193,7 +190,7 @@ public class CommandDispatcherTest {
 
     @Test
     public void bike_throttle_cachesResistance() {
-        S15iDevice device = new S15iDevice();
+        S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
         d.dispatch("10.0", '.', device); // applied at t=1000
         lastCommand = null;
@@ -208,7 +205,7 @@ public class CommandDispatcherTest {
         // Resistance has no cache-flush path: a throttled value is dropped.
         // A new value sent after the window opens IS applied directly.
         // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
-        S15iDevice device = new S15iDevice();
+        S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
         d.dispatch("10.0", '.', device); // applied at t=1000
 
@@ -225,7 +222,7 @@ public class CommandDispatcherTest {
     @Test
     public void bike_sentinelResistance_noCommandGenerated() {
         CommandDispatcher d = dispatcher();
-        d.dispatch("-1", '.', new S15iDevice());
+        d.dispatch("-1", '.', dev(new S15iDevice()));
         assertNull(lastCommand);
     }
 }

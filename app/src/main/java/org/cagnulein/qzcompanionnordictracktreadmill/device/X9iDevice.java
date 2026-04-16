@@ -14,7 +14,11 @@ public class X9iDevice extends TreadmillDevice {
                 public int trackX() { return 73; }
                 public int targetY(double v) { return (int) (311.91 - 3.3478 * v); }
             }
-        ); }
+        );
+        commandExecutor = cmd -> {
+            try { shellRuntime.exec(cmd); } catch (java.io.IOException ignored) {}
+        };
+    }
 
     @Override
     public String displayName() { return "X9i Treadmill"; }
@@ -23,8 +27,4 @@ public class X9iDevice extends TreadmillDevice {
 
 
 
-    @Override
-    protected void execute(String command) {
-        try { shellRuntime.exec(command); } catch (java.io.IOException ignored) {}
-    }
 }

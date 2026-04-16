@@ -1,7 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-
 public abstract class TreadmillDevice extends Device {
 
     private final Slider speed;
@@ -12,16 +10,16 @@ public abstract class TreadmillDevice extends Device {
         this.incline = incline;
     }
 
-    public final void applySpeed(double kmh) {
+    protected final void applySpeed(double kmh) {
         speed.moveTo(kmh, this);
     }
 
-    public final void applyIncline(double pct) {
+    protected final void applyIncline(double pct) {
         incline.moveTo(pct, this);
     }
 
     @Override
-    public final void applyCommand(MetricSnapshot cmd, long now) {
+    public final void applyCommand(Command cmd, long now) {
         // speed (2-part message, first field)
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
@@ -58,14 +56,14 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public MetricSnapshot decodeCommand(String[] parts, char decimalSeparator) {
-        MetricSnapshot.Builder b = new MetricSnapshot.Builder();
+    public Command decodeCommand(String[] parts, char decimalSeparator) {
+        Command cmd = new Command();
         if (parts.length == 2) {
             Float s = parseField(parts[0], decimalSeparator);
             Float i = parseField(parts[1], decimalSeparator);
-            if (s != null && s != -1)   b.speedKmh(roundToOneDecimal(s));
-            if (i != null && i != -100) b.inclinePct(roundToOneDecimal(i));
+            if (s != null && s != -1)   cmd.speedKmh   = roundToOneDecimal(s);
+            if (i != null && i != -100) cmd.inclinePct = roundToOneDecimal(i);
         }
-        return b.build();
+        return cmd;
     }
 }

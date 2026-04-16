@@ -16,7 +16,11 @@ public class X22iDevice extends TreadmillDevice {
                 public int trackX() { return 75; }
                 public int targetY(double v) { return (int) (785 - 11.304347826086957 * (v + 6)); }
             }
-        ); }
+        );
+        commandExecutor = cmd -> {
+            try { shellRuntime.exec(cmd); } catch (java.io.IOException ignored) {}
+        };
+    }
 
     @Override
     public String displayName() { return "X22i Treadmill"; }
@@ -28,8 +32,4 @@ public class X22iDevice extends TreadmillDevice {
 
 
 
-    @Override
-    protected void execute(String command) {
-        try { shellRuntime.exec(command); } catch (java.io.IOException ignored) {}
-    }
 }

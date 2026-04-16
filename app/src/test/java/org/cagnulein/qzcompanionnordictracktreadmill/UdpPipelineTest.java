@@ -4,7 +4,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.UDPReceiveLoop;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import org.junit.After;
@@ -41,22 +40,24 @@ public class UdpPipelineTest {
     @Before
     public void setUp() throws Exception {
         lastCommand = null;
-        Device.commandExecutor = cmd -> lastCommand = cmd;
-        // Port 0 lets the OS assign a free ephemeral port, avoiding conflicts when
-        // Gradle runs test methods in parallel across multiple threads.
         serverSocket = new DatagramSocket(0);
         dispatcher   = new CommandDispatcher();
     }
 
     @After
     public void tearDown() throws InterruptedException {
-        Device.commandExecutor = cmd -> {};
         // Close socket first so any blocking receive() throws and the thread exits.
         if (serverSocket  != null) serverSocket.close();
         if (listenerThread != null) {
             listenerThread.interrupt();
             listenerThread.join(1000);
         }
+    }
+
+    /** Wraps a device to capture its swipe commands into lastCommand. */
+    private <T extends Device> T dev(T d) {
+        d.commandExecutor = cmd -> lastCommand = cmd;
+        return d;
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ public class UdpPipelineTest {
         // Expected: input swipe 1207 600 1207 447 200
         CountDownLatch latch = new CountDownLatch(1);
         MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        startReceiver(new X11iDevice(), current, latch);
+        startReceiver(dev(new X11iDevice()), current, latch);
 
         sendUdp("8.0;3.0");
 
@@ -115,10 +116,11 @@ public class UdpPipelineTest {
         // "-1;-100" has no actionable values — nothing should be dispatched.
         AtomicReference<String> captured = new AtomicReference<>(null);
         CountDownLatch commandLatch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
+        X11iDevice sentinelDevice = new X11iDevice();
+        sentinelDevice.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
 
         MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        startReceiver(new X11iDevice(), current, new CountDownLatch(1));
+        startReceiver(sentinelDevice, current, new CountDownLatch(1));
 
         sendUdp("-1;-100");
 
@@ -134,7 +136,7 @@ public class UdpPipelineTest {
         MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
 
         // Simulate a listener with comma as decimal separator.
-        X11iDevice device = new X11iDevice();
+        X11iDevice device = dev(new X11iDevice());
         listenerThread = new Thread(() -> {
             try {
                 byte[] buf = new byte[1024];
@@ -161,7 +163,7 @@ public class UdpPipelineTest {
     public void bike_resistanceMessage_producesExpectedSwipe() throws Exception {
         // S15i: resistance 10 → input swipe 1848 790 1848 559 200
         CountDownLatch latch = new CountDownLatch(1);
-        startReceiver(new S15iDevice(), new MetricSnapshot(), latch);
+        startReceiver(dev(new S15iDevice()), new MetricSnapshot(), latch);
 
         sendUdp("10.0");
 
@@ -173,9 +175,10 @@ public class UdpPipelineTest {
     public void bike_sentinelResistance_noCommand() throws Exception {
         AtomicReference<String> captured = new AtomicReference<>(null);
         CountDownLatch commandLatch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
+        S15iDevice sentinelDevice = new S15iDevice();
+        sentinelDevice.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
 
-        startReceiver(new S15iDevice(), new MetricSnapshot(), new CountDownLatch(1));
+        startReceiver(sentinelDevice, new MetricSnapshot(), new CountDownLatch(1));
 
         sendUdp("-1");
 

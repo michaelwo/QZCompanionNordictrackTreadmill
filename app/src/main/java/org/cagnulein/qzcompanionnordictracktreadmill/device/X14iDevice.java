@@ -41,7 +41,11 @@ public class X14iDevice extends TreadmillDevice {
                 public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
-        ); }
+        );
+        commandExecutor = cmd -> {
+            try { shellRuntime.exec(cmd); } catch (java.io.IOException ignored) {}
+        };
+    }
 
     @Override
     public String displayName() { return "X14i Treadmill"; }
@@ -60,8 +64,4 @@ public class X14iDevice extends TreadmillDevice {
         return (int) table[table.length - 1][1];
     }
 
-    @Override
-    protected void execute(String command) {
-        try { shellRuntime.exec(command); } catch (java.io.IOException ignored) {}
-    }
 }
