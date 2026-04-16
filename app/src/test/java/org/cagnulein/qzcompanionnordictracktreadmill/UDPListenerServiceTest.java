@@ -18,8 +18,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.S15iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import static org.junit.Assert.*;
@@ -43,14 +43,10 @@ public class UDPListenerServiceTest {
     @Before
     public void setUp() {
         lastCommand = null;
-        // Capture swipe commands before the service starts so the
-        // executor is in place when the listener thread wakes up.
-        Device.commandExecutor = cmd -> lastCommand = cmd;
     }
 
     @After
     public void tearDown() {
-        Device.commandExecutor = cmd -> {};
         Device.instance = null;
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
@@ -87,10 +83,9 @@ public class UDPListenerServiceTest {
         // Expected: input swipe 1207 600 1207 447 200
         X11iDevice x11i = new X11iDevice();
         x11i.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        Device.instance = x11i;
-
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        x11i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        Device.instance = x11i;
 
         controller = Robolectric.buildService(UDPListenerService.class);
         controller.create().startCommand(0, 1);
@@ -105,10 +100,10 @@ public class UDPListenerServiceTest {
     public void bike_udpMessage_producesExpectedSwipe() throws Exception {
         // S15i: resistance level 10 from a stopped device
         // Expected: input swipe 1848 790 1848 559 200
-        Device.instance = new S15iDevice();  // lastSnapshot defaults to empty (stopped)
-
+        S15iDevice s15i = new S15iDevice();  // lastSnapshot defaults to empty (stopped)
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        Device.instance = s15i;
 
         controller = Robolectric.buildService(UDPListenerService.class);
         controller.create().startCommand(0, 1);
@@ -123,9 +118,7 @@ public class UDPListenerServiceTest {
     public void noDevice_selected_noCommandProduced() throws Exception {
         // When currentDevice is null the service should silently drop the message.
         Device.instance = null;
-
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
 
         controller = Robolectric.buildService(UDPListenerService.class);
         controller.create().startCommand(0, 1);
@@ -143,10 +136,9 @@ public class UDPListenerServiceTest {
         // "-1;-100" is the all-sentinel message — no values to apply.
         X11iDevice x11i2 = new X11iDevice();
         x11i2.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        Device.instance = x11i2;
-
         CountDownLatch latch = new CountDownLatch(1);
-        Device.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        x11i2.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        Device.instance = x11i2;
 
         controller = Robolectric.buildService(UDPListenerService.class);
         controller.create().startCommand(0, 1);
