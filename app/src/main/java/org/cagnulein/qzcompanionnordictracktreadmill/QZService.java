@@ -13,6 +13,7 @@ import android.util.Log;
 import android.graphics.Rect;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrBlock;
 import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
@@ -70,7 +71,7 @@ public class QZService extends Service {
             public void run() {
                 writeLog( "Service run");
                 if(sharedPreferences.getBoolean("OCR", false)) {
-                    getOCR();
+                    pollOCR();
                     handler.postDelayed(runnable, POLL_INTERVAL_MS);
                 }
                 else
@@ -85,84 +86,97 @@ public class QZService extends Service {
     }
 
 
-    private static Rect wattRectCache = null;
+    private final WattRectFallback wattFallback = new WattRectFallback();
 
-    private Rect rectFromString(String str) {
-        if (str == null) return null;
-        String replaced = str.replace("Rect(", "").replace(")", "");
-        String[] parts = replaced.split("-");
-        if (parts.length != 2) return null;
-
-        String[] leftTop = parts[0].split(",");
-        if (leftTop.length != 2) return null;
-
-        String[] rightBottom = parts[1].split(",");
-        if (rightBottom.length != 2) return null;
-        
-        try {
-            int left = Integer.parseInt(leftTop[0].trim());
-            int top = Integer.parseInt(leftTop[1].trim());
-            int right = Integer.parseInt(rightBottom[0].trim());
-            int bottom = Integer.parseInt(rightBottom[1].trim());
-            return new Rect(left, top, right, bottom);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    public String[] getOCR() {
+    private void pollOCR() {
         String textExtended = ScreenCaptureService.getLastTextExtended();
-        if (textExtended == null || textExtended.isEmpty()) return new String[2];
+        if (textExtended == null || textExtended.isEmpty()) return;
 
-        Log.i(LOG_TAG, "getOCR");
+        OcrBlock[] blocks = OcrParser.blocks(textExtended);
+        MetricSnapshot ocr = OcrParser.parseBlocks(blocks);
 
-        MetricSnapshot ocr = OcrParser.parse(textExtended);
         if (ocr.speedKmh      != null) writeLog("OCRlines speed found!");
         if (ocr.inclinePct    != null) writeLog("OCRlines incline found!");
         if (ocr.resistanceLvl != null) writeLog("OCRlines resistance found!");
         if (ocr.cadenceRpm    != null) writeLog("OCRlines cadence found!");
         if (ocr.watts         != null) writeLog("OCRlines watts found!");
 
-        // Apply snapshot to static fields without broadcasting yet.
         if (Device.instance != null) Device.instance.updateSnapshot(ocr);
 
-        // Watt rect caching — requires Android Rect, kept here rather than in OcrParser.
-        String[] ocrBlocks = textExtended.split("§§");
-        String[] lines = new String[ocrBlocks.length];
-        Rect[] rects = new Rect[ocrBlocks.length];
-        for (int i = 0; i < ocrBlocks.length; i++) {
-            String[] parts = ocrBlocks[i].split("\\$\\$");
-            lines[i] = parts[0];
-            rects[i] = parts.length == 2 ? rectFromString(parts[1]) : null;
-        }
-        for (int i = 1; i < lines.length; i++) {
-            writeLog("OCRlines " + i + " " + lines[i]);
-            if (lines[i].toLowerCase().contains("watt") && ocr.watts != null && rects[i-1] != null) {
-                wattRectCache = rects[i-1];
-                writeLog("OCRlines watts rect cached!");
-            }
-        }
-        if (ocr.watts == null && wattRectCache != null) {
-            writeLog("OCRlines watts not found, trying with cache");
-            int expandedWidth = (int)(wattRectCache.width() * 1.5);
-            int expandedLeft  = wattRectCache.left - (expandedWidth - wattRectCache.width()) / 2;
-            Rect expandedCache = new Rect(expandedLeft, wattRectCache.top, expandedLeft + expandedWidth, wattRectCache.bottom);
-            for (int i = 0; i < lines.length; i++) {
-                if (rects[i] != null && Rect.intersects(expandedCache, rects[i])) {
-                    try {
-                        String[] numbers = lines[i].trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
-                        int w = Integer.parseInt(numbers[numbers.length - 1]);
-                        if (w > 20) {
-                            if (Device.instance != null) Device.instance.updateSnapshot(new MetricSnapshot.Builder().watts((float) w).build());
-                            writeLog("OCRlines watts found with cache!");
-                        }
-                    } catch (Exception ignored) {}
-                }
+        wattFallback.update(blocks, ocr.watts);
+        if (ocr.watts == null) {
+            Float recovered = wattFallback.tryRecover(blocks);
+            if (recovered != null) {
+                writeLog("OCRlines watts found with cache!");
+                if (Device.instance != null)
+                    Device.instance.updateSnapshot(new MetricSnapshot.Builder().watts(recovered).build());
             }
         }
 
         broadcastLastKnown();
-        return new String[2];
+    }
+
+    /**
+     * Remembers where on screen the watt value appeared so it can be recovered
+     * in frames where OCR misses it.  Keeps the Android Rect dependency out of
+     * OcrParser, which must stay pure-Java for unit testing.
+     */
+    private class WattRectFallback {
+        private Rect cache = null;
+
+        /**
+         * If {@code watts} was just parsed, records the screen rect of the value
+         * block that preceded the "watt" label for use as a fallback region later.
+         */
+        void update(OcrBlock[] blocks, Float watts) {
+            if (watts == null) return;
+            for (int i = 1; i < blocks.length; i++) {
+                if (blocks[i].text.toLowerCase().contains("watt")) {
+                    Rect r = rectFromString(blocks[i - 1].rectString);
+                    if (r != null) { cache = r; return; }
+                }
+            }
+        }
+
+        /**
+         * Tries to recover a watt value when OcrParser found none.
+         * Expands the cached rect by 50% horizontally and returns the first
+         * numeric value above MIN_WATTS found in an intersecting block.
+         */
+        Float tryRecover(OcrBlock[] blocks) {
+            if (cache == null) return null;
+            int expandedWidth = (int) (cache.width() * 1.5);
+            int expandedLeft  = cache.left - (expandedWidth - cache.width()) / 2;
+            Rect expanded = new Rect(expandedLeft, cache.top, expandedLeft + expandedWidth, cache.bottom);
+            for (OcrBlock block : blocks) {
+                Rect r = rectFromString(block.rectString);
+                if (r != null && Rect.intersects(expanded, r)) {
+                    try {
+                        String[] numbers = block.text.trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
+                        int w = Integer.parseInt(numbers[numbers.length - 1]);
+                        if (w > OcrParser.MIN_WATTS) return (float) w;
+                    } catch (Exception ignored) {}
+                }
+            }
+            return null;
+        }
+
+        private Rect rectFromString(String str) {
+            if (str == null) return null;
+            String s = str.replace("Rect(", "").replace(")", "");
+            String[] halves = s.split("-");
+            if (halves.length != 2) return null;
+            String[] lt = halves[0].split(",");
+            String[] rb = halves[1].split(",");
+            if (lt.length != 2 || rb.length != 2) return null;
+            try {
+                return new Rect(
+                    Integer.parseInt(lt[0].trim()), Integer.parseInt(lt[1].trim()),
+                    Integer.parseInt(rb[0].trim()), Integer.parseInt(rb[1].trim()));
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
     }
 
     private void parse() {

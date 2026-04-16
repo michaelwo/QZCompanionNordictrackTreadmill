@@ -58,6 +58,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/reader/LogcatDumpMetricReader.java \
   $SRC/reader/DirectLogcatMetricReader.java \
   $SRC/reader/TailGrepMetricReader.java \
+  $SRC/ocr/OcrBlock.java \
   $SRC/ocr/OcrParser.java \
   $STUBS/MyAccessibilityService.java \
   $STUBS/ShellRuntime.java \

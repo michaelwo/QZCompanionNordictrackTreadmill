@@ -10,39 +10,44 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  *   Blocks separated by "§§". Each block is either "text$$rect" or just "text".
  *   The VALUE for a metric is on the line IMMEDIATELY BEFORE the label line.
  *   Example: "12.5§§speed" → speed = 12.5
- *
- * The watt rect-cache fallback from QZService is intentionally excluded here
- * because it depends on android.graphics.Rect. It remains in QZService.
  */
 public class OcrParser {
 
     /** Minimum RPM value accepted as a valid cadence reading. */
-    static final int MIN_CADENCE_RPM = 20;
+    public static final int MIN_CADENCE_RPM = 20;
 
     /** Minimum watt value accepted as a valid power reading. */
-    static final int MIN_WATTS = 20;
+    public static final int MIN_WATTS = 20;
 
     /**
-     * Parses the combined OCR text and returns all recognised metric values.
-     *
-     * @param textExtended the raw string from ScreenCaptureService.getLastTextExtended()
-     * @return a MetricSnapshot whose fields are null for any metric not found in the text
+     * Splits {@code textExtended} into its constituent blocks without parsing metric values.
+     * Callers that need both blocks (for rect-based fallback) and parsed metrics can call
+     * this once, pass the result to {@link #parse(OcrBlock[])}, and avoid re-splitting.
      */
-    public static MetricSnapshot parse(String textExtended) {
-        MetricSnapshot.Builder b = new MetricSnapshot.Builder();
-        if (textExtended == null || textExtended.isEmpty()) return b.build();
-
-        String[] ocrBlocks = textExtended.split("§§");
-        String[] lines = new String[ocrBlocks.length];
-        for (int i = 0; i < ocrBlocks.length; i++) {
-            // Strip optional "$$rect" suffix — we only need the text portion
-            String[] parts = ocrBlocks[i].split("\\$\\$");
-            lines[i] = parts[0];
+    public static OcrBlock[] blocks(String textExtended) {
+        if (textExtended == null || textExtended.isEmpty()) return new OcrBlock[0];
+        String[] raw = textExtended.split("§§");
+        OcrBlock[] result = new OcrBlock[raw.length];
+        for (int i = 0; i < raw.length; i++) {
+            String[] parts = raw[i].split("\\$\\$", 2);
+            result[i] = new OcrBlock(parts[0], parts.length == 2 ? parts[1] : null);
         }
+        return result;
+    }
 
-        for (int i = 1; i < lines.length; i++) {
-            String label     = lines[i].toLowerCase();
-            String valueLine = lines[i - 1].trim();
+    /**
+     * Parses pre-split blocks and returns all recognised metric values.
+     * Use this when you already have the blocks (e.g. for the watt rect fallback)
+     * so the raw string is only split once.
+     *
+     * @param blocks the result of {@link #blocks(String)}
+     * @return a MetricSnapshot whose fields are null for any metric not found
+     */
+    public static MetricSnapshot parseBlocks(OcrBlock[] blocks) {
+        MetricSnapshot.Builder b = new MetricSnapshot.Builder();
+        for (int i = 1; i < blocks.length; i++) {
+            String label     = blocks[i].text.toLowerCase();
+            String valueLine = blocks[i - 1].text.trim();
 
             if (label.contains("speed")) {
                 b.speedKmh(parseFloatOrNull(valueLine));
@@ -69,10 +74,10 @@ public class OcrParser {
                     double rpm = Double.parseDouble(valueLine);
                     b.cadenceRpm(rpm > MIN_CADENCE_RPM ? (float) rpm : null);
                 } catch (Exception e) {
-                    // Value on line i-1 was not numeric; fall back to line i-2
+                    // Value on block i-1 was not numeric; fall back to block i-2
                     if (i >= 2) {
                         try {
-                            double rpm = Double.parseDouble(lines[i - 2].trim());
+                            double rpm = Double.parseDouble(blocks[i - 2].text.trim());
                             b.cadenceRpm(rpm > MIN_CADENCE_RPM ? (float) rpm : null);
                         } catch (Exception ignored) {
                             b.cadenceRpm(null);
@@ -92,8 +97,18 @@ public class OcrParser {
                 } catch (Exception ignored) { }
             }
         }
-
         return b.build();
+    }
+
+    /**
+     * Parses raw OCR text and returns all recognised metric values.
+     * Convenience overload — equivalent to {@code parse(blocks(textExtended))}.
+     *
+     * @param textExtended the raw string from ScreenCaptureService.getLastTextExtended()
+     * @return a MetricSnapshot whose fields are null for any metric not found in the text
+     */
+    public static MetricSnapshot parse(String textExtended) {
+        return parseBlocks(blocks(textExtended));
     }
 
     private static Float parseFloatOrNull(String s) {
