@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.function.Consumer;
 
 public class QZService extends Service {
     private static final String LOG_TAG = "QZ:Service";
@@ -44,8 +45,8 @@ public class QZService extends Service {
 
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
-    /** Tracks the last value broadcast for each metric — only changed values are sent. */
-    private final MetricSnapshot lastBroadcast = new MetricSnapshot();
+    /** Tracks the last value sent for each metric — only changed values are broadcast. */
+    private final MetricSnapshot broadcastedSoFar = new MetricSnapshot();
 
     /** Log file and UDP broadcast poll interval. The iFit firmware writes metrics at ~1 Hz;
      *  250 ms gives four reads per source update — fast enough to catch every change while
@@ -204,33 +205,26 @@ public class QZService extends Service {
     private void broadcastLastKnown() {
         if (Device.instance == null) return;
         MetricSnapshot s = Device.instance.lastSnapshot;
-        if (s.speedKmh      != null && !s.speedKmh.equals(lastBroadcast.speedKmh)) {
-            sendBroadcast("Changed KPH "         + s.speedKmh);
-            lastBroadcast.speedKmh      = s.speedKmh;
+        sendIfChanged(s.speedKmh,      broadcastedSoFar.speedKmh,      "Changed KPH ",         v -> broadcastedSoFar.speedKmh      = v);
+        sendIfChanged(s.inclinePct,    broadcastedSoFar.inclinePct,    "Changed Grade ",       v -> broadcastedSoFar.inclinePct    = v);
+        sendIfChanged(s.cadenceRpm,    broadcastedSoFar.cadenceRpm,    "Changed RPM ",         v -> broadcastedSoFar.cadenceRpm    = v);
+        sendIfChanged(s.gearLevel,     broadcastedSoFar.gearLevel,     "Changed CurrentGear ", v -> broadcastedSoFar.gearLevel     = v);
+        sendIfChanged(s.resistanceLvl, broadcastedSoFar.resistanceLvl, "Changed Resistance ",  v -> broadcastedSoFar.resistanceLvl = v);
+        sendIfChangedInt(s.watts,      broadcastedSoFar.watts,         "Changed Watts ",       v -> broadcastedSoFar.watts         = v);
+        sendIfChangedInt(s.heartRate,  broadcastedSoFar.heartRate,     "HeartRateDataUpdate ", v -> broadcastedSoFar.heartRate     = v);
+    }
+
+    private void sendIfChanged(Float current, Float last, String label, Consumer<Float> save) {
+        if (current != null && !current.equals(last)) {
+            sendBroadcast(label + current);
+            save.accept(current);
         }
-        if (s.inclinePct    != null && !s.inclinePct.equals(lastBroadcast.inclinePct)) {
-            sendBroadcast("Changed Grade "       + s.inclinePct);
-            lastBroadcast.inclinePct    = s.inclinePct;
-        }
-        if (s.watts         != null && !s.watts.equals(lastBroadcast.watts)) {
-            sendBroadcast("Changed Watts "       + s.watts.intValue());
-            lastBroadcast.watts         = s.watts;
-        }
-        if (s.cadenceRpm    != null && !s.cadenceRpm.equals(lastBroadcast.cadenceRpm)) {
-            sendBroadcast("Changed RPM "         + s.cadenceRpm);
-            lastBroadcast.cadenceRpm    = s.cadenceRpm;
-        }
-        if (s.gearLevel     != null && !s.gearLevel.equals(lastBroadcast.gearLevel)) {
-            sendBroadcast("Changed CurrentGear " + s.gearLevel);
-            lastBroadcast.gearLevel     = s.gearLevel;
-        }
-        if (s.resistanceLvl != null && !s.resistanceLvl.equals(lastBroadcast.resistanceLvl)) {
-            sendBroadcast("Changed Resistance "  + s.resistanceLvl);
-            lastBroadcast.resistanceLvl = s.resistanceLvl;
-        }
-        if (s.heartRate     != null && !s.heartRate.equals(lastBroadcast.heartRate)) {
-            sendBroadcast("HeartRateDataUpdate " + s.heartRate.intValue());
-            lastBroadcast.heartRate     = s.heartRate;
+    }
+
+    private void sendIfChangedInt(Float current, Float last, String label, Consumer<Float> save) {
+        if (current != null && !current.equals(last)) {
+            sendBroadcast(label + current.intValue());
+            save.accept(current);
         }
     }
 
