@@ -25,7 +25,7 @@ jobs:
        echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
        echo "VERSION_CODE=${{ github.run_number }}" >> $GITHUB_OUTPUT
    - name: Run unit tests
-     run: ./gradlew testDebugUnitTest
+     run: ./gradlew testDebugUnitTest -PversionCode=${{ github.run_number }}
    - name: Build release apk
      run: ./gradlew assembleRelease -q -PversionCode=${{ github.run_number }}
    - name: Setup build tool version variable

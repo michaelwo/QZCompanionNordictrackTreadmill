@@ -13,7 +13,7 @@ android {
         applicationId "org.cagnulein.qzcompanionnordictracktreadmill"
         minSdk 21
         targetSdk 34
-        versionCode (project.hasProperty('versionCode') ? project.versionCode.toInteger() : 0)
+        versionCode (project.hasProperty('versionCode') ? project.versionCode.toInteger() : 1)
         versionName versionProps['versionName']
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
