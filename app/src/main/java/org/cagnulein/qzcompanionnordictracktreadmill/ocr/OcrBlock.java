@@ -4,7 +4,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.ocr;
  * One block from ScreenCaptureService's OCR output.
  *
  * Raw format: blocks separated by "§§", each block optionally carrying a
- * "$$Rect(l,t-r,b)" rect suffix.  OcrParser.blocks() splits the raw string
+ * "$$Rect(l,t-r,b)" rect suffix.  Ocr.blocks() splits the raw string
  * into these objects so callers don't need to repeat the split logic.
  */
 public final class OcrBlock {

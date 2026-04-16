@@ -31,7 +31,7 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public final void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current) {
+    public final void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current) {
         // incline (2-part message)
         Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
         if (inclineVal != null) {
@@ -74,7 +74,7 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public MetricSnapshot parseCommand(String[] parts, char decimalSeparator) {
+    public MetricSnapshot decodeCommand(String[] parts, char decimalSeparator) {
         MetricSnapshot.Builder b = new MetricSnapshot.Builder();
         if (parts.length == 2) {
             Float v = parseField(parts[0], decimalSeparator);

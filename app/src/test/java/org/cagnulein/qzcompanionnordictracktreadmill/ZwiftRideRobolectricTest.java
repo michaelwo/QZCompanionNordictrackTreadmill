@@ -31,7 +31,7 @@ import static org.junit.Assert.*;
  *
  * These tests send multiple UDP messages through the live UDPListenerService
  * socket, verifying that the full pipeline — service receive loop →
- * CommandDispatcher → Device.applyParsed() → Device.swipe() — produces
+ * CommandDispatcher → Device.applyCommand() → Device.swipe() — produces
  * the correct swipe chain across throttle window boundaries.
  *
  * Unlike ZwiftRideSimulationTest (which injects time), these tests use real

@@ -14,7 +14,7 @@ import android.graphics.Rect;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrBlock;
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
+import org.cagnulein.qzcompanionnordictracktreadmill.ocr.Ocr;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
@@ -75,7 +75,7 @@ public class QZService extends Service {
                     handler.postDelayed(runnable, POLL_INTERVAL_MS);
                 }
                 else
-                    parse();
+                    pollLogFile();
             }
         };
 
@@ -92,8 +92,8 @@ public class QZService extends Service {
         String textExtended = ScreenCaptureService.getLastTextExtended();
         if (textExtended == null || textExtended.isEmpty()) return;
 
-        OcrBlock[] blocks = OcrParser.blocks(textExtended);
-        MetricSnapshot ocr = OcrParser.parseBlocks(blocks);
+        OcrBlock[] blocks = Ocr.blocks(textExtended);
+        MetricSnapshot ocr = Ocr.extractMetrics(blocks);
 
         if (ocr.speedKmh      != null) writeLog("OCRlines speed found!");
         if (ocr.inclinePct    != null) writeLog("OCRlines incline found!");
@@ -119,7 +119,7 @@ public class QZService extends Service {
     /**
      * Remembers where on screen the watt value appeared so it can be recovered
      * in frames where OCR misses it.  Keeps the Android Rect dependency out of
-     * OcrParser, which must stay pure-Java for unit testing.
+     * Ocr, which must stay pure-Java for unit testing.
      */
     private class WattRectFallback {
         private Rect cache = null;
@@ -139,7 +139,7 @@ public class QZService extends Service {
         }
 
         /**
-         * Tries to recover a watt value when OcrParser found none.
+         * Tries to recover a watt value when Ocr found none.
          * Expands the cached rect by 50% horizontally and returns the first
          * numeric value above MIN_WATTS found in an intersecting block.
          */
@@ -154,7 +154,7 @@ public class QZService extends Service {
                     try {
                         String[] numbers = block.text.trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
                         int w = Integer.parseInt(numbers[numbers.length - 1]);
-                        if (w > OcrParser.MIN_WATTS) return (float) w;
+                        if (w > Ocr.MIN_WATTS) return (float) w;
                     } catch (Exception ignored) {}
                 }
             }
@@ -179,7 +179,7 @@ public class QZService extends Service {
         }
     }
 
-    private void parse() {
+    private void pollLogFile() {
         String file = pickLatestFileFromDownloads();
         writeLog("Parsing " + file);
         if (file.isEmpty()) {

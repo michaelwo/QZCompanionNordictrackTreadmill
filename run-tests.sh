@@ -59,7 +59,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
   $SRC/reader/DirectLogcatMetricReader.java \
   $SRC/reader/TailGrepMetricReader.java \
   $SRC/ocr/OcrBlock.java \
-  $SRC/ocr/OcrParser.java \
+  $SRC/ocr/Ocr.java \
   $STUBS/MyAccessibilityService.java \
   $STUBS/ShellRuntime.java \
   $SRC/device/Device.java \
@@ -114,7 +114,7 @@ javac -d $OUT -cp $JUNIT:$HAMCREST \
 
 # Compile tests
 javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
-  $TEST/OcrParserTest.java \
+  $TEST/OcrTest.java \
   $TEST/CommandDispatcherTest.java \
   $TEST/BikeDeviceTest.java \
   $TEST/TreadmillDeviceTest.java \
@@ -124,7 +124,7 @@ javac -d $OUT -cp $OUT:$JUNIT:$HAMCREST \
 
 # Run tests
 java -cp $OUT:$JUNIT:$HAMCREST org.junit.runner.JUnitCore \
-  org.cagnulein.qzcompanionnordictracktreadmill.OcrParserTest \
+  org.cagnulein.qzcompanionnordictracktreadmill.OcrTest \
   org.cagnulein.qzcompanionnordictracktreadmill.CommandDispatcherTest \
   org.cagnulein.qzcompanionnordictracktreadmill.BikeDeviceTest \
   org.cagnulein.qzcompanionnordictracktreadmill.TreadmillDeviceTest \

@@ -7,7 +7,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  * Parses a raw UDP message and dispatches the resulting command to the active device.
  *
  * Throttle, cache, and de-dup logic lives on the Device subclasses (BikeDevice,
- * TreadmillDevice) via applyParsed() — this class only splits the message, reads
+ * TreadmillDevice) via applyCommand() — this class only splits the message, reads
  * the clock, and routes.
  *
  * Extracted as a plain Java class so it can be tested without Android dependencies.
@@ -31,7 +31,7 @@ public class CommandDispatcher {
     }
 
     /**
-     * Parses {@code message} and dispatches to {@code device.applyParsed()}.
+     * Parses {@code message} and dispatches to {@code device.applyCommand()}.
      *
      * @param message          raw semicolon-delimited UDP string
      * @param decimalSeparator locale decimal separator for numeric parsing
@@ -41,7 +41,7 @@ public class CommandDispatcher {
     public void dispatch(String message, char decimalSeparator, Device device, MetricSnapshot current) {
         String[] parts = message.split(";");
         long now = clock.now();
-        MetricSnapshot cmd = device.parseCommand(parts, decimalSeparator);
-        device.applyParsed(cmd, now, current);
+        MetricSnapshot cmd = device.decodeCommand(parts, decimalSeparator);
+        device.applyCommand(cmd, now, current);
     }
 }

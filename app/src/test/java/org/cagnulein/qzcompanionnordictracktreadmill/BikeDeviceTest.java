@@ -165,75 +165,75 @@ public class BikeDeviceTest {
         assertTrue(new Se9iEllipticalDevice() instanceof BikeDevice);
     }
 
-    // ── BikeDevice.parseCommand ───────────────────────────────────────────────
+    // ── BikeDevice.decodeCommand ───────────────────────────────────────────────
 
     @Test
-    public void parseCommand_onePart_setsResistanceLvl() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"8.0"}, '.');
+    public void decodeCommand_onePart_setsResistanceLvl() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.0"}, '.');
         assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_twoParts_setsInclinePct() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"5.0", "unused"}, '.');
+    public void decodeCommand_twoParts_setsInclinePct() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"5.0", "unused"}, '.');
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
-    public void parseCommand_roundsToOneDecimal() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"8.25"}, '.');
+    public void decodeCommand_roundsToOneDecimal() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.25"}, '.');
         assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOne_resistance_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"-1"}, '.');
+    public void decodeCommand_sentinelMinusOne_resistance_returnsNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-1"}, '.');
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOneHundred_resistance_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"-100"}, '.');
+    public void decodeCommand_sentinelMinusOneHundred_resistance_returnsNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-100"}, '.');
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOne_incline_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"-1", "unused"}, '.');
+    public void decodeCommand_sentinelMinusOne_incline_returnsNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-1", "unused"}, '.');
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"-100", "unused"}, '.');
+    public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"-100", "unused"}, '.');
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_commaDecimalSeparator_parsesCorrectly() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"8.5"}, ',');
+    public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"8.5"}, ',');
         assertEquals(8.5f, cmd.resistanceLvl, 0.001f);
     }
 
     @Test
-    public void parseCommand_unparseable_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"abc"}, '.');
+    public void decodeCommand_unparseable_returnsAllNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"abc"}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_zeroParts_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{}, '.');
+    public void decodeCommand_zeroParts_returnsAllNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_threeParts_returnsAllNull() {
-        MetricSnapshot cmd = new S22iDevice().parseCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
+    public void decodeCommand_threeParts_returnsAllNull() {
+        MetricSnapshot cmd = new S22iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }

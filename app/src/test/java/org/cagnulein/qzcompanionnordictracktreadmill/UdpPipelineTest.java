@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * These tests verify the complete chain:
  *   DatagramSocket.receive() → message string → CommandDispatcher.dispatch()
- *   → Device.parseCommand() → applySpeed/applyResistance → Device.commandExecutor
+ *   → Device.decodeCommand() → applySpeed/applyResistance → Device.commandExecutor
  *
  * The Android Service layer (PowerManager, WifiManager, lifecycle) is not involved;
  * only the core UDP receive + dispatch logic is exercised.

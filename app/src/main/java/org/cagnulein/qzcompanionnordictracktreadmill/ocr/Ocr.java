@@ -11,7 +11,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  *   The VALUE for a metric is on the line IMMEDIATELY BEFORE the label line.
  *   Example: "12.5§§speed" → speed = 12.5
  */
-public class OcrParser {
+public class Ocr {
 
     /** Minimum RPM value accepted as a valid cadence reading. */
     public static final int MIN_CADENCE_RPM = 20;
@@ -43,7 +43,7 @@ public class OcrParser {
      * @param blocks the result of {@link #blocks(String)}
      * @return a MetricSnapshot whose fields are null for any metric not found
      */
-    public static MetricSnapshot parseBlocks(OcrBlock[] blocks) {
+    public static MetricSnapshot extractMetrics(OcrBlock[] blocks) {
         MetricSnapshot.Builder b = new MetricSnapshot.Builder();
         for (int i = 1; i < blocks.length; i++) {
             String label     = blocks[i].text.toLowerCase();
@@ -107,8 +107,8 @@ public class OcrParser {
      * @param textExtended the raw string from ScreenCaptureService.getLastTextExtended()
      * @return a MetricSnapshot whose fields are null for any metric not found in the text
      */
-    public static MetricSnapshot parse(String textExtended) {
-        return parseBlocks(blocks(textExtended));
+    public static MetricSnapshot extractMetrics(String textExtended) {
+        return extractMetrics(blocks(textExtended));
     }
 
     private static Float parseFloatOrNull(String s) {

@@ -25,7 +25,7 @@ public abstract class Device {
      * @param now     current timestamp in ms (injected by CommandDispatcher)
      * @param current latest observed metrics (used for speed-gate and swipe origins)
      */
-    public abstract void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current);
+    public abstract void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current);
 
     /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
     public void updateSnapshot(MetricSnapshot m) {
@@ -64,7 +64,7 @@ public abstract class Device {
      * Returns a MetricSnapshot whose non-null fields represent the requested values.
      * Fields not relevant to this device type (or absent from the message) are null.
      */
-    public abstract MetricSnapshot parseCommand(String[] parts, char decimalSeparator);
+    public abstract MetricSnapshot decodeCommand(String[] parts, char decimalSeparator);
 
     /** Rounds to one decimal place (e.g. 5.25 → 5.3). */
     public static float roundToOneDecimal(float value) {

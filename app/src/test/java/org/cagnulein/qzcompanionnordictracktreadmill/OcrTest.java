@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrParser;
+import org.cagnulein.qzcompanionnordictracktreadmill.ocr.Ocr;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import org.junit.Test;
@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
  *
  * The ocr() helper below builds well-formed test strings from value/label pairs.
  */
-public class OcrParserTest {
+public class OcrTest {
 
     /**
      * Builds an OCR string from pairs of (value, label).
@@ -36,34 +36,34 @@ public class OcrParserTest {
 
     @Test
     public void parse_speedLabel_extractsSpeedValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("15.2", "speed"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("15.2", "speed"));
         assertNotNull(r.speedKmh);
         assertEquals(15.2f, r.speedKmh, 0.01f);
     }
 
     @Test
     public void parse_speedLabelUpperCase_extractsSpeedValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("12.0", "SPEED"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("12.0", "SPEED"));
         assertNotNull(r.speedKmh);
         assertEquals(12.0f, r.speedKmh, 0.01f);
     }
 
     @Test
     public void parse_speedLabelMixedCase_extractsSpeedValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("10.5", "Speed"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("10.5", "Speed"));
         assertNotNull(r.speedKmh);
         assertEquals(10.5f, r.speedKmh, 0.01f);
     }
 
     @Test
     public void parse_nonNumericSpeedValue_setsNullSpeed() {
-        MetricSnapshot r = OcrParser.parse(ocr("--", "speed"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("--", "speed"));
         assertNull(r.speedKmh);
     }
 
     @Test
     public void parse_emptySpeedValue_setsNullSpeed() {
-        MetricSnapshot r = OcrParser.parse(ocr("", "speed"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("", "speed"));
         assertNull(r.speedKmh);
     }
 
@@ -73,7 +73,7 @@ public class OcrParserTest {
     @Test
     public void parse_500splitLabel_convertsSplitTimeToKmh() {
         // 90 seconds → 1800 / 90 = 20.0 km/h
-        MetricSnapshot r = OcrParser.parse(ocr("90", "500 split"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("90", "500 split"));
         assertNotNull(r.speedKmh);
         assertEquals(20.0f, r.speedKmh, 0.001f);
     }
@@ -81,21 +81,21 @@ public class OcrParserTest {
     @Test
     public void parse_500mSlashLabel_convertsSplitTimeToKmh() {
         // 180 seconds → 1800 / 180 = 10.0 km/h
-        MetricSnapshot r = OcrParser.parse(ocr("180", "/500m"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("180", "/500m"));
         assertNotNull(r.speedKmh);
         assertEquals(10.0f, r.speedKmh, 0.001f);
     }
 
     @Test
     public void parse_500splitAt41Seconds_returnsApprox43point9KmH() {
-        MetricSnapshot r = OcrParser.parse(ocr("41", "500 split"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("41", "500 split"));
         assertNotNull(r.speedKmh);
         assertEquals(43.9f, r.speedKmh, 0.1f);
     }
 
     @Test
     public void parse_500splitAt60Seconds_returns30KmH() {
-        MetricSnapshot r = OcrParser.parse(ocr("60", "500 split"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("60", "500 split"));
         assertNotNull(r.speedKmh);
         assertEquals(30.0f, r.speedKmh, 0.001f);
     }
@@ -103,13 +103,13 @@ public class OcrParserTest {
     @Test
     public void parse_500splitAtZeroSeconds_doesNotUpdateSpeed() {
         // Division by zero guard: seconds must be > 0
-        MetricSnapshot r = OcrParser.parse(ocr("0", "500 split"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("0", "500 split"));
         assertNull(r.speedKmh);
     }
 
     @Test
     public void parse_500splitNonNumericSeconds_doesNotUpdateSpeed() {
-        MetricSnapshot r = OcrParser.parse(ocr("--", "/500m"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("--", "/500m"));
         assertNull(r.speedKmh);
     }
 
@@ -117,7 +117,7 @@ public class OcrParserTest {
 
     @Test
     public void parse_inclineLabel_extractsInclineValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("5.5", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("5.5", "incline"));
         assertNotNull(r.inclinePct);
         assertEquals(5.5f, r.inclinePct, 0.01f);
     }
@@ -125,28 +125,28 @@ public class OcrParserTest {
     @Test
     public void parse_inclineWithCommaDecimal_normalizedAndExtracted() {
         // OCR on comma-locale devices may produce "5,5" — comma is replaced with dot
-        MetricSnapshot r = OcrParser.parse(ocr("5,5", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("5,5", "incline"));
         assertNotNull(r.inclinePct);
         assertEquals(5.5f, r.inclinePct, 0.01f);
     }
 
     @Test
     public void parse_negativeIncline_extractedCorrectly() {
-        MetricSnapshot r = OcrParser.parse(ocr("-3.0", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("-3.0", "incline"));
         assertNotNull(r.inclinePct);
         assertEquals(-3.0f, r.inclinePct, 0.01f);
     }
 
     @Test
     public void parse_zeroIncline_extractedCorrectly() {
-        MetricSnapshot r = OcrParser.parse(ocr("0.0", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("0.0", "incline"));
         assertNotNull(r.inclinePct);
         assertEquals(0.0f, r.inclinePct, 0.01f);
     }
 
     @Test
     public void parse_nonNumericInclineValue_setsNullInclination() {
-        MetricSnapshot r = OcrParser.parse(ocr("--", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("--", "incline"));
         assertNull(r.inclinePct);
     }
 
@@ -154,21 +154,21 @@ public class OcrParserTest {
 
     @Test
     public void parse_resistanceLabel_extractsResistanceValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("8", "resistance"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("8", "resistance"));
         assertNotNull(r.resistanceLvl);
         assertEquals(8.0f, r.resistanceLvl, 0.01f);
     }
 
     @Test
     public void parse_resistanceLabelUpperCase_extractsResistanceValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("12", "RESISTANCE"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("12", "RESISTANCE"));
         assertNotNull(r.resistanceLvl);
         assertEquals(12.0f, r.resistanceLvl, 0.01f);
     }
 
     @Test
     public void parse_nonNumericResistanceValue_setsNullResistance() {
-        MetricSnapshot r = OcrParser.parse(ocr("--", "resistance"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("--", "resistance"));
         assertNull(r.resistanceLvl);
     }
 
@@ -176,14 +176,14 @@ public class OcrParserTest {
 
     @Test
     public void parse_cadenceLabel_extractsCadenceValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("92", "cadence"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("92", "cadence"));
         assertNotNull(r.cadenceRpm);
         assertEquals(92.0f, r.cadenceRpm, 0.01f);
     }
 
     @Test
     public void parse_rpmLabel_extractsCadenceValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("85", "rpm"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("85", "rpm"));
         assertNotNull(r.cadenceRpm);
         assertEquals(85.0f, r.cadenceRpm, 0.01f);
     }
@@ -191,7 +191,7 @@ public class OcrParserTest {
     @Test
     public void parse_strokesPerMinLabel_extractsCadenceValue() {
         // Rowing machine cadence pattern
-        MetricSnapshot r = OcrParser.parse(ocr("28", "strokes per min"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("28", "strokes per min"));
         assertNotNull(r.cadenceRpm);
         assertEquals(28.0f, r.cadenceRpm, 0.01f);
     }
@@ -199,20 +199,20 @@ public class OcrParserTest {
     @Test
     public void parse_cadenceBelowThreshold_returnsNullCadence() {
         // Values <= 20 RPM are rejected as noise
-        MetricSnapshot r = OcrParser.parse(ocr("15", "cadence"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("15", "cadence"));
         assertNull(r.cadenceRpm);
     }
 
     @Test
     public void parse_cadenceExactlyAtThreshold_returnsNullCadence() {
         // Guard is strictly > 20, so exactly 20 is rejected
-        MetricSnapshot r = OcrParser.parse(ocr("20", "cadence"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("20", "cadence"));
         assertNull(r.cadenceRpm);
     }
 
     @Test
     public void parse_cadenceOneAboveThreshold_extractedCorrectly() {
-        MetricSnapshot r = OcrParser.parse(ocr("21", "cadence"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("21", "cadence"));
         assertNotNull(r.cadenceRpm);
         assertEquals(21.0f, r.cadenceRpm, 0.01f);
     }
@@ -222,7 +222,7 @@ public class OcrParserTest {
         // When lines[i-1] is non-numeric the parser falls back to lines[i-2]
         // Format: HEADER § 92 § non_number § cadence
         String text = "HEADER§§92§§non_number§§cadence";
-        MetricSnapshot r = OcrParser.parse(text);
+        MetricSnapshot r = Ocr.extractMetrics(text);
         assertNotNull(r.cadenceRpm);
         assertEquals(92.0f, r.cadenceRpm, 0.01f);
     }
@@ -231,14 +231,14 @@ public class OcrParserTest {
     public void parse_cadenceFallbackValueBelowThreshold_returnsNullCadence() {
         // Fallback value is also below the > 20 threshold
         String text = "HEADER§§15§§non_number§§cadence";
-        MetricSnapshot r = OcrParser.parse(text);
+        MetricSnapshot r = Ocr.extractMetrics(text);
         assertNull(r.cadenceRpm);
     }
 
     @Test
     public void parse_cadenceNonNumericOnBothFallbackLines_returnsNullCadence() {
         String text = "HEADER§§non_number_a§§non_number_b§§cadence";
-        MetricSnapshot r = OcrParser.parse(text);
+        MetricSnapshot r = Ocr.extractMetrics(text);
         assertNull(r.cadenceRpm);
     }
 
@@ -246,14 +246,14 @@ public class OcrParserTest {
 
     @Test
     public void parse_wattLabel_extractsWattValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("215", "watt"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("215", "watt"));
         assertNotNull(r.watts);
         assertEquals(215.0f, r.watts, 0.01f);
     }
 
     @Test
     public void parse_wattsLabelUpperCase_extractsWattValue() {
-        MetricSnapshot r = OcrParser.parse(ocr("150", "WATT"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("150", "WATT"));
         assertNotNull(r.watts);
         assertEquals(150.0f, r.watts, 0.01f);
     }
@@ -261,7 +261,7 @@ public class OcrParserTest {
     @Test
     public void parse_wattsWithUnitSuffix_stripsNonDigitsAndExtracts() {
         // OCR may read "215W" — non-digit characters are stripped
-        MetricSnapshot r = OcrParser.parse(ocr("215W", "watt"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("215W", "watt"));
         assertNotNull(r.watts);
         assertEquals(215.0f, r.watts, 0.01f);
     }
@@ -269,19 +269,19 @@ public class OcrParserTest {
     @Test
     public void parse_wattsBelowThreshold_returnsNullWatts() {
         // Values <= 20 W are rejected as noise (same guard as cadence)
-        MetricSnapshot r = OcrParser.parse(ocr("15", "watt"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("15", "watt"));
         assertNull(r.watts);
     }
 
     @Test
     public void parse_wattsExactlyAtThreshold_returnsNullWatts() {
-        MetricSnapshot r = OcrParser.parse(ocr("20", "watt"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("20", "watt"));
         assertNull(r.watts);
     }
 
     @Test
     public void parse_wattsOneAboveThreshold_extractedCorrectly() {
-        MetricSnapshot r = OcrParser.parse(ocr("21", "watt"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("21", "watt"));
         assertNotNull(r.watts);
         assertEquals(21.0f, r.watts, 0.01f);
     }
@@ -290,14 +290,14 @@ public class OcrParserTest {
 
     @Test
     public void parse_speedAndIncline_extractsBoth() {
-        MetricSnapshot r = OcrParser.parse(ocr("15.2", "speed", "5.5", "incline"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("15.2", "speed", "5.5", "incline"));
         assertEquals(15.2f, r.speedKmh,    0.01f);
         assertEquals(5.5f,  r.inclinePct, 0.01f);
     }
 
     @Test
     public void parse_allFiveMetrics_extractsAll() {
-        MetricSnapshot r = OcrParser.parse(
+        MetricSnapshot r = Ocr.extractMetrics(
                 ocr("12.0", "speed", "3.0", "incline", "8", "resistance", "88", "cadence", "200", "watt"));
         assertEquals(12.0f, r.speedKmh,    0.01f);
         assertEquals(3.0f,  r.inclinePct, 0.01f);
@@ -309,7 +309,7 @@ public class OcrParserTest {
     @Test
     public void parse_500splitAndCadence_extractsBoth() {
         // 90 seconds → 20.0 km/h
-        MetricSnapshot r = OcrParser.parse(ocr("90", "500 split", "32", "strokes per min"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("90", "500 split", "32", "strokes per min"));
         assertEquals(20.0f, r.speedKmh,   0.001f);
         assertEquals(32.0f, r.cadenceRpm, 0.01f);
     }
@@ -318,7 +318,7 @@ public class OcrParserTest {
 
     @Test
     public void parse_nullInput_returnsEmptyResult() {
-        MetricSnapshot r = OcrParser.parse(null);
+        MetricSnapshot r = Ocr.extractMetrics((String) null);
         assertNull(r.speedKmh);
         assertNull(r.inclinePct);
         assertNull(r.resistanceLvl);
@@ -328,14 +328,14 @@ public class OcrParserTest {
 
     @Test
     public void parse_emptyString_returnsEmptyResult() {
-        MetricSnapshot r = OcrParser.parse("");
+        MetricSnapshot r = Ocr.extractMetrics("");
         assertNull(r.speedKmh);
         assertNull(r.inclinePct);
     }
 
     @Test
     public void parse_noKnownLabels_returnsEmptyResult() {
-        MetricSnapshot r = OcrParser.parse(ocr("42", "unknown_metric"));
+        MetricSnapshot r = Ocr.extractMetrics(ocr("42", "unknown_metric"));
         assertNull(r.speedKmh);
         assertNull(r.inclinePct);
         assertNull(r.resistanceLvl);
@@ -347,7 +347,7 @@ public class OcrParserTest {
     public void parse_singleBlockNoSeparator_returnsEmptyResult() {
         // If there is no §§ separator, there's only one block (index 0)
         // and the loop starting at i=1 never executes
-        MetricSnapshot r = OcrParser.parse("15.2");
+        MetricSnapshot r = Ocr.extractMetrics("15.2");
         assertNull(r.speedKmh);
     }
 
@@ -355,7 +355,7 @@ public class OcrParserTest {
     public void parse_blockWithRectSuffix_stillExtractsValue() {
         // ScreenCaptureService appends "$$Rect(l,t-r,b)" — parser must strip it
         String text = "HEADER§§15.2$$Rect(10,20-100,40)§§speed$$Rect(10,40-100,60)";
-        MetricSnapshot r = OcrParser.parse(text);
+        MetricSnapshot r = Ocr.extractMetrics(text);
         assertNotNull(r.speedKmh);
         assertEquals(15.2f, r.speedKmh, 0.01f);
     }

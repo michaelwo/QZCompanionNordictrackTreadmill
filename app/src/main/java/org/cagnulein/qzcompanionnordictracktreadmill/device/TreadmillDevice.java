@@ -21,7 +21,7 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public final void applyParsed(MetricSnapshot cmd, long now, MetricSnapshot current) {
+    public final void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current) {
         // speed (2-part message, first field)
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
@@ -58,7 +58,7 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public MetricSnapshot parseCommand(String[] parts, char decimalSeparator) {
+    public MetricSnapshot decodeCommand(String[] parts, char decimalSeparator) {
         MetricSnapshot.Builder b = new MetricSnapshot.Builder();
         if (parts.length == 2) {
             Float s = parseField(parts[0], decimalSeparator);

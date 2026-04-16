@@ -151,67 +151,67 @@ public class TreadmillDeviceTest {
         assertEquals("Elite 1000 Treadmill", new Elite1000Device("Elite 1000 Treadmill").displayName());
     }
 
-    // ── TreadmillDevice.parseCommand ─────────────────────────────────────────
+    // ── TreadmillDevice.decodeCommand ─────────────────────────────────────────
 
     @Test
-    public void parseCommand_twoParts_setsBothFields() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"8.0", "5.0"}, '.');
+    public void decodeCommand_twoParts_setsBothFields() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "5.0"}, '.');
         assertEquals(8.0f, cmd.speedKmh,   0.001f);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
-    public void parseCommand_roundsToOneDecimal() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"8.25", "5.14"}, '.');
+    public void decodeCommand_roundsToOneDecimal() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.25", "5.14"}, '.');
         assertEquals(8.3f, cmd.speedKmh,   0.001f);
         assertEquals(5.1f, cmd.inclinePct, 0.001f);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOne_speed_returnsNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"-1", "5.0"}, '.');
+    public void decodeCommand_sentinelMinusOne_speed_returnsNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"-1", "5.0"}, '.');
         assertNull(cmd.speedKmh);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
-    public void parseCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"8.0", "-100"}, '.');
+    public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "-100"}, '.');
         assertEquals(8.0f, cmd.speedKmh, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_bothSentinels_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"-1", "-100"}, '.');
+    public void decodeCommand_bothSentinels_returnsAllNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_commaDecimalSeparator_parsesCorrectly() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"8.5", "3.0"}, ',');
+    public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.5", "3.0"}, ',');
         assertEquals(8.5f, cmd.speedKmh,   0.001f);
         assertEquals(3.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
-    public void parseCommand_onePart_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"8.0"}, '.');
+    public void decodeCommand_onePart_returnsAllNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"8.0"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_zeroParts_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{}, '.');
+    public void decodeCommand_zeroParts_returnsAllNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void parseCommand_threeParts_returnsAllNull() {
-        MetricSnapshot cmd = new X11iDevice().parseCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
+    public void decodeCommand_threeParts_returnsAllNull() {
+        MetricSnapshot cmd = new X11iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }

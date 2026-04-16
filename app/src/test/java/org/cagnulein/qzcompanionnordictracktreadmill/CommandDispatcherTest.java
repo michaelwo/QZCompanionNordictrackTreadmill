@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
  * Integration tests for CommandDispatcher.
  *
  * Each test exercises the full pipeline from a raw UDP message string through
- * parseCommand, throttle/cache logic, and apply*, down to the final "input swipe"
+ * decodeCommand, throttle/cache logic, and apply*, down to the final "input swipe"
  * shell command — using real device instances with a capturing CommandExecutor.
  *
  * Time is injected via a mutable long[] so throttle behaviour can be tested
