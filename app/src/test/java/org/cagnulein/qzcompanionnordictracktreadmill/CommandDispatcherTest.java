@@ -201,9 +201,7 @@ public class CommandDispatcherTest {
     }
 
     @Test
-    public void bike_resistance_appliedDirectlyAfterThrottleWindow() {
-        // Resistance has no cache-flush path: a throttled value is dropped.
-        // A new value sent after the window opens IS applied directly.
+    public void bike_throttledResistance_cachedAndAppliedAfterWindow() {
         // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
@@ -211,11 +209,11 @@ public class CommandDispatcherTest {
 
         time[0] += 200;
         lastCommand = null;
-        d.dispatch("12.0", '.', device); // throttled — dropped
-        assertNull(lastCommand);  // nothing was applied
+        d.dispatch("12.0", '.', device); // throttled → cached
+        assertNull(lastCommand);
 
         time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("12.0", '.', device); // sent again after window — applied
+        d.dispatch("-1", '.', device); // sentinel: flush cached 12.0
         assertEquals("input swipe 1848 790 1848 513 200", lastCommand);
     }
 

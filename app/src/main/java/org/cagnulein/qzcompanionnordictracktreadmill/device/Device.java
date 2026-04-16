@@ -14,9 +14,6 @@ public abstract class Device {
     /** Throttle window — commands within this window of the last apply are cached, not sent. */
     public static final int SWIPE_THROTTLE_MS = 500;
 
-    /** Holds values that arrived during a throttle window — flushed on the next dispatch. */
-    protected final Command cached = new Command();
-
     /**
      * Applies a parsed command to this device, honouring the throttle window and
      * any device-specific de-dup or gating rules.

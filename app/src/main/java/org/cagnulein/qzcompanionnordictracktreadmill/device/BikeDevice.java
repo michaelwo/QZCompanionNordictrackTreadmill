@@ -6,6 +6,7 @@ public abstract class BikeDevice extends Device {
 
     private final Slider incline;
     private final Slider resistance;  // null if this device has no resistance control
+    private final Command cached = new Command();
 
     protected BikeDevice(Slider incline, Slider resistance) {
         this.incline    = incline;
@@ -60,6 +61,7 @@ public abstract class BikeDevice extends Device {
                 }
             } else {
                 logger.log("QZ:Dispatch", "throttle: cached resistance " + resistanceVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
+                cached.resistanceLvl = resistanceVal;
             }
         }
     }

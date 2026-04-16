@@ -4,6 +4,7 @@ public abstract class TreadmillDevice extends Device {
 
     private final Slider speed;
     private final Slider incline;
+    private final Command cached = new Command();
 
     protected TreadmillDevice(Slider speed, Slider incline) {
         this.speed   = speed;
