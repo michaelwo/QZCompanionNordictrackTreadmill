@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
 }
 
+def versionProps = new Properties()
+file("../version.properties").withInputStream { versionProps.load(it) }
+
 android {
     namespace 'org.cagnulein.qzcompanionnordictracktreadmill'
     compileSdk 34
@@ -10,8 +13,8 @@ android {
         applicationId "org.cagnulein.qzcompanionnordictracktreadmill"
         minSdk 21
         targetSdk 34
-        versionCode 181
-        versionName "3.6.29"
+        versionCode (project.hasProperty('versionCode') ? project.versionCode.toInteger() : 0)
+        versionName versionProps['versionName']
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

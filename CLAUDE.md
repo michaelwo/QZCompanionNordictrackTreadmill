@@ -90,18 +90,12 @@ if (device == _device.s22i_NTEX02117_2) {
 ## Version Management
 
 ### Files to Update for Each Release
-**ALWAYS update all 3 files for each release:**
+**Update ONE value only:**
 
-1. **app/build.gradle**
-   - `versionCode` (increment +1): `171 → 172`
-   - `versionName` (semantic versioning): `"3.6.19" → "3.6.20"`
+1. **version.properties** (root of repo)
+   - `versionName` (semantic versioning): `3.6.29 → 3.6.30`
 
-2. **AndroidManifest.xml**
-   - `android:versionCode`: `"171" → "172"`
-   - `android:versionName`: `"3.6.19" → "3.6.20"`
-
-3. **.github/workflows/main.yml**
-   - `tag_name`: `3.6.19 → 3.6.20`
+`versionCode` is set automatically from the GitHub Actions run number — never edit it manually. `build.gradle` reads `versionName` from `version.properties`. `AndroidManifest.xml` no longer carries version fields — AGP injects them at build time. CI publishes the release as `3.6.30 (build 214)` automatically.
 
 ### Version Bump Process
 ```bash

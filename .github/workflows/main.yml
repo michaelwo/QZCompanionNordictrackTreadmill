@@ -20,11 +20,14 @@ jobs:
          distribution: 'temurin'
    - name: Get the version
      id: get_version
-     run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
+     run: |
+       VERSION_NAME=$(grep versionName version.properties | cut -d= -f2)
+       echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_OUTPUT
+       echo "VERSION_CODE=${{ github.run_number }}" >> $GITHUB_OUTPUT
    - name: Run unit tests
      run: ./gradlew testDebugUnitTest
    - name: Build release apk
-     run: ./gradlew assembleRelease -q
+     run: ./gradlew assembleRelease -q -PversionCode=${{ github.run_number }}
    - name: Setup build tool version variable
      shell: bash
      run: |
@@ -86,7 +89,8 @@ jobs:
      env:
          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
      with:
-       tag_name: 3.6.29 #${{ steps.get_version.outputs.VERSION }}
+       tag_name: ${{ steps.get_version.outputs.VERSION_NAME }}
+       release_name: ${{ steps.get_version.outputs.VERSION_NAME }} (build ${{ steps.get_version.outputs.VERSION_CODE }})
        asset_path: ${{steps.sign_app.outputs.signedReleaseFile}}
        asset_name: QZCompanionNordictrackTreadmill.apk
        asset_content_type: application/zip
