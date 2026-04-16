@@ -132,7 +132,7 @@ public class ZwiftRideRobolectricTest {
     public void s22i_duplicateGrade_onlyOneSwipeFires() throws Exception {
         S22iDevice device = new S22iDevice();
         CountDownLatch firstSwipe = new CountDownLatch(1);
-        device.commandExecutor = cmd -> { commands.add(cmd); firstSwipe.countDown(); }
+        device.commandExecutor = cmd -> { commands.add(cmd); firstSwipe.countDown(); };
         Device.instance = device;
 
         startService();
