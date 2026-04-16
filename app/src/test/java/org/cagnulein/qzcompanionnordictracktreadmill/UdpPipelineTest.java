@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.S15iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 

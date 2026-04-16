@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 

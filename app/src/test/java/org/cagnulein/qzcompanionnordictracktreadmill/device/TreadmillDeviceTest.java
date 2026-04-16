@@ -1,15 +1,15 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.C1750Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.C1750Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Elite1000Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Nordictrack2950Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.T65sDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Elite1000Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Nordictrack2950Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.T65sDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X32iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.X9iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X32iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X9iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
