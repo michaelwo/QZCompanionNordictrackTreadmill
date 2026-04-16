@@ -46,7 +46,7 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_applySpeed_atZero_generatesCorrectSwipe() {
         X11iDevice dev = new X11iDevice();
-        dev.applySpeed(0.0, new MetricSnapshot());
+        dev.applySpeed(0.0);
         // y2=(int)(621.997 - 0) = 621; y1=600
         assertEquals("input swipe 1207 600 1207 621 200", lastCommand);
     }
@@ -54,7 +54,7 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_applySpeed_atTen_generatesCorrectSwipe() {
         X11iDevice dev = new X11iDevice();
-        dev.applySpeed(10.0, new MetricSnapshot());
+        dev.applySpeed(10.0);
         // y2=(int)(621.997 - 217.85) = (int)404.147 = 404; y1=600
         assertEquals("input swipe 1207 600 1207 404 200", lastCommand);
     }
@@ -62,15 +62,15 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_applySpeed_updatesCurrentY() {
         X11iDevice dev = new X11iDevice();
-        dev.applySpeed(10.0, new MetricSnapshot()); // y2=404; currentSpeedY becomes 404
-        dev.applySpeed(5.0, new MetricSnapshot());  // y2=(int)(621.997 - 108.925) = (int)513.072 = 513; y1=404
+        dev.applySpeed(10.0); // y2=404; currentSpeedY becomes 404
+        dev.applySpeed(5.0);  // y2=(int)(621.997 - 108.925) = (int)513.072 = 513; y1=404
         assertEquals("input swipe 1207 404 1207 513 200", lastCommand);
     }
 
     @Test
     public void x11i_applyIncline_atZero_generatesCorrectSwipe() {
         X11iDevice dev = new X11iDevice();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         // y2=(int)(565.491 - 0) = 565; y1=557
         assertEquals("input swipe 75 557 75 565 200", lastCommand);
     }
@@ -78,7 +78,7 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_applyIncline_atTen_generatesCorrectSwipe() {
         X11iDevice dev = new X11iDevice();
-        dev.applyIncline(10.0, new MetricSnapshot());
+        dev.applyIncline(10.0);
         // y2=(int)(565.491 - 84.4) = (int)481.091 = 481; y1=557
         assertEquals("input swipe 75 557 75 481 200", lastCommand);
     }
@@ -86,8 +86,8 @@ public class TreadmillDeviceTest {
     @Test
     public void x11i_applyIncline_updatesCurrentY() {
         X11iDevice dev = new X11iDevice();
-        dev.applyIncline(10.0, new MetricSnapshot()); // y2=481; currentInclineY becomes 481
-        dev.applyIncline(5.0, new MetricSnapshot());  // y2=(int)(565.491 - 42.2) = (int)523.291 = 523; y1=481
+        dev.applyIncline(10.0); // y2=481; currentInclineY becomes 481
+        dev.applyIncline(5.0);  // y2=(int)(565.491 - 42.2) = (int)523.291 = 523; y1=481
         assertEquals("input swipe 75 481 75 523 200", lastCommand);
     }
 
@@ -222,11 +222,11 @@ public class TreadmillDeviceTest {
     public void x11i_speedY_isMonotonicallyDecreasing() {
         // Higher speed → lower Y (slider moves up = less Y value)
         X11iDevice dev = new X11iDevice();
-        dev.applySpeed(5.0, new MetricSnapshot());
+        dev.applySpeed(5.0);
         int y5 = Integer.parseInt(lastCommand.split(" ")[5]);
         // Reset by using a fresh device
         X11iDevice dev2 = new X11iDevice();
-        dev2.applySpeed(10.0, new MetricSnapshot());
+        dev2.applySpeed(10.0);
         int y10 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at speed=10 should be less than Y at speed=5", y10 < y5);
     }
@@ -235,10 +235,10 @@ public class TreadmillDeviceTest {
     public void x11i_inclineY_isMonotonicallyDecreasing() {
         // Higher incline → lower Y (slider moves up = less Y value)
         X11iDevice dev = new X11iDevice();
-        dev.applyIncline(5.0, new MetricSnapshot());
+        dev.applyIncline(5.0);
         int y5 = Integer.parseInt(lastCommand.split(" ")[5]);
         X11iDevice dev2 = new X11iDevice();
-        dev2.applyIncline(10.0, new MetricSnapshot());
+        dev2.applyIncline(10.0);
         int y10 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at incline=10 should be less than Y at incline=5", y10 < y5);
     }

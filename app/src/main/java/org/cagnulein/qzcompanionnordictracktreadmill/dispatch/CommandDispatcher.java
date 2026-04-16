@@ -38,10 +38,10 @@ public class CommandDispatcher {
      * @param device           the currently active device
      * @param current          latest observed metrics snapshot
      */
-    public void dispatch(String message, char decimalSeparator, Device device, MetricSnapshot current) {
+    public void dispatch(String message, char decimalSeparator, Device device) {
         String[] parts = message.split(";");
         long now = clock.now();
         MetricSnapshot cmd = device.decodeCommand(parts, decimalSeparator);
-        device.applyCommand(cmd, now, current);
+        device.applyCommand(cmd, now);
     }
 }

@@ -21,17 +21,17 @@ public abstract class BikeDevice extends Device {
         return resistance != null ? resistance.lastApplied() : null;
     }
 
-    public final void applyIncline(double value, MetricSnapshot current) {
-        incline.moveTo(value, this, current);
+    public final void applyIncline(double value) {
+        incline.moveTo(value, this);
     }
 
-    public final void applyResistance(double level, MetricSnapshot current) {
+    public final void applyResistance(double level) {
         if (resistance == null) return;
-        resistance.moveTo(level, this, current);
+        resistance.moveTo(level, this);
     }
 
     @Override
-    public final void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current) {
+    public final void applyCommand(MetricSnapshot cmd, long now) {
         // incline (2-part message)
         Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
         if (inclineVal != null) {
@@ -40,7 +40,7 @@ public abstract class BikeDevice extends Device {
             logger.log("QZ:Dispatch", "requestIncline(bike): " + inclineVal + " quantized=" + quantized + " last=" + lastAppliedIncline());
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
                 if (last == null || quantized != last) {
-                    applyIncline(quantized, current);
+                    applyIncline(quantized);
                     logger.log("QZ:Dispatch", "applyIncline(bike): " + quantized);
                     lastCommandMs = now;
                     cached.inclinePct = null;
@@ -60,7 +60,7 @@ public abstract class BikeDevice extends Device {
             logger.log("QZ:Dispatch", "requestResistance(bike): " + resistanceVal + " last=" + lastAppliedResistance());
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
                 if (last == null || !resistanceVal.equals(last)) {
-                    applyResistance(resistanceVal, current);
+                    applyResistance(resistanceVal);
                     logger.log("QZ:Dispatch", "applyResistance(bike): " + resistanceVal);
                     lastCommandMs = now;
                     cached.resistanceLvl = null;

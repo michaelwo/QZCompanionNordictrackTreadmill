@@ -12,28 +12,28 @@ public abstract class TreadmillDevice extends Device {
         this.incline = incline;
     }
 
-    public final void applySpeed(double kmh, MetricSnapshot current) {
-        speed.moveTo(kmh, this, current);
+    public final void applySpeed(double kmh) {
+        speed.moveTo(kmh, this);
     }
 
-    public final void applyIncline(double pct, MetricSnapshot current) {
-        incline.moveTo(pct, this, current);
+    public final void applyIncline(double pct) {
+        incline.moveTo(pct, this);
     }
 
     @Override
-    public final void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current) {
+    public final void applyCommand(MetricSnapshot cmd, long now) {
         // speed (2-part message, first field)
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
-            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + current.speed() + " cachedSpeed=" + cached.speedKmh);
-            if (lastCommandMs + SWIPE_THROTTLE_MS < now && current.speed() > 0) {
-                applySpeed(speedVal, current);
+            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastSnapshot.speed() + " cachedSpeed=" + cached.speedKmh);
+            if (lastCommandMs + SWIPE_THROTTLE_MS < now && lastSnapshot.speed() > 0) {
+                applySpeed(speedVal);
                 logger.log("QZ:Dispatch", "applySpeed: " + speedVal);
                 lastCommandMs = now;
                 cached.speedKmh = null;
             } else {
-                if (current.speed() <= 0) {
-                    logger.log("QZ:Dispatch", "speed gate: cached " + speedVal + " (treadmill stopped, speed=" + current.speed() + ")");
+                if (lastSnapshot.speed() <= 0) {
+                    logger.log("QZ:Dispatch", "speed gate: cached " + speedVal + " (treadmill stopped, speed=" + lastSnapshot.speed() + ")");
                 } else {
                     logger.log("QZ:Dispatch", "throttle: cached speed " + speedVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                 }
@@ -46,7 +46,7 @@ public abstract class TreadmillDevice extends Device {
         if (inclineVal != null) {
             logger.log("QZ:Dispatch", "requestInclination: " + inclineVal + " cached=" + cached.inclinePct);
             if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                applyIncline(inclineVal, current);
+                applyIncline(inclineVal);
                 logger.log("QZ:Dispatch", "applyIncline: " + inclineVal);
                 lastCommandMs = now;
                 cached.inclinePct = null;

@@ -45,9 +45,11 @@ public abstract class Slider {
 
     /**
      * Swipe the slider thumb from its current position to the position for {@code value}.
+     * The device's own {@code lastSnapshot} is used to determine the starting thumb position
+     * for devices that derive it from live metrics rather than tracking it as state.
      */
-    public void moveTo(double value, Device device, MetricSnapshot current) {
-        int fromY = currentThumbY(current);
+    public void moveTo(double value, Device device) {
+        int fromY = currentThumbY(device.lastSnapshot);
         int toY   = targetY(value);
         device.swipe(trackX(), fromY, toY);
         thumbY      = toY;

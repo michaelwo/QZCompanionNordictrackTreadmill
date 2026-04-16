@@ -35,12 +35,12 @@ public class UDPReceiveLoop {
      * @param current latest observed metrics snapshot (for swipe-origin calculation)
      * @throws IOException if the receive fails (e.g. socket closed by tearDown)
      */
-    public void receiveOne(DatagramSocket socket, Device device, MetricSnapshot current)
+    public void receiveOne(DatagramSocket socket, Device device)
             throws IOException {
         byte[] buf = new byte[15000];
         DatagramPacket pkt = new DatagramPacket(buf, buf.length);
         socket.receive(pkt);
         String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
-        dispatcher.dispatch(msg, decimalSeparator, device, current);
+        dispatcher.dispatch(msg, decimalSeparator, device);
     }
 }

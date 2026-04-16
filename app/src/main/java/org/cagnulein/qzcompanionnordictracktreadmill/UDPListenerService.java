@@ -61,7 +61,7 @@ public class UDPListenerService extends Service {
         try {
             Device currentDevice = Device.instance;
             if (currentDevice != null) {
-                receiveLoop.receiveOne(socket, currentDevice, currentDevice.lastSnapshot);
+                receiveLoop.receiveOne(socket, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
                 byte[] buf = new byte[15000];

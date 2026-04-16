@@ -22,10 +22,9 @@ public abstract class Device {
      * any device-specific de-dup or gating rules.
      *
      * @param cmd     parsed command snapshot (non-null fields = requested values)
-     * @param now     current timestamp in ms (injected by CommandDispatcher)
-     * @param current latest observed metrics (used for speed-gate and swipe origins)
+     * @param now current timestamp in ms (injected by CommandDispatcher)
      */
-    public abstract void applyCommand(MetricSnapshot cmd, long now, MetricSnapshot current);
+    public abstract void applyCommand(MetricSnapshot cmd, long now);
 
     /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
     public void updateSnapshot(MetricSnapshot m) {

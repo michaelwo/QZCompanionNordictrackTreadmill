@@ -47,7 +47,7 @@ public class BikeDeviceTest {
     @Test
     public void s22i_applyIncline_atZero_generatesCorrectSwipe() {
         S22iDevice dev = new S22iDevice();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         // y2 = (int)(616.18 - 0) = 616; y1 = 618 (initial)
         assertEquals("input swipe 75 618 75 616 200", lastCommand);
     }
@@ -55,7 +55,7 @@ public class BikeDeviceTest {
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = new S22iDevice();
-        dev.applyIncline(10.0, new MetricSnapshot());
+        dev.applyIncline(10.0);
         // grade > 3, so overshoot +0.5: y2 = (int)(616.18 - 17.223 * 10.5) = (int)435.34 = 435
         assertEquals("input swipe 75 618 75 435 200", lastCommand);
     }
@@ -63,8 +63,8 @@ public class BikeDeviceTest {
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = new S22iDevice();
-        dev.applyIncline(10.0, new MetricSnapshot()); // grade>3: y2=(int)(616.18-17.223*10.5)=435; currentInclineY=435
-        dev.applyIncline(5.0, new MetricSnapshot());  // grade>3: y2=(int)(616.18-17.223*5.5)=521; y1=435
+        dev.applyIncline(10.0); // grade>3: y2=(int)(616.18-17.223*10.5)=435; currentInclineY=435
+        dev.applyIncline(5.0);  // grade>3: y2=(int)(616.18-17.223*5.5)=521; y1=435
         assertEquals("input swipe 75 435 75 521 200", lastCommand);
     }
 
@@ -88,7 +88,7 @@ public class BikeDeviceTest {
         // The command is still computed correctly; the capture executor won't fire because
         // ShellRuntime overrides execute().  We test the formula via the parent S22iDevice.
         S22iDevice base = new S22iDevice();
-        base.applyIncline(0.0, new MetricSnapshot());
+        base.applyIncline(0.0);
         assertEquals("input swipe 75 618 75 616 200", lastCommand);
     }
 
@@ -138,7 +138,7 @@ public class BikeDeviceTest {
     @Test
     public void tdf10_applyIncline_atZero_generatesCorrectSwipe() {
         Tdf10Device dev = new Tdf10Device();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(619.91 - 0) = 619; initialY = 604 (constructor)
         assertEquals("input swipe 1205 604 1205 619 200", lastCommand);
     }
@@ -153,7 +153,7 @@ public class BikeDeviceTest {
     @Test
     public void proformStudioBikePro22_applyIncline_atZero_generatesCorrectSwipe() {
         ProformStudioBikePro22Device dev = new ProformStudioBikePro22Device();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(826.25 - 0) = 826; initialY = 805 (constructor)
         assertEquals("input swipe 1828 805 1828 826 200", lastCommand);
     }
@@ -244,7 +244,7 @@ public class BikeDeviceTest {
     public void s22i_applyResistance_withNoResistanceSlider_doesNothing() {
         S22iDevice dev = new S22iDevice();
         lastCommand = "unchanged";
-        dev.applyResistance(10.0, new MetricSnapshot());
+        dev.applyResistance(10.0);
         // S22iDevice has no resistance slider (resistanceX() returns -1)
         assertEquals("unchanged", lastCommand);
     }
@@ -255,7 +255,7 @@ public class BikeDeviceTest {
     @Test
     public void ntex71021_applyIncline_atZero_generatesCorrectSwipe() {
         Ntex71021Device dev = new Ntex71021Device();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(493 - 0) = 493; initialY = 480
         assertEquals("input swipe 950 480 950 493 200", lastCommand);
     }
@@ -263,7 +263,7 @@ public class BikeDeviceTest {
     @Test
     public void ntex71021_applyIncline_atTen_generatesCorrectSwipe() {
         Ntex71021Device dev = new Ntex71021Device();
-        dev.applyIncline(10.0, new MetricSnapshot());
+        dev.applyIncline(10.0);
         // targetInclineY(10) = (int)(493 - 135.7) = (int)357.3 = 357; initialY = 480
         assertEquals("input swipe 950 480 950 357 200", lastCommand);
     }
@@ -271,18 +271,18 @@ public class BikeDeviceTest {
     @Test
     public void ntex71021_applyIncline_updatesCurrentY() {
         Ntex71021Device dev = new Ntex71021Device();
-        dev.applyIncline(10.0, new MetricSnapshot()); // y2=357; currentY becomes 357
-        dev.applyIncline(5.0, new MetricSnapshot());  // y2=(int)(493 - 67.85) = (int)425.15 = 425; y1=357
+        dev.applyIncline(10.0); // y2=357; currentY becomes 357
+        dev.applyIncline(5.0);  // y2=(int)(493 - 67.85) = (int)425.15 = 425; y1=357
         assertEquals("input swipe 950 357 950 425 200", lastCommand);
     }
 
     @Test
     public void ntex71021_isMonotonicallyDecreasing_forIncline() {
         Ntex71021Device dev = new Ntex71021Device();
-        dev.applyIncline(0.0, new MetricSnapshot());
+        dev.applyIncline(0.0);
         int y0 = Integer.parseInt(lastCommand.split(" ")[5]);
         Ntex71021Device dev2 = new Ntex71021Device();
-        dev2.applyIncline(20.0, new MetricSnapshot());
+        dev2.applyIncline(20.0);
         int y20 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at inclination=20 should be less than Y at inclination=0", y20 < y0);
     }
