@@ -132,12 +132,13 @@ while true; do
         | head -1 \
         | grep -oE '[0-9]+(\.[0-9]+)?%' \
         | head -1 \
-        | tr -d '%')
+        | tr -d '%' \
+        || true)
     CPU_PCT=${CPU_PCT:-0}
 
     # iFit log size in KB
     if [[ -n "${IFIT_LOG}" ]]; then
-        IFIT_KB=$(adb_shell "du -k ${IFIT_LOG} 2>/dev/null | awk '{print \$1}'" )
+        IFIT_KB=$(adb_shell "du -k ${IFIT_LOG} 2>/dev/null | awk '{print \$1}'" || true)
         IFIT_KB=${IFIT_KB:-0}
     else
         IFIT_KB=0
@@ -145,7 +146,7 @@ while true; do
 
     # Network counters from /proc/net/dev (wlan0)
     # Format: iface: rx_bytes rx_pkts ... tx_bytes tx_pkts ...
-    NET_LINE=$(adb_shell "cat /proc/net/dev" | grep wlan0)
+    NET_LINE=$(adb_shell "cat /proc/net/dev" | grep wlan0 || true)
     NET_RX_BYTES=$(echo "${NET_LINE}" | awk '{print $2}')
     NET_RX_PKTS=$(echo "${NET_LINE}"  | awk '{print $3}')
     NET_TX_BYTES=$(echo "${NET_LINE}" | awk '{print $10}')
