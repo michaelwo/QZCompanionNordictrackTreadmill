@@ -113,6 +113,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
     private void scheduleReconnect() {
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            if (Device.instance == null || !Device.instance.requiresAdb()) return;
             Log.i(LOG_TAG, "Attempting ADB reconnect to 127.0.0.1:5555");
             if (binder != null) {
                 connection = startConnection("127.0.0.1", 5555);
@@ -438,7 +439,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         getApplicationContext().startService(in);
 
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                && Device.instance != null && Device.instance.requiresAdb()) {
             /* If we have old RSA keys, just use them */
             AdbCrypto crypto = AdbUtils.readCryptoConfig(getFilesDir());
             if (crypto == null) {
@@ -463,7 +465,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
                 }).start();
             }
 
-            if (binder == null) {
+            if (binder == null && Device.instance != null && Device.instance.requiresAdb()) {
                 service = new Intent(this, ShellService.class);
 
                 /* Bind the service if we're not bound already. After binding, the callback will

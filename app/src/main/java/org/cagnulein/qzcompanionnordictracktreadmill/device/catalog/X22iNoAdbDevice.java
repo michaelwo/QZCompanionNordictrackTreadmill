@@ -26,6 +26,8 @@ public class X22iNoAdbDevice extends TreadmillDevice {
 
 
 
+    @Override public boolean requiresAdb() { return false; }
+
     @Override
     protected void swipe(int x, int y1, int y2) {
         MyAccessibilityService.performSwipe(x, y1, x, y2, 200);

@@ -5,6 +5,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 
 public class S22iNtex02117Device extends S22iDevice {
+    @Override public boolean requiresAdb() { return false; }
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
     public S22iNtex02117Device() {

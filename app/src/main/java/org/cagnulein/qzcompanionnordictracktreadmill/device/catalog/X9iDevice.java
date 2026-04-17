@@ -5,6 +5,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.ShellRuntime;
 
 public class X9iDevice extends TreadmillDevice {
+    @Override public boolean requiresAdb() { return false; }
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
     public X9iDevice() {         super(

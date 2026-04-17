@@ -48,6 +48,9 @@ public abstract class Device {
 
     public abstract String displayName();
 
+    /** Returns true if this device sends commands via the ADB loopback connection. */
+    public boolean requiresAdb() { return true; }
+
     /**
      * Interprets a raw UDP message (already split on ";") for this device type.
      * Returns a MetricSnapshot whose non-null fields represent the requested values.

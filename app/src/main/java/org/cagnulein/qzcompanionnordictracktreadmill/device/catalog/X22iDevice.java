@@ -7,6 +7,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 
 public class X22iDevice extends TreadmillDevice {
+    @Override public boolean requiresAdb() { return false; }
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
     public X22iDevice() {         super(

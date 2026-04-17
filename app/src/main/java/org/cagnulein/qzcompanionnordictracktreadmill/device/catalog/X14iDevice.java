@@ -8,6 +8,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class X14iDevice extends TreadmillDevice {
+    @Override public boolean requiresAdb() { return false; }
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
     private static final double[][] INCLINE_TABLE = {
