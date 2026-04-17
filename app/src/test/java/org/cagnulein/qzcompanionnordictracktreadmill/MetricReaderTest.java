@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
@@ -278,5 +279,44 @@ public class MetricReaderTest {
         assertNotNull("truncate should have been called", truncateCmd[0]);
         assertTrue(truncateCmd[0].contains("truncate -s0"));
         assertTrue(truncateCmd[0].contains("my.log"));
+    }
+
+    // ── BikeMetricReader ──────────────────────────────────────────────────────
+
+    @Test
+    public void bikeReader_parsesInclineAndBikeMetrics() throws IOException {
+        Map<String, String> r = new HashMap<>();
+        r.put("Changed Grade",       "Changed Grade 4.0");
+        r.put("Changed Watts",       "Changed Watts 150");
+        r.put("Changed RPM",         "Changed RPM 80");
+        r.put("Changed CurrentGear", "Changed CurrentGear 3");
+        r.put("Changed Resistance",  "Changed Resistance 12");
+        MetricSnapshot m = new BikeMetricReader(false).read("f.log", routingShell(r));
+        assertEquals(4.0f,  m.inclinePct,    DELTA);
+        assertEquals(150f,  m.watts,         DELTA);
+        assertEquals(80f,   m.cadenceRpm,    DELTA);
+        assertEquals(3f,    m.gearLevel,     DELTA);
+        assertEquals(12f,   m.resistanceLvl, DELTA);
+        assertNull(m.speedKmh);
+    }
+
+    @Test
+    public void bikeReader_neverSearchesForKph() throws IOException {
+        boolean[] kphQueried = {false};
+        Shell shell = new Shell() {
+            public InputStream execAndGetOutput(String cmd) {
+                if (cmd.contains("KPH")) kphQueried[0] = true;
+                return asStream("");
+            }
+            public Process exec(String cmd) { return null; }
+        };
+        new BikeMetricReader(false).read("f.log", shell);
+        assertFalse("BikeMetricReader must not search for 'Changed KPH'", kphQueried[0]);
+    }
+
+    @Test
+    public void bikeReader_emptyLog_speedKphRemainsNull() throws IOException {
+        MetricSnapshot m = new BikeMetricReader(false).read("f.log", fixedShell(""));
+        assertNull(m.speedKmh);
     }
 }

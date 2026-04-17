@@ -14,6 +14,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -234,6 +235,18 @@ public class BikeDeviceTest {
         Command cmd = new S22iDevice().decodeCommand(new String[]{}, '.');
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
+    }
+
+    // ── BikeDevice.defaultMetricReader ────────────────────────────────────────
+
+    @Test
+    public void bikeDevice_defaultMetricReader_returnsBikeMetricReader() {
+        assertTrue(new S22iDevice().defaultMetricReader(false) instanceof BikeMetricReader);
+    }
+
+    @Test
+    public void bikeDevice_defaultMetricReader_ifitV2_returnsBikeMetricReader() {
+        assertTrue(new S22iDevice().defaultMetricReader(true) instanceof BikeMetricReader);
     }
 
     @Test
