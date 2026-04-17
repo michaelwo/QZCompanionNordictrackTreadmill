@@ -162,13 +162,13 @@ echo ""
 
 if [[ -f "${LOGCAT}" ]]; then
     echo "── Logcat Events ───────────────────────────────────────────────"
-    SWIPE_COUNT=$(logcat_count "input swipe")
-    DEDUP_COUNT=$(logcat_count "de-dup")
-    THROTTLE_COUNT=$(logcat_count "throttle")
+    SWIPE_COUNT=$(logcat_count "apply.*bike\|apply.*treadmill\|applyIncline\|applyResistance\|applySpeed")
+    DEDUP_COUNT=$(logcat_count "de-dup:")
+    THROTTLE_COUNT=$(logcat_count "throttle:")
     ERROR_COUNT=$(logcat_errors)
     INJECT_FAIL=$(logcat_count "INJECT_EVENTS")
     ADB_DOWN=$(logcat_count "ADB DOWN")
-    echo "  Swipes dispatched  : ${SWIPE_COUNT}"
+    echo "  Commands dispatched: ${SWIPE_COUNT}"
     echo "  De-dup blocks      : ${DEDUP_COUNT}"
     echo "  Throttle blocks    : ${THROTTLE_COUNT}"
     echo "  Log errors (E/)    : ${ERROR_COUNT}"
