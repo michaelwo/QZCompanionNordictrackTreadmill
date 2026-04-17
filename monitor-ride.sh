@@ -82,7 +82,7 @@ echo "elapsed_s,pid,heap_rss_kb,threads,fd_count,cpu_pct,ifit_log_kb,net_tx_byte
 # ── start logcat capture ──────────────────────────────────────────────────────
 
 echo "Starting continuous logcat capture → ${LOGCAT_FILE}"
-adb logcat -v time -s "QZ:Service,QZ:UDP,QZ:Dispatch,QZ:Device,QZ:ADB,QZ:Shell,QZ:Accessibility" \
+adb logcat -v time QZ:V "*:S" \
     > "${LOGCAT_FILE}" 2>&1 &
 LOGCAT_PID=$!
 
