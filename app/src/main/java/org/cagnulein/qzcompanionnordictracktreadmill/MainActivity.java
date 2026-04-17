@@ -36,6 +36,9 @@ import java.util.TimerTask;
 import java.util.logging.Logger;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -66,6 +69,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     private static boolean ADBConnected = false;
     private static final int MAX_LOG_LINES = 500;
     private static final java.util.ArrayDeque<String> appLogBuffer = new java.util.ArrayDeque<>();
+    private static final long MAX_LOG_FILE_BYTES = 1024 * 1024;
+    private static BufferedWriter logFileWriter = null;
 
 	private final ShellRuntime shellRuntime = new ShellRuntime();
 
@@ -192,11 +197,32 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         }
     };
 
+    public static void initLogFile() {
+        try {
+            File logFile = new File(Environment.getExternalStorageDirectory(), "qzcompanion.log");
+            if (logFile.exists() && logFile.length() > MAX_LOG_FILE_BYTES) {
+                File bak = new File(Environment.getExternalStorageDirectory(), "qzcompanion.log.bak");
+                bak.delete();
+                logFile.renameTo(bak);
+            }
+            logFileWriter = new BufferedWriter(new FileWriter(logFile, true));
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "Failed to open log file: " + e.getMessage());
+        }
+    }
+
     public static void writeLog(String command) {
         String line = new Timestamp(new Date().getTime()) + " " + command;
         synchronized (appLogBuffer) {
             if (appLogBuffer.size() >= MAX_LOG_LINES) appLogBuffer.removeFirst();
             appLogBuffer.addLast(line);
+            if (logFileWriter != null) {
+                try {
+                    logFileWriter.write(line);
+                    logFileWriter.newLine();
+                    logFileWriter.flush();
+                } catch (IOException ignored) {}
+            }
         }
     }
 
@@ -226,6 +252,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
 
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
+        initLogFile();
 
         TextView versionLabel = findViewById(R.id.versionLabel);
         versionLabel.setText("v" + BuildConfig.VERSION_NAME + "  (build " + BuildConfig.VERSION_CODE + ")");
