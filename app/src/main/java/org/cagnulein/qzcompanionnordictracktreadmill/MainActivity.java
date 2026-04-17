@@ -64,7 +64,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     private static final String LOG_TAG = "QZ:ADB";
     private static String lastCommand = "";
     private static boolean ADBConnected = false;
-    private static String appLogs = "";
+    private static final int MAX_LOG_LINES = 500;
+    private static final java.util.ArrayDeque<String> appLogBuffer = new java.util.ArrayDeque<>();
 
 	private final ShellRuntime shellRuntime = new ShellRuntime();
 
@@ -192,9 +193,11 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     };
 
     public static void writeLog(String command) {
-        Date date = new Date();
-        Timestamp timestamp2 = new Timestamp(date.getTime());
-        appLogs = appLogs + "\n" + timestamp2 + " " + command;
+        String line = new Timestamp(new Date().getTime()) + " " + command;
+        synchronized (appLogBuffer) {
+            if (appLogBuffer.size() >= MAX_LOG_LINES) appLogBuffer.removeFirst();
+            appLogBuffer.addLast(line);
+        }
     }
 
     public void startOCR() {
@@ -422,7 +425,9 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
 
                 TextView tv = (TextView)findViewById(R.id.dumplog_tv);
-            tv.setText(tv.getText() + "\n" + appLogs);
+                synchronized (appLogBuffer) {
+                    tv.setText(android.text.TextUtils.join("\n", appLogBuffer));
+                }
 
                 String command = "logcat -b all -d > /sdcard/logcat.log";
                 MainActivity.sendCommand(command);
