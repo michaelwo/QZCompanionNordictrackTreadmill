@@ -24,9 +24,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.RadioButton;
-import android.widget.RadioGroup;
 import android.widget.TextView;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import android.content.DialogInterface;
 
 import java.sql.Timestamp;
@@ -76,8 +76,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
     private AndroidActivityResultReceiver resultReceiver;
 
-    // on below line we are creating variables.
-    RadioGroup radioGroup;
+    private DeviceAdapter deviceAdapter;
     SharedPreferences sharedPreferences;
 
     private boolean checkPermissions(){
@@ -257,7 +256,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         TextView versionLabel = findViewById(R.id.versionLabel);
         versionLabel.setText("v" + BuildConfig.VERSION_NAME + "  (build " + BuildConfig.VERSION_CODE + ")");
 
-        radioGroup = findViewById(R.id.radiogroupDevice);
         CheckBox debugLog = findViewById(R.id.debuglog);
         CheckBox OCR = findViewById(R.id.checkOCR);
         CheckBox ADBLog = findViewById(R.id.checkADBLog);
@@ -319,135 +317,41 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             }
         });
 
-        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup radioGroup, int i) {
-                RadioButton radioButton = findViewById(i);
-                if(i == R.id.x11i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x11i));
-                } else if(i == R.id.x22i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i));
-                } else if(i == R.id.x22i_v2) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i_v2));
-                } else if(i == R.id.x22i_noadb) {
-                    if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
-                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                        startActivity(intent);
-                    }
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x22i_noadb));
-                } else if(i == R.id.x14i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x14i));
-                } else if(i == R.id.x9i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x9i));
-				} else if(i == R.id.t85s) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.t85s));
-                } else if(i == R.id.x32i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i));
-                } else if(i == R.id.x32i_NTL39019) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i_NTL39019));                    
-                } else if(i == R.id.x32i_NTL39221) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.x32i_NTL39221));
-                } else if(i == R.id.s40) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s40));
-                } else if(i == R.id.exp7i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.exp7i));
-                } else if(i == R.id.nordictrack_2950) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2950));
-                } else if(i == R.id.nordictrack_2450) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2450));
-                } else if(i == R.id.nordictrack_2950_maxspeed22) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.nordictrack_2950_maxspeed22));
-                } else if(i == R.id.proform_2000) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_2000));
-                } else if(i == R.id.proform_pro_9000) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_pro_9000));
-                } else if(i == R.id.proform_carbon_e7) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_e7));
-                } else if(i == R.id.se9i_elliptical) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.se9i_elliptical));
-                } else if(i == R.id.s15i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s15i));
-                } else if(i == R.id.s22i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i));
-                } else if(i == R.id.s22i_noadb) {
-                    if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
-                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                        startActivity(intent);
-                    }
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_noadb));
-                } else if(i == R.id.s27i) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s27i));
-                } else if(i == R.id.s22i_NTEX02121_5) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_NTEX02121_5));
-                } else if(i == R.id.s22i_NTEX02117_2) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.s22i_NTEX02117_2));
-                } else if(i == R.id.tdf10) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.tdf10));
-                } else if(i == R.id.tdf10_inclination) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.tdf10_inclination));
-                } else if(i == R.id.c1750) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750));
-                } else if(i == R.id.c1750_2021) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2021));                    
-                } else if(i == R.id.proform_carbon_t14) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_t14));                                        
-                } else if(i == R.id.c1750_2020) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2020));
-                } else if(i == R.id.c1750_2020_kph) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_2020_kph));                    
-                } else if(i == R.id.elite1000) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.elite1000));
-                } else if(i == R.id.proform_pro_2000) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_pro_2000));
-                } else if(i == R.id.elite900) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.elite900));
-                } else if(i == R.id.c1750_mph_minus3grade) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_mph_minus3grade));                    
-                } else if(i == R.id.c1750_NTL14122_2_MPH) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.c1750_NTL14122_2_MPH));                                        
-                } else if(i == R.id.t65s) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.t65s));
-                } else if(i == R.id.t75s) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.t75s));
-                } else if(i == R.id.t95s) {
-                    if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
-                        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-                        startActivity(intent);
-                    }                    
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.t95s));                    
-                } else if(i == R.id.grand_tour_pro) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.grand_tour_pro));
-                } else if(i == R.id.proform_carbon_c10) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_carbon_c10));
-                } else if(i == R.id.proform_studio_bike_pro22) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.proform_studio_bike_pro22));                    
-                } else if(i == R.id.NTEX71021) {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.NTEX71021));
-                } else {
-                    selectDevice(DeviceRegistry.forId(DeviceRegistry.DeviceId.other));
+        RecyclerView deviceList = findViewById(R.id.deviceList);
+        deviceList.setLayoutManager(new LinearLayoutManager(this));
+        deviceAdapter = new DeviceAdapter(id -> {
+            if (id == DeviceRegistry.DeviceId.x22i_noadb
+                    || id == DeviceRegistry.DeviceId.s22i_noadb
+                    || id == DeviceRegistry.DeviceId.t95s) {
+                if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
+                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
                 }
-                SharedPreferences.Editor myEdit = sharedPreferences.edit();
-                myEdit.putInt("device", i);
-                myEdit.commit();
             }
+            selectDevice(DeviceRegistry.forId(id));
+            SharedPreferences.Editor myEdit = sharedPreferences.edit();
+            myEdit.putString("deviceId", id.name());
+            myEdit.commit();
         });
+        deviceList.setAdapter(deviceAdapter);
 
-        int device = sharedPreferences.getInt("device", R.id.other);
         debugLog.setChecked(sharedPreferences.getBoolean("debugLog", false));
         OCR.setChecked(sharedPreferences.getBoolean("OCR", false));
         ADBLog.setChecked(sharedPreferences.getBoolean("ADBLog", false));
-        RadioButton radioButton;
-        radioButton = findViewById(device);
-        if(radioButton != null)
-            radioButton.setChecked(true);
+
+        String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
+        try {
+            DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(savedId);
+            deviceAdapter.setSelectedId(id);
+            selectDevice(DeviceRegistry.forId(id));
+        } catch (IllegalArgumentException ignored) {}
 
         Button dumplog = findViewById(R.id.dumplog);
         dumplog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                int device = sharedPreferences.getInt("device", R.id.other);
                 // test
-                if(device == R.id.x22i_noadb || device == R.id.t95s)
+                DeviceRegistry.DeviceId selectedId = deviceAdapter.getSelectedId();
+                if (selectedId == DeviceRegistry.DeviceId.x22i_noadb || selectedId == DeviceRegistry.DeviceId.t95s)
                     MyAccessibilityService.performSwipe(600, 600, 300, 400, 100);
 
 
