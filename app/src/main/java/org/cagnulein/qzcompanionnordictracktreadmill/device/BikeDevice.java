@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 
 public abstract class BikeDevice extends Device {
 
@@ -64,6 +65,11 @@ public abstract class BikeDevice extends Device {
                 cached.resistanceLvl = resistanceVal;
             }
         }
+    }
+
+    @Override
+    public MetricReader defaultMetricReader(boolean ifitV2) {
+        return new BikeMetricReader(ifitV2);
     }
 
     @Override

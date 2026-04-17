@@ -39,7 +39,7 @@ public class TailGrepMetricReader implements MetricReader {
         return m;
     }
 
-    private void findSpeed(MetricSnapshot m, Shell shell, String file, boolean v2)
+    protected void findSpeed(MetricSnapshot m, Shell shell, String file, boolean v2)
             throws IOException {
         if (trySpeed(m, shell, "tail -n500 " + file + " | grep -a \"Changed KPH\" | tail -n1", v2)) return;
         if (trySpeed(m, shell, "grep -a \"Changed KPH\" " + file + "  | tail -n1", v2)) return;
@@ -63,7 +63,7 @@ public class TailGrepMetricReader implements MetricReader {
         }
     }
 
-    private void findIncline(MetricSnapshot m, Shell shell, String file, boolean v2)
+    protected void findIncline(MetricSnapshot m, Shell shell, String file, boolean v2)
             throws IOException {
         String keyword = v2 ? "INCLINE" : "Grade";
         if (tryIncline(m, shell, "tail -n500 " + file + " | grep -a \"Changed " + keyword + "\" | tail -n1", v2)) return;
@@ -89,9 +89,9 @@ public class TailGrepMetricReader implements MetricReader {
     }
 
     @FunctionalInterface
-    private interface Setter { void set(String value); }
+    protected interface Setter { void set(String value); }
 
-    private void findSingle(Shell shell, String keyword, String file, Setter setter)
+    protected void findSingle(Shell shell, String keyword, String file, Setter setter)
             throws IOException {
         if (trySingle(shell, "tail -n500 " + file + " | grep -a \"" + keyword + "\" | tail -n1", setter)) return;
         trySingle(shell, "grep -a \"" + keyword + "\" " + file + "  | tail -n1", setter);
@@ -109,7 +109,7 @@ public class TailGrepMetricReader implements MetricReader {
         }
     }
 
-    private static Float lastFloat(String line) {
+    protected static Float lastFloat(String line) {
         try {
             String[] parts = line.trim().split("\\s+");
             return Float.parseFloat(parts[parts.length - 1]);
