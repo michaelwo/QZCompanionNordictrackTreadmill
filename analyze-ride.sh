@@ -82,17 +82,18 @@ col_delta() {
 logcat_count() {
     local pattern=$1
     if [[ -f "${LOGCAT}" ]]; then
-        grep -c "${pattern}" "${LOGCAT}" 2>/dev/null || echo 0
+        # grep -c exits 1 when count=0 but still prints "0"; || true suppresses the exit
+        grep -c "${pattern}" "${LOGCAT}" 2>/dev/null || true
     else
-        echo "n/a"
+        echo 0
     fi
 }
 
 logcat_errors() {
     if [[ -f "${LOGCAT}" ]]; then
-        grep -c " E " "${LOGCAT}" 2>/dev/null || echo 0
+        grep -c " E " "${LOGCAT}" 2>/dev/null || true
     else
-        echo "n/a"
+        echo 0
     fi
 }
 
@@ -120,7 +121,12 @@ echo "  Thread count   : $(col_stats 4)"
 echo ""
 
 echo "── File Descriptors ────────────────────────────────────────────"
-echo "  FD count       : $(col_stats 5)"
+FD_STATS=$(col_stats 5)
+if [[ "${FD_STATS}" == *"min=0"*"max=0"* ]]; then
+    echo "  FD count       : n/a (requires root or debuggable build)"
+else
+    echo "  FD count       : ${FD_STATS}"
+fi
 echo ""
 
 echo "── CPU ─────────────────────────────────────────────────────────"
@@ -185,16 +191,16 @@ if (( THREAD_MAX > 50 )); then
     echo "  [WARN] Peak thread count ${THREAD_MAX} > 50 — possible thread leak"
     ISSUES=$(( ISSUES + 1 ))
 fi
-if (( FD_MAX > 200 )); then
+if (( FD_MAX > 0 && FD_MAX > 200 )); then
     echo "  [WARN] Peak FD count ${FD_MAX} > 200 — possible FD leak"
     ISSUES=$(( ISSUES + 1 ))
 fi
 if [[ -f "${LOGCAT}" ]]; then
-    if (( $(logcat_count "INJECT_EVENTS") > 0 )); then
+    if (( INJECT_FAIL > 0 )); then
         echo "  [WARN] INJECT_EVENTS failures detected — check accessibility permission"
         ISSUES=$(( ISSUES + 1 ))
     fi
-    if (( $(logcat_errors) > 10 )); then
+    if (( ERROR_COUNT > 10 )); then
         echo "  [WARN] More than 10 logcat errors — review ${LOGCAT}"
         ISSUES=$(( ISSUES + 1 ))
     fi
