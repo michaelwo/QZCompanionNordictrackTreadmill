@@ -222,6 +222,10 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
 
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
+
+        TextView versionLabel = findViewById(R.id.versionLabel);
+        versionLabel.setText("v" + BuildConfig.VERSION_NAME + "  (build " + BuildConfig.VERSION_CODE + ")");
+
         radioGroup = findViewById(R.id.radiogroupDevice);
         CheckBox debugLog = findViewById(R.id.debuglog);
         CheckBox OCR = findViewById(R.id.checkOCR);
