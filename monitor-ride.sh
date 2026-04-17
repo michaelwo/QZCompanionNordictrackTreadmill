@@ -53,16 +53,24 @@ echo "Output directory: ${OUT_DIR}"
 adb_shell() { adb shell "$@" 2>/dev/null | tr -d '\r'; }
 
 get_pid() {
-    adb_shell "pidof ${PKG}" | awk '{print $1}'
+    # || true prevents set -e from killing the script when the app isn't running
+    adb shell "pidof ${PKG}" 2>/dev/null | tr -d '\r' | awk '{print $1}' || true
 }
 
 get_ifit_log_path() {
     # Prefer the v2 path; fall back to wolflogs
     local v2="/sdcard/android/data/com.ifit.glassos_service/files/.valinorlogs/log.latest.txt"
-    if adb_shell "[ -f ${v2} ] && echo yes" | grep -q yes; then
+    if adb shell "[ -f ${v2} ] && echo yes" 2>/dev/null | tr -d '\r' | grep -q yes; then
         echo "${v2}"
     else
-        adb_shell "ls /sdcard/.wolflogs/ 2>/dev/null | tail -1" | xargs -I{} echo "/sdcard/.wolflogs/{}"
+        # Filter and sort locally — Android toybox pipeline behaviour is unreliable
+        local filename
+        filename=$(adb shell "ls /sdcard/.wolflogs/" 2>/dev/null \
+            | tr -d '\r' \
+            | grep -E '_logs.*\.txt$' \
+            | sort \
+            | tail -1)
+        [[ -n "${filename}" ]] && echo "/sdcard/.wolflogs/${filename}"
     fi
 }
 
