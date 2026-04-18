@@ -47,7 +47,7 @@ public class TailGrepMetricReader implements MetricReader {
     protected void findSpeed(MetricSnapshot m, Shell shell, String file) throws IOException {
         if (trySpeed(m, shell, "tail -n500 " + file + " | grep -a \"Changed KPH\" | tail -n1")) return;
         if (trySpeed(m, shell, "grep -a \"Changed KPH\" " + file + "  | tail -n1")) return;
-        trySpeed(m, shell, "cat " + file + " | grep -a \"Changed KPH\"");
+        trySpeed(m, shell, "cat " + file + " | grep -a \"Changed KPH\" | tail -n1");
     }
 
     private boolean trySpeed(MetricSnapshot m, Shell shell, String cmd) throws IOException {
@@ -70,7 +70,7 @@ public class TailGrepMetricReader implements MetricReader {
         String keyword = inclineKeyword();
         if (tryIncline(m, shell, "tail -n500 " + file + " | grep -a \"Changed " + keyword + "\" | tail -n1")) return;
         if (tryIncline(m, shell, "grep -a \"Changed " + keyword + "\" " + file + "  | tail -n1")) return;
-        tryIncline(m, shell, "cat " + file + " | grep -a \"Changed " + keyword + "\"");
+        tryIncline(m, shell, "cat " + file + " | grep -a \"Changed " + keyword + "\" | tail -n1");
     }
 
     private boolean tryIncline(MetricSnapshot m, Shell shell, String cmd) throws IOException {
