@@ -3,13 +3,17 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Ntex71021Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformCarbonC10Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformCarbonE7Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformStudioBikePro22Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iNtex02117Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iNtex02121Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S27iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Se9iEllipticalDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Tdf10Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Tdf10InclinationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
@@ -109,7 +113,7 @@ public class BikeDeviceTest {
     }
 
     // ── S22iNtex02121Device ───────────────────────────────────────────────────
-    // Has both inclineX and resistanceX
+    // incline: currentThumbY; targetInclineY(v)=800-(int)((v+10)*19), targetInclineY(0)=610
 
     @Test
     public void s22iNtex02121_isInstanceOfBikeDevice() {
@@ -121,8 +125,17 @@ public class BikeDeviceTest {
         assertEquals("S22i Bike (NTEX02121.5)", new S22iNtex02121Device().displayName());
     }
 
+    @Test
+    public void s22iNtex02121_applyIncline_atFive_generatesCorrectSwipe() {
+        S22iNtex02121Device dev = dev(new S22iNtex02121Device());
+        dev.applyIncline(5.0);
+        // fromY=610; y2=800-(int)(15*19)=800-285=515
+        assertEquals("input swipe 75 610 75 515 200", lastCommand);
+    }
+
     // ── S15iDevice ────────────────────────────────────────────────────────────
-    // Has both incline and resistance sliders
+    // incline: currentThumbY, targetInclineY(v)=616-(int)(v*17.65), targetInclineY(0)=616
+    // resistance: currentThumbY, targetResistanceY(v)=790-(int)(v*23.16), targetResistanceY(0)=790
 
     @Test
     public void s15i_isInstanceOfBikeDevice() {
@@ -132,6 +145,22 @@ public class BikeDeviceTest {
     @Test
     public void s15i_hasCorrectDisplayName() {
         assertEquals("S15i Bike", new S15iDevice().displayName());
+    }
+
+    @Test
+    public void s15i_applyIncline_atFive_generatesCorrectSwipe() {
+        S15iDevice dev = dev(new S15iDevice());
+        dev.applyIncline(5.0);
+        // fromY=616; y2=616-(int)(5*17.65)=616-(int)88.25=616-88=528
+        assertEquals("input swipe 75 616 75 528 200", lastCommand);
+    }
+
+    @Test
+    public void s15i_applyResistance_atFive_generatesCorrectSwipe() {
+        S15iDevice dev = dev(new S15iDevice());
+        dev.applyResistance(5.0);
+        // fromY=790; y2=790-(int)(5*23.16)=790-(int)115.8=790-115=675
+        assertEquals("input swipe 1848 790 1848 675 200", lastCommand);
     }
 
     // ── Tdf10Device ───────────────────────────────────────────────────────────
@@ -303,5 +332,142 @@ public class BikeDeviceTest {
         dev2.applyIncline(20.0);
         int y20 = Integer.parseInt(lastCommand.split(" ")[5]);
         assertTrue("Y at inclination=20 should be less than Y at inclination=0", y20 < y0);
+    }
+
+    // ── S27iDevice ────────────────────────────────────────────────────────────
+    // incline: currentThumbY; targetInclineY(v)=803-(int)((v+10)*555/30), targetInclineY(0)=618
+    // resistance: currentThumbY; targetResistanceY(v)=803-(int)((v-1)*555/23), targetResistanceY(0)=827
+
+    @Test
+    public void s27i_isInstanceOfBikeDevice() {
+        assertTrue(new S27iDevice() instanceof BikeDevice);
+    }
+
+    @Test
+    public void s27i_hasCorrectDisplayName() {
+        assertEquals("S27i Bike", new S27iDevice().displayName());
+    }
+
+    @Test
+    public void s27i_applyIncline_atFive_generatesCorrectSwipe() {
+        S27iDevice dev = dev(new S27iDevice());
+        dev.applyIncline(5.0);
+        // fromY=618; y2=803-(int)(15*18.5)=803-277=526
+        assertEquals("input swipe 76 618 76 526 200", lastCommand);
+    }
+
+    @Test
+    public void s27i_applyResistance_atFive_generatesCorrectSwipe() {
+        S27iDevice dev = dev(new S27iDevice());
+        dev.applyResistance(5.0);
+        // fromY=827; y2=803-(int)(4*555/23)=803-(int)96.52=803-96=707
+        assertEquals("input swipe 1847 827 1847 707 200", lastCommand);
+    }
+
+    // ── ProformCarbonC10Device ────────────────────────────────────────────────
+    // incline slot (no resistance slot); targetY(v)=632-(int)(v*18.45), currentThumbY→resistance()
+    // snapshot.resistance()=0 in tests → fromY=targetY(0)=632
+
+    @Test
+    public void proformCarbonC10_isInstanceOfBikeDevice() {
+        assertTrue(new ProformCarbonC10Device() instanceof BikeDevice);
+    }
+
+    @Test
+    public void proformCarbonC10_hasCorrectDisplayName() {
+        assertEquals("ProForm Carbon C10 Bike", new ProformCarbonC10Device().displayName());
+    }
+
+    @Test
+    public void proformCarbonC10_applyIncline_atFive_generatesCorrectSwipe() {
+        ProformCarbonC10Device dev = dev(new ProformCarbonC10Device());
+        dev.applyIncline(5.0);
+        // fromY=632; y2=632-(int)(5*18.45)=632-(int)92.25=632-92=540
+        assertEquals("input swipe 1205 632 1205 540 200", lastCommand);
+    }
+
+    // ── ProformCarbonE7Device ─────────────────────────────────────────────────
+    // incline: currentThumbY; targetInclineY(v)=440-(int)(v*11), targetInclineY(0)=440
+    // resistance: currentThumbY; targetResistanceY(v)=440-(int)(v*9.16), targetResistanceY(0)=440
+
+    @Test
+    public void proformCarbonE7_isInstanceOfBikeDevice() {
+        assertTrue(new ProformCarbonE7Device() instanceof BikeDevice);
+    }
+
+    @Test
+    public void proformCarbonE7_hasCorrectDisplayName() {
+        assertEquals("ProForm Carbon E7 Bike", new ProformCarbonE7Device().displayName());
+    }
+
+    @Test
+    public void proformCarbonE7_applyIncline_atFive_generatesCorrectSwipe() {
+        ProformCarbonE7Device dev = dev(new ProformCarbonE7Device());
+        dev.applyIncline(5.0);
+        // fromY=440; y2=440-(int)(55)=385
+        assertEquals("input swipe 75 440 75 385 200", lastCommand);
+    }
+
+    @Test
+    public void proformCarbonE7_applyResistance_atFive_generatesCorrectSwipe() {
+        ProformCarbonE7Device dev = dev(new ProformCarbonE7Device());
+        dev.applyResistance(5.0);
+        // fromY=440; y2=440-(int)(5*9.16)=440-(int)45.8=440-45=395
+        assertEquals("input swipe 950 440 950 395 200", lastCommand);
+    }
+
+    // ── Se9iEllipticalDevice — formula tests ──────────────────────────────────
+    // incline: currentThumbY; targetInclineY(v)=858-(int)(v*650/20), targetInclineY(0)=858
+    // resistance: currentThumbY; targetResistanceY(v)=858-(int)((v-1)*650/23), targetResistanceY(0)=886
+
+    @Test
+    public void se9iElliptical_hasCorrectDisplayName() {
+        assertEquals("SE9i Elliptical", new Se9iEllipticalDevice().displayName());
+    }
+
+    @Test
+    public void se9iElliptical_applyIncline_atFive_generatesCorrectSwipe() {
+        Se9iEllipticalDevice dev = dev(new Se9iEllipticalDevice());
+        dev.applyIncline(5.0);
+        // fromY=858; y2=858-(int)(5*32.5)=858-162=696
+        assertEquals("input swipe 57 858 57 696 200", lastCommand);
+    }
+
+    @Test
+    public void se9iElliptical_applyResistance_atFive_generatesCorrectSwipe() {
+        Se9iEllipticalDevice dev = dev(new Se9iEllipticalDevice());
+        dev.applyResistance(5.0);
+        // fromY=886; y2=858-(int)(4*650/23)=858-(int)113.04=858-113=745
+        assertEquals("input swipe 1857 886 1857 745 200", lastCommand);
+    }
+
+    // ── Tdf10InclinationDevice ────────────────────────────────────────────────
+    // no currentThumbY; inclineX=74, targetInclineY(v)=(int)(-12.499*v+482.2), initial=482
+
+    @Test
+    public void tdf10Inclination_isInstanceOfBikeDevice() {
+        assertTrue(new Tdf10InclinationDevice() instanceof BikeDevice);
+    }
+
+    @Test
+    public void tdf10Inclination_hasCorrectDisplayName() {
+        assertEquals("TDF10 Bike (Inclination)", new Tdf10InclinationDevice().displayName());
+    }
+
+    @Test
+    public void tdf10Inclination_applyIncline_atZero_generatesCorrectSwipe() {
+        Tdf10InclinationDevice dev = dev(new Tdf10InclinationDevice());
+        dev.applyIncline(0.0);
+        // fromY=482; y2=(int)(482.2)=482
+        assertEquals("input swipe 74 482 74 482 200", lastCommand);
+    }
+
+    @Test
+    public void tdf10Inclination_applyIncline_atFive_generatesCorrectSwipe() {
+        Tdf10InclinationDevice dev = dev(new Tdf10InclinationDevice());
+        dev.applyIncline(0.0); // advance currentY to 482
+        dev.applyIncline(5.0);
+        // fromY=482; y2=(int)(-12.499*5+482.2)=(int)(419.705)=419
+        assertEquals("input swipe 74 482 74 419 200", lastCommand);
     }
 }
