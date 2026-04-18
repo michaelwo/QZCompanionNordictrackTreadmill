@@ -66,32 +66,32 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atNegativeTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-10.0);
-        // v<=0 branch: y2 = (int)(622 - 10*(-10)) = (int)(722) = 722; y1 = 622
-        assertEquals("input swipe 75 622 75 722 200", lastCommand);
+        // v<=0 branch: toY=(int)(622-10*(-10))=722; going down → dispatch=722+15=737
+        assertEquals("input swipe 75 622 75 737 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0);
-        // v>0 branch: y2 = (int)(622 - 14.8*10) = (int)(474) = 474; y1 = 622
-        assertEquals("input swipe 75 622 75 474 200", lastCommand);
+        // v>0 branch: toY=(int)(622-14.8*10)=474; going up → dispatch=474-15=459
+        assertEquals("input swipe 75 622 75 459 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTwenty_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(20.0);
-        // v>0 branch: y2 = (int)(622 - 14.8*20) = (int)(326) = 326; y1 = 622
-        assertEquals("input swipe 75 622 75 326 200", lastCommand);
+        // v>0 branch: toY=(int)(622-14.8*20)=326; going up → dispatch=326-15=311
+        assertEquals("input swipe 75 622 75 311 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = dev(new S22iDevice());
-        dev.applyIncline(10.0); // y2 = (int)(622 - 148) = 474; thumbY becomes 474
-        dev.applyIncline(5.0);  // y2 = (int)(622 - 74) = 548; y1 = 474
-        assertEquals("input swipe 75 474 75 548 200", lastCommand);
+        dev.applyIncline(10.0); // toY=474 (up → dispatch=459); thumbY=474
+        dev.applyIncline(5.0);  // toY=548 (down from 474 → dispatch=563); thumbY=548
+        assertEquals("input swipe 75 474 75 563 200", lastCommand);
     }
 
     @Test

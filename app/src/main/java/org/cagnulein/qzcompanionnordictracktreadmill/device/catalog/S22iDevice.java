@@ -21,6 +21,11 @@ public class S22iDevice extends BikeDevice {
                 protected int currentThumbY(MetricSnapshot s) {
                     return s.inclinePct != null ? targetY(s.inclinePct) : thumbY();
                 }
+                // Physical hysteresis: slider undershoots ~0.5-1% in both directions.
+                // Overshoot by 15px (~1%) so the thumb reaches the target, then self-corrects
+                // on the next swipe via currentThumbY reading the iFit log.
+                @Override
+                protected int hysteresisPixels() { return 15; }
             },
             new Slider(724) {
                 public int trackX() { return 1845; }

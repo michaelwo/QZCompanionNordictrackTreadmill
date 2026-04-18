@@ -25,16 +25,18 @@ The sentinel values `-1` and `-100` are discarded (no-op).
 **Command mode:** ADB  
 **Metric reader:** `BikeMetricReader`
 
-| Slider | trackX | Initial thumbY | Formula | Quantize | currentThumbY |
-|--------|--------|---------------|---------|----------|---------------|
-| Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 14.8*v)` | 0.5% steps | `snapshot.inclinePct` when non-null |
-| Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | `snapshot.resistanceLvl` when ≥1 |
+| Slider | trackX | Initial thumbY | Formula | Quantize | currentThumbY | Hysteresis |
+|--------|--------|---------------|---------|----------|---------------|------------|
+| Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 14.8*v)` | 0.5% steps | `snapshot.inclinePct` when non-null | 15 px |
+| Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | `snapshot.resistanceLvl` when ≥1 | — |
 
 **Calibration (2026-04-18, screen 1920×1080):**
 - Incline: three points measured — v=−10→Y=722, v=0→Y=622, v=20→Y=326. Slope differs across zero (−10 px/% negative, −14.8 px/% positive), so a piecewise formula is used.
 - Resistance: two points measured — level=1→Y=724, level=24→Y=323. Slope = −401/23 ≈ −17.43 px/level. Resistance=0 readings from the log are noise and ignored in `currentThumbY`.
 
 Both sliders read live observed values from the iFit log (`Changed Grade to:`, `Changed Resistance to:`) and use them as the starting position for each swipe, self-correcting for drift.
+
+**Hysteresis correction (incline only):** Physical slider stiction causes ~0.5–1% undershoot in both directions. The swipe overshoots the `targetY` by 15 px in the direction of travel; `thumbY` still tracks the logical target so de-dup and state-tracking are unaffected. The `currentThumbY` override reads back the actual iFit-reported grade before the next swipe, so any residual error is corrected one interval later.
 
 ---
 

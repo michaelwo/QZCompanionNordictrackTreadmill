@@ -70,6 +70,11 @@ public class ZwiftRideRobolectricTest {
         return "input swipe 75 " + y1 + " 75 " + y2 + " 200";
     }
 
+    private static int dispatchY(int fromY, int toY) {
+        if (toY == fromY) return toY;
+        return toY < fromY ? toY - 15 : toY + 15;
+    }
+
     /**
      * Sends a UDP grade change to port 8003 on loopback and waits 600ms.
      * The 600ms gap ensures each message arrives outside the 500ms throttle window.
@@ -117,11 +122,12 @@ public class ZwiftRideRobolectricTest {
         assertTrue("all 3 swipes should arrive within 5s", latch.await(5, TimeUnit.SECONDS));
         assertEquals(3, commands.size());
 
-        int y1 = 622;
+        int logicalY = 622;
         for (int i = 0; i < grades.length; i++) {
-            int y2 = targetY(grades[i]);
-            assertEquals("swipe " + i + " (grade " + grades[i] + "%)", swipe(y1, y2), commands.get(i));
-            y1 = y2;
+            int toY = targetY(grades[i]);
+            assertEquals("swipe " + i + " (grade " + grades[i] + "%)",
+                    swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
+            logicalY = toY;
         }
     }
 

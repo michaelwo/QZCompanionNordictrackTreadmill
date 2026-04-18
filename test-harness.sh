@@ -18,10 +18,16 @@ PORT=8003
 DELAY=1.5   # seconds between messages — outside the 500ms throttle window
 
 # ── S22i formula ─────────────────────────────────────────────────────────────
-# x=75, y1=previous y2, y2=(int)(616.18 - 17.223 * grade)
+# x=75, y1=previous y2
+# v≤0 → (int)(622 - 10*v)
+# v>0 → (int)(622 - 14.8*v)
+# Calibrated 2026-04-18: v=-10→Y=722, v=0→Y=622, v=20→Y=326
 expected_y() {
     local grade=$1
-    echo "$grade" | awk '{printf "%d", int(616.18 - 17.223 * $1)}'
+    echo "$grade" | awk '{
+        if ($1 <= 0) printf "%d", int(622 - 10 * $1)
+        else         printf "%d", int(622 - 14.8 * $1)
+    }'
 }
 
 expected_swipe() {
@@ -46,7 +52,7 @@ send_grade() {
 # ── Alpe du Zwift — simplified profile ───────────────────────────────────────
 run_profile() {
     local -a grades=("$@")
-    local y1=618  # S22i initial incline position
+    local y1=622  # S22i initial incline position (grade=0)
 
     for grade in "${grades[@]}"; do
         send_grade "$grade" "$y1"

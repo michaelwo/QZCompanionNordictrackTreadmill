@@ -30,9 +30,10 @@ CommandDispatcher.dispatch()
 BikeDevice / TreadmillDevice   [throttle, cache, de-dup]
         │
         │  Slider.moveTo(value, device)
-        │    quantize(value)     → snap to physical increments
-        │    targetY(value)      → compute pixel Y coordinate
-        │    device.swipe(x, fromY, toY)
+        │    quantize(value)        → snap to physical increments
+        │    targetY(value)         → compute logical pixel Y coordinate
+        │    hysteresisPixels()     → directional overshoot in px (0 for most sliders)
+        │    device.swipe(x, fromY, swipeY)   [swipeY may differ from targetY]
         ▼
 CommandExecutor  [set by MainActivity]
         │
@@ -74,9 +75,10 @@ Controls speed and incline `Slider` instances. Also gates speed commands when `l
 ### `Slider` (abstract)
 Represents one physical slider on the iFit touch screen. Subclasses supply:
 - `trackX()` — fixed horizontal pixel position
-- `targetY(double v)` — converts a metric value to a pixel Y coordinate
+- `targetY(double v)` — converts a metric value to a logical pixel Y coordinate
 - `quantize(float v)` — (optional) snaps to physically reachable increments
 - `currentThumbY(MetricSnapshot)` — (optional) derive starting position from live metrics rather than tracking it as internal state; used when the slider can drift if commands are missed
+- `hysteresisPixels()` — (optional) pixels of directional overshoot to compensate for physical stiction; the swipe goes `hysteresisPixels()` past `targetY`, while `thumbY` still tracks the logical target so de-dup is unaffected. Default: 0.
 
 ### `DeviceRegistry`
 Singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `UDPListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.

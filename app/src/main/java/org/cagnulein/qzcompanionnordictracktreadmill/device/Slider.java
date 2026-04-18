@@ -44,14 +44,24 @@ public abstract class Slider {
     public float quantize(float value) { return value; }
 
     /**
+     * Pixels of directional overshoot applied to compensate for physical slider hysteresis.
+     * The thumb is swiped {@code hysteresisPixels()} past the target in the direction of travel,
+     * while {@link #thumbY} still tracks the logical target so de-dup and state-tracking remain
+     * consistent. Override in device-specific subclasses; default is 0 (no overshoot).
+     */
+    protected int hysteresisPixels() { return 0; }
+
+    /**
      * Swipe the slider thumb from its current position to the position for {@code value}.
      * The device's own {@code lastSnapshot} is used to determine the starting thumb position
      * for devices that derive it from live metrics rather than tracking it as state.
      */
     public void moveTo(double value, Device device) {
-        int fromY = currentThumbY(device.lastSnapshot);
-        int toY   = targetY(value);
-        device.swipe(trackX(), fromY, toY);
+        int fromY  = currentThumbY(device.lastSnapshot);
+        int toY    = targetY(value);
+        int h      = hysteresisPixels();
+        int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
+        device.swipe(trackX(), fromY, swipeY);
         thumbY      = toY;
         lastApplied = (float) value;
     }
