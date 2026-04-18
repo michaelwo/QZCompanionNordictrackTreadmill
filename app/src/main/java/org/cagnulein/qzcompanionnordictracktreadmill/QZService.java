@@ -193,7 +193,8 @@ public class QZService extends Service {
 
             MetricReader reader = sharedPreferences.getBoolean("ADBLog", false)
                     ? new DirectLogcatMetricReader()
-                    : Device.instance.defaultMetricReader(ifit_v2);
+                    : Device.instance.defaultMetricReader();
+            if (ifit_v2) reader = reader.forIfitV2();
 
             applyAndBroadcast(reader.read(file, shellRuntime));
         } catch (Exception ex) {

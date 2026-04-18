@@ -81,8 +81,8 @@ public abstract class Device {
         }
     }
 
-    public MetricReader defaultMetricReader(boolean ifitV2) {
-        return new TailGrepMetricReader(ifitV2);
+    public MetricReader defaultMetricReader() {
+        return new TailGrepMetricReader();
     }
 
     /**

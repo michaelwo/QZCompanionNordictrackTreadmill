@@ -109,20 +109,27 @@ Can a new contributor understand and extend the app without reading every file?
 
 ---
 
-## Current Scores (as of 2026-04-17)
+## Current Scores (as of 2026-04-18)
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Test Coverage | 3 | HillyRouteReplayTest, TreadmillDeviceTest (139 tests across 27 devices), BikeDeviceTest (56 tests across 14 devices), MetricReaderTest (22); all 45 registry devices have ≥1 test; T95s and X22iNoAdb limited to isinstance/displayName (override swipe() → MyAccessibilityService) |
 | Observability | 2 | Structured tags, monitor-ride.sh, analyze-ride.sh working; no rate-based de-dup/throttle thresholds |
-| Device Portability | 3 | DeviceRegistry pattern solid; all 45 devices have at least one unit test |
+| Device Portability | 3 | DeviceRegistry pattern solid; all 45 devices have ≥1 test; device classes know nothing about iFit log format versions (orthogonal to reader layer via `MetricReader.forIfitV2()`) |
 | Formula Auditability | 1 | S22i inline comments explain overshoot correction; 39 of 40 devices have no derivation notes |
 | Build Reproducibility | 2 | CI signs and publishes on every master push; unpinned/deprecated action refs; publish-on-push vs publish-on-tag |
 | Failure Resilience | 2 | ADB auto-reconnect in place; uncaught exceptions = hard kill not graceful degradation; 4 devices swallow IOException silently |
 | Calibration Capability | 1 | OCR incline path exists in code; calibration-runbook.md written; not confirmed on real device |
-| Documentation | 2 | architecture.md, device-reference.md, calibration-runbook.md written; hand-maintained, not verified |
+| Documentation | 2 | architecture.md updated to reflect reader refactor; device-reference.md, calibration-runbook.md written; hand-maintained, not verified |
 
 **Overall: 16 / 24**
+
+### Code Quality Gate (not a scored dimension)
+
+`/smells` project command runs a two-pass Clean Code review (Uncle Bob checklist) on changed
+files. Integrated into `/ship` as a gate: critical smells (flag arguments, commented-out code,
+base/derivative coupling, Law of Demeter violations) block the commit; advisory smells appear
+in the preview.
 
 ---
 
@@ -132,7 +139,7 @@ Can a new contributor understand and extend the app without reading every file?
 |-----------|----------------------|
 | Test Coverage | ✓ Done — all devices covered |
 | Observability | Add de-dup rate and throttle rate to analyze-ride.sh thresholds |
-| Device Portability | Add a checklist assertion: every DeviceId in registry has at least one test |
+| Device Portability | ✓ Orthogonal reader design complete; add checklist assertion that every DeviceId in registry has ≥1 test |
 | Formula Auditability | Run calibration sweep on S22i; document two-point derivation for C1750 and X32i |
 | Build Reproducibility | Add release signing via GitHub Actions on version tag |
 | Failure Resilience | Audit all catch blocks; ensure no swallowed exceptions in the dispatch path |

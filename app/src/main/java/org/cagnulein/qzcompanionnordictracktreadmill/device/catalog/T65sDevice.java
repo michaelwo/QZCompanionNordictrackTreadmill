@@ -29,8 +29,8 @@ public class T65sDevice extends TreadmillDevice {
     public String displayName() { return name; }
 
     @Override
-    public MetricReader defaultMetricReader(boolean ifitV2) {
-        return reader != null ? reader : super.defaultMetricReader(ifitV2);
+    public MetricReader defaultMetricReader() {
+        return reader != null ? reader : super.defaultMetricReader();
     }
 
 

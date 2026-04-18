@@ -270,12 +270,12 @@ public class BikeDeviceTest {
 
     @Test
     public void bikeDevice_defaultMetricReader_returnsBikeMetricReader() {
-        assertTrue(new S22iDevice().defaultMetricReader(false) instanceof BikeMetricReader);
+        assertTrue(new S22iDevice().defaultMetricReader() instanceof BikeMetricReader);
     }
 
     @Test
-    public void bikeDevice_defaultMetricReader_ifitV2_returnsBikeMetricReader() {
-        assertTrue(new S22iDevice().defaultMetricReader(true) instanceof BikeMetricReader);
+    public void bikeDevice_defaultMetricReader_forIfitV2_returnsBikeMetricReader() {
+        assertTrue(new S22iDevice().defaultMetricReader().forIfitV2() instanceof BikeMetricReader);
     }
 
     @Test

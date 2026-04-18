@@ -50,6 +50,32 @@ java -cp "$JUNIT:$HAMCREST:$ANDROID:$ANNOTATION:$OUT:$TEST_OUT" \
 
 **If any test fails, stop here.** Report the failures and do not proceed to commit.
 
+## Step 1.5 — Clean Code smell check
+
+Perform the same two-pass review defined in `/smells`, scoped to the Java files changed
+since the last commit (`git diff --name-only HEAD -- '*.java'`).
+
+**Critical smells block the commit.** Report them and stop. Do not proceed to Step 2 until
+the user resolves them or explicitly overrides ("ship anyway").
+
+Critical smells (always blocking):
+- Flag arguments (boolean literals passed directly to a method)
+- Commented-out code blocks
+- Base class referencing a subclass by name
+- Law of Demeter violations in the dispatch path
+- Hybrid structures with public mutable fields and complex behavior
+
+Advisory smells (reported in the Step 5 preview, do not block):
+- Methods over 20 lines
+- Negative conditionals
+- Long parameter lists (≥ 4 params)
+- Magic numbers outside `device/catalog/`
+- TODO/FIXME without owner
+- Naming issues
+
+Formula constants in `device/catalog/` are auditability debt tracked in the maturity model —
+note count only, do not block.
+
 ## Step 2 — Inventory
 
 Run all of these in parallel:
@@ -81,6 +107,8 @@ Present the following to the user and **do not proceed until they explicitly con
 
 ```
 Tests: N passed, 0 failed ✓
+
+Smells: <"None" | list advisory findings — critical findings would have already blocked>
 
 Files to commit:
   <list staged files>

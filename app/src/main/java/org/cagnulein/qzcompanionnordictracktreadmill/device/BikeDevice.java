@@ -68,8 +68,8 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public MetricReader defaultMetricReader(boolean ifitV2) {
-        return new BikeMetricReader(ifitV2);
+    public MetricReader defaultMetricReader() {
+        return new BikeMetricReader();
     }
 
     @Override

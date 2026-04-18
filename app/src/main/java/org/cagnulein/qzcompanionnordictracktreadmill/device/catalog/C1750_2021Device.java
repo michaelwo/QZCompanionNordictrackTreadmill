@@ -25,8 +25,7 @@ public class C1750_2021Device extends TreadmillDevice {
 
 
 
-    @Override
-    public MetricReader defaultMetricReader(boolean ifitV2) { return new CatFileMetricReader(); }
+    @Override public MetricReader defaultMetricReader() { return new CatFileMetricReader(); }
 
 
 }

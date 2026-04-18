@@ -7,25 +7,30 @@ import java.io.InputStreamReader;
 
 /**
  * Default log-file reader. Uses {@code tail | grep} pipelines with two levels of fallback.
- * The {@code ifitV2} flag changes the incline keyword and the token position used for
- * speed/incline values. Pass {@code true} when the iFit v2 log path is detected by QZService.
  * Periodically truncates the log file to prevent unbounded growth.
+ *
+ * Subclasses override {@link #inclineKeyword()} and {@link #valueTokenIndex(String[])} to
+ * adapt to different iFit log formats without any boolean flag arguments.
  */
 public class TailGrepMetricReader implements MetricReader {
 
-    private final boolean ifitV2;
-
-    public TailGrepMetricReader()              { this(false); }
-    public TailGrepMetricReader(boolean ifitV2) { this.ifitV2 = ifitV2; }
-
     public static int truncateCounter = 0;
+
+    @Override
+    public MetricReader forIfitV2() { return new TailGrepIfitV2MetricReader(); }
+
+    /** The log keyword used to find incline lines. Override in subclasses for format variants. */
+    protected String inclineKeyword() { return "Grade"; }
+
+    /** The index of the value token in a split log line. Override in subclasses for format variants. */
+    protected int valueTokenIndex(String[] tokens) { return tokens.length - 1; }
 
     @Override
     public MetricSnapshot read(String file, Shell shell) throws IOException {
         MetricSnapshot m = new MetricSnapshot();
 
-        findSpeed(m, shell, file, ifitV2);
-        findIncline(m, shell, file, ifitV2);
+        findSpeed(m, shell, file);
+        findIncline(m, shell, file);
         findSingle(shell, "Changed Watts",       file, v -> m.watts         = lastFloat(v));
         findSingle(shell, "Changed RPM",         file, v -> m.cadenceRpm    = lastFloat(v));
         findSingle(shell, "Changed CurrentGear", file, v -> m.gearLevel     = lastFloat(v));
@@ -39,15 +44,13 @@ public class TailGrepMetricReader implements MetricReader {
         return m;
     }
 
-    protected void findSpeed(MetricSnapshot m, Shell shell, String file, boolean v2)
-            throws IOException {
-        if (trySpeed(m, shell, "tail -n500 " + file + " | grep -a \"Changed KPH\" | tail -n1", v2)) return;
-        if (trySpeed(m, shell, "grep -a \"Changed KPH\" " + file + "  | tail -n1", v2)) return;
-        trySpeed(m, shell, "cat " + file + " | grep -a \"Changed KPH\"", v2);
+    protected void findSpeed(MetricSnapshot m, Shell shell, String file) throws IOException {
+        if (trySpeed(m, shell, "tail -n500 " + file + " | grep -a \"Changed KPH\" | tail -n1")) return;
+        if (trySpeed(m, shell, "grep -a \"Changed KPH\" " + file + "  | tail -n1")) return;
+        trySpeed(m, shell, "cat " + file + " | grep -a \"Changed KPH\"");
     }
 
-    private boolean trySpeed(MetricSnapshot m, Shell shell, String cmd, boolean v2)
-            throws IOException {
+    private boolean trySpeed(MetricSnapshot m, Shell shell, String cmd) throws IOException {
         try (InputStream in = shell.execAndGetOutput(cmd);
              BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
             String line;
@@ -55,7 +58,7 @@ public class TailGrepMetricReader implements MetricReader {
             while ((line = reader.readLine()) != null) {
                 try {
                     String[] b = line.replaceAll(",", ".").split(" ");
-                    m.speedKmh = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
+                    m.speedKmh = Float.parseFloat(b[valueTokenIndex(b)]);
                     found = true;
                 } catch (Exception ignored) {}
             }
@@ -63,16 +66,14 @@ public class TailGrepMetricReader implements MetricReader {
         }
     }
 
-    protected void findIncline(MetricSnapshot m, Shell shell, String file, boolean v2)
-            throws IOException {
-        String keyword = v2 ? "INCLINE" : "Grade";
-        if (tryIncline(m, shell, "tail -n500 " + file + " | grep -a \"Changed " + keyword + "\" | tail -n1", v2)) return;
-        if (tryIncline(m, shell, "grep -a \"Changed " + keyword + "\" " + file + "  | tail -n1", v2)) return;
-        tryIncline(m, shell, "cat " + file + " | grep -a \"Changed " + keyword + "\"", v2);
+    protected void findIncline(MetricSnapshot m, Shell shell, String file) throws IOException {
+        String keyword = inclineKeyword();
+        if (tryIncline(m, shell, "tail -n500 " + file + " | grep -a \"Changed " + keyword + "\" | tail -n1")) return;
+        if (tryIncline(m, shell, "grep -a \"Changed " + keyword + "\" " + file + "  | tail -n1")) return;
+        tryIncline(m, shell, "cat " + file + " | grep -a \"Changed " + keyword + "\"");
     }
 
-    private boolean tryIncline(MetricSnapshot m, Shell shell, String cmd, boolean v2)
-            throws IOException {
+    private boolean tryIncline(MetricSnapshot m, Shell shell, String cmd) throws IOException {
         try (InputStream in = shell.execAndGetOutput(cmd);
              BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
             String line;
@@ -80,7 +81,7 @@ public class TailGrepMetricReader implements MetricReader {
             while ((line = reader.readLine()) != null) {
                 try {
                     String[] b = line.replaceAll(",", ".").split(" ");
-                    m.inclinePct = Float.parseFloat(v2 ? b[b.length - 2] : b[b.length - 1]);
+                    m.inclinePct = Float.parseFloat(b[valueTokenIndex(b)]);
                     found = true;
                 } catch (Exception ignored) {}
             }

@@ -17,8 +17,7 @@ public class Ntex71021Device extends BikeDevice {
     @Override
     public String displayName() { return "NTEX71021 Bike"; }
 
-    @Override
-    public MetricReader defaultMetricReader(boolean ifitV2) { return new DirectLogcatMetricReader(); }
+    @Override public MetricReader defaultMetricReader() { return new DirectLogcatMetricReader(); }
 
 
 }

@@ -19,8 +19,7 @@ public class ProformCarbonC10Device extends BikeDevice {
     @Override
     public String displayName() { return "ProForm Carbon C10 Bike"; }
 
-    @Override
-    public MetricReader defaultMetricReader(boolean ifitV2) { return new DirectLogcatMetricReader(); }
+    @Override public MetricReader defaultMetricReader() { return new DirectLogcatMetricReader(); }
 
 
 

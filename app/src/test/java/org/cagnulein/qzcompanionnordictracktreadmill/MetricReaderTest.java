@@ -6,6 +6,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricRe
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.TailGrepIfitV2MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.TailGrepMetricReader;
 
 import org.junit.After;
@@ -253,7 +254,7 @@ public class MetricReaderTest {
         Map<String, String> r = new HashMap<>();
         r.put("Changed KPH", "Changed KPH 8.0 kmh");
         r.put("INCLINE",     "Changed INCLINE 3.0 pct");
-        MetricSnapshot m = new TailGrepMetricReader(true).read("f.log", routingShell(r));
+        MetricSnapshot m = new TailGrepIfitV2MetricReader().read("f.log", routingShell(r));
         assertEquals(8.0f, m.speedKmh,   DELTA);
         assertEquals(3.0f, m.inclinePct, DELTA);
     }
@@ -291,7 +292,7 @@ public class MetricReaderTest {
         r.put("Changed RPM",         "Changed RPM 80");
         r.put("Changed CurrentGear", "Changed CurrentGear 3");
         r.put("Changed Resistance",  "Changed Resistance 12");
-        MetricSnapshot m = new BikeMetricReader(false).read("f.log", routingShell(r));
+        MetricSnapshot m = new BikeMetricReader().read("f.log", routingShell(r));
         assertEquals(4.0f,  m.inclinePct,    DELTA);
         assertEquals(150f,  m.watts,         DELTA);
         assertEquals(80f,   m.cadenceRpm,    DELTA);
@@ -310,13 +311,13 @@ public class MetricReaderTest {
             }
             public Process exec(String cmd) { return null; }
         };
-        new BikeMetricReader(false).read("f.log", shell);
+        new BikeMetricReader().read("f.log", shell);
         assertFalse("BikeMetricReader must not search for 'Changed KPH'", kphQueried[0]);
     }
 
     @Test
     public void bikeReader_emptyLog_speedKphRemainsNull() throws IOException {
-        MetricSnapshot m = new BikeMetricReader(false).read("f.log", fixedShell(""));
+        MetricSnapshot m = new BikeMetricReader().read("f.log", fixedShell(""));
         assertNull(m.speedKmh);
     }
 }

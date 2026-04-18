@@ -106,15 +106,24 @@ Three mechanisms prevent redundant or too-frequent swipes:
 ```
 MetricReader
 │   read(String file, Shell shell) → MetricSnapshot
+│   forIfitV2() → MetricReader          (default: returns this)
 │
-├── TailGrepMetricReader          (default for most devices)
-│   └── BikeMetricReader          (extends TailGrepMetricReader; skips KPH)
+├── TailGrepMetricReader                (default for most treadmill devices)
+│   │   forIfitV2() → TailGrepIfitV2MetricReader
+│   ├── TailGrepIfitV2MetricReader      (iFit v2 log format variant)
+│   └── BikeMetricReader               (skips KPH; forIfitV2() → this)
 ├── CatFileMetricReader
 ├── DirectLogcatMetricReader
 └── LogcatDumpMetricReader
 ```
 
-Each device returns its reader from `defaultMetricReader(boolean ifitV2)`. The `ifitV2` flag is set by `QZService` when it detects the newer iFit log path (`/sdcard/android/data/com.ifit.glassos_service/...`); it changes the incline keyword (`"Grade"` → `"INCLINE"`) and the token position used when parsing speed and incline values.
+Each device returns its reader from `defaultMetricReader()`. iFit v2 adaptation is handled
+orthogonally: `QZService` calls `reader.forIfitV2()` when the newer iFit log path is detected
+(`/sdcard/android/data/com.ifit.glassos_service/...`). Readers that are format-agnostic
+(CatFile, DirectLogcat, BikeMetric) return `this`; `TailGrepMetricReader` returns a
+`TailGrepIfitV2MetricReader` instance, which overrides two template methods:
+`inclineKeyword()` (`"Grade"` → `"INCLINE"`) and `valueTokenIndex()` (last token → second-to-last).
+Device classes know nothing about iFit versions.
 
 ### `Shell` interface
 
@@ -143,13 +152,17 @@ Holds all observable metrics as nullable `Float` fields. `null` means "not obser
 
 ### Reader Implementations
 
-**`TailGrepMetricReader`** (default for treadmills and bikes without a known file path)
+**`TailGrepMetricReader`** (default for treadmills without a known file path)
 
-Runs `tail -n500 <file> | grep -a "<keyword>" | tail -n1` with two fallback strategies (`grep` alone, then `cat | grep`) if the pipe returns nothing. After every 1200 read cycles (~20 minutes at a 1-second poll rate) it truncates the log file to zero to prevent unbounded growth.
+Runs `tail -n500 <file> | grep -a "<keyword>" | tail -n1` with two fallback strategies (`grep` alone, then `cat | grep`) if the pipe returns nothing. After every 1200 read cycles (~20 minutes at a 1-second poll rate) it truncates the log file to zero to prevent unbounded growth. Subclasses override `inclineKeyword()` and `valueTokenIndex()` to adapt to format variants without any boolean flag arguments. `forIfitV2()` returns a `TailGrepIfitV2MetricReader`.
+
+**`TailGrepIfitV2MetricReader`** (extends `TailGrepMetricReader`)
+
+Overrides `inclineKeyword()` → `"INCLINE"` and `valueTokenIndex()` → second-to-last token. All other behaviour is inherited.
 
 **`BikeMetricReader`** (extends `TailGrepMetricReader`)
 
-Identical to `TailGrepMetricReader` except `findSpeed()` is not called. Bikes do not emit `"Changed KPH"` to the iFit log, so skipping that search avoids a wasted shell exec every cycle.
+Identical to `TailGrepMetricReader` except `findSpeed()` is not called. Bikes do not emit `"Changed KPH"` to the iFit log, so skipping that search avoids a wasted shell exec every cycle. `forIfitV2()` returns `this` — the V2 log format difference does not affect bike metric parsing.
 
 **`CatFileMetricReader`**
 

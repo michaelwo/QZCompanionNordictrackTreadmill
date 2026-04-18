@@ -8,13 +8,13 @@ import java.io.IOException;
  */
 public class BikeMetricReader extends TailGrepMetricReader {
 
-    public BikeMetricReader(boolean ifitV2) { super(ifitV2); }
+    @Override public MetricReader forIfitV2() { return this; }
 
     @Override
     public MetricSnapshot read(String file, Shell shell) throws IOException {
         MetricSnapshot m = new MetricSnapshot();
 
-        findIncline(m, shell, file, false);
+        findIncline(m, shell, file);
         findSingle(shell, "Changed Watts",       file, v -> m.watts         = lastFloat(v));
         findSingle(shell, "Changed RPM",         file, v -> m.cadenceRpm    = lastFloat(v));
         findSingle(shell, "Changed CurrentGear", file, v -> m.gearLevel     = lastFloat(v));
