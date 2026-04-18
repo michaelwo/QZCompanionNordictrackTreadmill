@@ -51,31 +51,47 @@ public class BikeDeviceTest {
     }
 
     // ── S22iDevice ────────────────────────────────────────────────────────────
-    // targetInclineY(v) = (int)(616.18 - 17.223 * v)
-    // initialInclineY  = 618 (constructor arg)
+    // Three-point calibration: v=-10→Y=722, v=0→Y=622, v=20→Y=326.
+    // Piecewise: v<=0 → (int)(622 - 10*v); v>0 → (int)(622 - 14.8*v). initialY=622.
 
     @Test
     public void s22i_applyIncline_atZero_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(0.0);
-        // y2 = (int)(616.18 - 0) = 616; y1 = 618 (initial)
-        assertEquals("input swipe 75 618 75 616 200", lastCommand);
+        // y2 = (int)(622 - 10*0) = 622; y1 = 622 (initial)
+        assertEquals("input swipe 75 622 75 622 200", lastCommand);
+    }
+
+    @Test
+    public void s22i_applyIncline_atNegativeTen_generatesCorrectSwipe() {
+        S22iDevice dev = dev(new S22iDevice());
+        dev.applyIncline(-10.0);
+        // v<=0 branch: y2 = (int)(622 - 10*(-10)) = (int)(722) = 722; y1 = 622
+        assertEquals("input swipe 75 622 75 722 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0);
-        // grade > 3, so overshoot +0.5: y2 = (int)(616.18 - 17.223 * 10.5) = (int)435.34 = 435
-        assertEquals("input swipe 75 618 75 435 200", lastCommand);
+        // v>0 branch: y2 = (int)(622 - 14.8*10) = (int)(474) = 474; y1 = 622
+        assertEquals("input swipe 75 622 75 474 200", lastCommand);
+    }
+
+    @Test
+    public void s22i_applyIncline_atTwenty_isAtTopOfRange() {
+        S22iDevice dev = dev(new S22iDevice());
+        dev.applyIncline(20.0);
+        // v>0 branch: y2 = (int)(622 - 14.8*20) = (int)(326) = 326; y1 = 622
+        assertEquals("input swipe 75 622 75 326 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = dev(new S22iDevice());
-        dev.applyIncline(10.0); // grade>3: y2=(int)(616.18-17.223*10.5)=435; currentInclineY=435
-        dev.applyIncline(5.0);  // grade>3: y2=(int)(616.18-17.223*5.5)=521; y1=435
-        assertEquals("input swipe 75 435 75 521 200", lastCommand);
+        dev.applyIncline(10.0); // y2 = (int)(622 - 148) = 474; thumbY becomes 474
+        dev.applyIncline(5.0);  // y2 = (int)(622 - 74) = 548; y1 = 474
+        assertEquals("input swipe 75 474 75 548 200", lastCommand);
     }
 
     @Test
@@ -99,7 +115,8 @@ public class BikeDeviceTest {
         // ShellRuntime overrides execute().  We test the formula via the parent S22iDevice.
         S22iDevice base = dev(new S22iDevice());
         base.applyIncline(0.0);
-        assertEquals("input swipe 75 618 75 616 200", lastCommand);
+        // y2 = (int)(622 - 10*0) = 622; y1 = 622 (initial) — same formula as S22iDevice
+        assertEquals("input swipe 75 622 75 622 200", lastCommand);
     }
 
     @Test
@@ -285,15 +302,32 @@ public class BikeDeviceTest {
         assertNull(cmd.inclinePct);
     }
 
-    // ── BikeDevice.applyResistance no-ops when resistanceX() == -1 ────────────
+    // ── S22iDevice resistance slider (x=1845, calibrated) ────────────────────
+    // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
+    // targetResistanceY(v) = (int)(724.0 - 401.0/23 * (v-1)); initialY = 724
 
     @Test
-    public void s22i_applyResistance_withNoResistanceSlider_doesNothing() {
+    public void s22i_applyResistance_atLevel1_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
-        lastCommand = "unchanged";
+        dev.applyResistance(1.0);
+        // targetResistanceY(1) = (int)(724 - 0) = 724; initialY = 724
+        assertEquals("input swipe 1845 724 1845 724 200", lastCommand);
+    }
+
+    @Test
+    public void s22i_applyResistance_atLevel24_isAtBottomOfRange() {
+        S22iDevice dev = dev(new S22iDevice());
+        dev.applyResistance(24.0);
+        // targetResistanceY(24) = (int)(724 - 401.0/23*23) = (int)(724 - 401) = 323; initialY = 724
+        assertEquals("input swipe 1845 724 1845 323 200", lastCommand);
+    }
+
+    @Test
+    public void s22i_applyResistance_atLevel10_generatesCorrectSwipe() {
+        S22iDevice dev = dev(new S22iDevice());
         dev.applyResistance(10.0);
-        // S22iDevice has no resistance slider (resistanceX() returns -1)
-        assertEquals("unchanged", lastCommand);
+        // targetResistanceY(10) = (int)(724 - 401.0/23*9) = (int)(724 - 156.913) = 567; initialY = 724
+        assertEquals("input swipe 1845 724 1845 567 200", lastCommand);
     }
 
     // ── Ntex71021Device (no QZService calls, pure formula) ───────────────────
