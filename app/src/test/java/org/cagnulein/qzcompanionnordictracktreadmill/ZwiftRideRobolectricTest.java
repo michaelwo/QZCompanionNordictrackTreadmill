@@ -39,7 +39,7 @@ import static org.junit.Assert.*;
  * it will run on the device.  Messages are spaced 600ms apart — just outside
  * the 500ms throttle window — so every grade change should produce a swipe.
  *
- * S22i formula: x=75, y2 = (int)(616.18 - 17.223 * (grade > 3.0 ? grade + 0.5 : grade))
+ * S22i formula: x=75, piecewise — v≤0: (int)(622-10*v); v>0: (int)(622-14.8*v). Calibrated 2026-04-18.
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
@@ -62,7 +62,8 @@ public class ZwiftRideRobolectricTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     private static int targetY(float grade) {
-        return (int) (616.18 - 17.223 * (grade > 3.0f ? grade + 0.5f : grade));
+        return grade <= 0.0f ? (int) (622.0 - 10.0 * grade)
+                             : (int) (622.0 - 14.8 * grade);
     }
 
     private static String swipe(int y1, int y2) {
@@ -116,7 +117,7 @@ public class ZwiftRideRobolectricTest {
         assertTrue("all 3 swipes should arrive within 5s", latch.await(5, TimeUnit.SECONDS));
         assertEquals(3, commands.size());
 
-        int y1 = 618;
+        int y1 = 622;
         for (int i = 0; i < grades.length; i++) {
             int y2 = targetY(grades[i]);
             assertEquals("swipe " + i + " (grade " + grades[i] + "%)", swipe(y1, y2), commands.get(i));
