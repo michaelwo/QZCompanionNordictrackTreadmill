@@ -45,11 +45,14 @@ public abstract class Slider {
 
     /**
      * Pixels of directional overshoot applied to compensate for physical slider hysteresis.
-     * The thumb is swiped {@code hysteresisPixels()} past the target in the direction of travel,
+     * The thumb is swiped this many pixels past {@code toY} in the direction of travel,
      * while {@link #thumbY} still tracks the logical target so de-dup and state-tracking remain
      * consistent. Override in device-specific subclasses; default is 0 (no overshoot).
+     *
+     * @param fromY current thumb pixel Y (starting position)
+     * @param toY   logical target pixel Y
      */
-    protected int hysteresisPixels() { return 0; }
+    protected int hysteresisPixels(int fromY, int toY) { return 0; }
 
     /**
      * Swipe the slider thumb from its current position to the position for {@code value}.
@@ -59,7 +62,7 @@ public abstract class Slider {
     public void moveTo(double value, Device device) {
         int fromY  = currentThumbY(device.lastSnapshot);
         int toY    = targetY(value);
-        int h      = hysteresisPixels();
+        int h      = hysteresisPixels(fromY, toY);
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
         device.swipe(trackX(), fromY, swipeY);
         thumbY      = toY;

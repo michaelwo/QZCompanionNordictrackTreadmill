@@ -18,10 +18,11 @@ PORT=8003
 DELAY=1.5   # seconds between messages — outside the 500ms throttle window
 
 # ── S22i formula ─────────────────────────────────────────────────────────────
-# x=75, y1=previous y2
+# x=75, y1=previous logical targetY (self-correcting from iFit log in production)
 # v≤0 → (int)(622 - 10*v)
 # v>0 → (int)(622 - 14.8*v)
 # Calibrated 2026-04-18: v=-10→Y=722, v=0→Y=622, v=20→Y=326
+# Hysteresis: h=15px for grade ≤ ~11% (targetY ≥ 459); h=10px for grade > ~11%
 expected_y() {
     local grade=$1
     echo "$grade" | awk '{
@@ -30,12 +31,24 @@ expected_y() {
     }'
 }
 
+# Returns the actual dispatch Y (target ± hysteresis)
+dispatch_y() {
+    local from_y=$1
+    local to_y=$2
+    if [ "$to_y" -eq "$from_y" ]; then echo "$to_y"; return; fi
+    local h=15
+    [ "$to_y" -lt 459 ] && h=10
+    if [ "$to_y" -lt "$from_y" ]; then echo $((to_y - h))
+    else echo $((to_y + h)); fi
+}
+
 expected_swipe() {
     local y1=$1
     local grade=$2
-    local y2
+    local y2 disp
     y2=$(expected_y "$grade")
-    echo "input swipe 75 $y1 75 $y2 200  (grade ${grade}%)"
+    disp=$(dispatch_y "$y1" "$y2")
+    echo "input swipe 75 $y1 75 $disp 200  (grade ${grade}%, targetY=${y2})"
 }
 
 send_grade() {
