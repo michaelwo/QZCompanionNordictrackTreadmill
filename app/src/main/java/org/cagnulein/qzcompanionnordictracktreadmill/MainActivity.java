@@ -370,8 +370,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         getApplicationContext().startService(inServer);
         Intent in = new Intent(getApplicationContext(), MetricReaderBroadcastingService.class);
         getApplicationContext().startService(in);
-        Intent inCalibration = new Intent(getApplicationContext(), OcrCalibrationService.class);
-        getApplicationContext().startService(inCalibration);
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
@@ -416,7 +414,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             }
         }
 
-        startOCR();
     }
 
     private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {

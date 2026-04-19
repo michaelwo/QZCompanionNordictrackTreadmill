@@ -1,8 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.projection.MediaProjectionManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.View;
@@ -32,6 +35,8 @@ import java.util.List;
  * so CalibratedBikeDevice can use it immediately without a restart.
  */
 public class CalibrationActivity extends Activity {
+
+    private static final int OCR_REQUEST_CODE = 1;
 
     // Sweep config — covers a ~15% grade range in 10 steps
     private static final int Y_STEP        = 25;
@@ -95,11 +100,42 @@ public class CalibrationActivity extends Activity {
         resultHyst    = findViewById(R.id.resultHyst);
         resultPoints  = findViewById(R.id.resultPoints);
 
-        findViewById(R.id.btnStart).setOnClickListener(v -> startSweep());
+        Button btnStart = findViewById(R.id.btnStart);
+        btnStart.setOnClickListener(v -> startSweep());
         findViewById(R.id.btnCancelSweep).setOnClickListener(v -> cancel());
         findViewById(R.id.btnSave).setOnClickListener(v -> saveAndFinish());
         findViewById(R.id.btnRetry).setOnClickListener(v -> showSetup());
         findViewById(R.id.btnCancel).setOnClickListener(v -> finish());
+
+        if (OcrCalibrationService.latestReading != null) {
+            // OCR already running from an earlier calibration in this session
+        } else {
+            btnStart.setEnabled(false);
+            btnStart.setText("Waiting for screen permission…");
+            MediaProjectionManager mpm = (MediaProjectionManager)
+                    getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            startActivityForResult(mpm.createScreenCaptureIntent(), OCR_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != OCR_REQUEST_CODE) return;
+        if (resultCode != RESULT_OK) {
+            finish();
+            return;
+        }
+        MediaProjection.startService(this, resultCode, data);
+        Intent calibration = new Intent(this, OcrCalibrationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(calibration);
+        } else {
+            startService(calibration);
+        }
+        Button btnStart = findViewById(R.id.btnStart);
+        btnStart.setEnabled(true);
+        btnStart.setText("Start Calibration");
     }
 
     @Override
@@ -164,7 +200,7 @@ public class CalibrationActivity extends Activity {
         }
 
         if (OcrCalibrationService.latestReading == null) {
-            statusText.setText("OCR not active. Grant screen-capture permission first (restart app).");
+            statusText.setText("OCR not ready yet — wait a moment after granting screen-capture permission.");
             return;
         }
 
