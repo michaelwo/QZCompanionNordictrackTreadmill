@@ -24,8 +24,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
-        <service android:name=".QZService"/>
-        <service android:name=".UDPListenerService"/>
+        <service android:name=".MetricReaderBroadcastingService"/>
+        <service android:name=".CommandListenerService"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
             android:enabled="true"

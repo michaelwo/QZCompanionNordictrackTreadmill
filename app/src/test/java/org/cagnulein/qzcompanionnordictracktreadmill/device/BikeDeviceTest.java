@@ -2,18 +2,18 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Ntex71021Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformCarbonC10Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformCarbonE7Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.ProformStudioBikePro22Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S15iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iNtex02117Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iNtex02121Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S27iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Se9iEllipticalDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Tdf10Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.Tdf10InclinationDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Ntex71021Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformCarbonC10Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformCarbonE7Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformStudioBikePro22Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02117Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02121Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S27iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Se9iEllipticalDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
@@ -330,7 +330,7 @@ public class BikeDeviceTest {
         assertEquals("input swipe 1845 724 1845 567 200", lastCommand);
     }
 
-    // ── Ntex71021Device (no QZService calls, pure formula) ───────────────────
+    // ── Ntex71021Device (no MetricReaderBroadcastingService calls, pure formula) ───────────────────
     // targetInclineY(v) = (int)(493 - 13.57 * v); initialY = 480
 
     @Test

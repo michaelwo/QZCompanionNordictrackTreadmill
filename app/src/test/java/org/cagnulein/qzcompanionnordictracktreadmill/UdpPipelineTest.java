@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S15iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
@@ -64,7 +64,7 @@ public class UdpPipelineTest {
 
     /**
      * Starts a background thread that receives one UDP packet, dispatches it, then
-     * signals the latch.  Mirrors the core of UDPListenerService.listenAndWaitAndThrowIntent
+     * signals the latch.  Mirrors the core of CommandListenerService.listenAndWaitAndThrowIntent
      * without the Android PowerManager/WifiManager calls.
      */
     private void startReceiver(Device device, MetricSnapshot current, CountDownLatch latch) {

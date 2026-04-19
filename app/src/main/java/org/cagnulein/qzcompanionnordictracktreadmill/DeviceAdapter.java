@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill;
 import android.view.ViewGroup;
 import android.widget.RadioButton;
 import androidx.recyclerview.widget.RecyclerView;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import java.util.Arrays;
 import java.util.List;
 

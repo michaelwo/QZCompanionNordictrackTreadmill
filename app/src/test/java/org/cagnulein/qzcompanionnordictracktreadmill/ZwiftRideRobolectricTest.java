@@ -20,8 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import static org.junit.Assert.*;
@@ -29,7 +29,7 @@ import static org.junit.Assert.*;
 /**
  * Robolectric integration tests for multi-grade Zwift ride sequences.
  *
- * These tests send multiple UDP messages through the live UDPListenerService
+ * These tests send multiple UDP messages through the live CommandListenerService
  * socket, verifying that the full pipeline — service receive loop →
  * CommandDispatcher → Device.applyCommand() → Device.swipe() — produces
  * the correct swipe chain across throttle window boundaries.
@@ -45,7 +45,7 @@ import static org.junit.Assert.*;
 @Config(sdk = 34)
 public class ZwiftRideRobolectricTest {
 
-    private ServiceController<UDPListenerService> controller;
+    private ServiceController<CommandListenerService> controller;
     private final List<String> commands = new ArrayList<>();
 
     @Before
@@ -93,7 +93,7 @@ public class ZwiftRideRobolectricTest {
 
     /** Starts the service and waits for its socket to open. */
     private void startService() throws InterruptedException {
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
         Thread.sleep(200);  // allow background thread to bind its DatagramSocket
     }

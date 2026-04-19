@@ -12,9 +12,9 @@ public class AlarmReceiver extends BroadcastReceiver
     @Override
     public void onReceive(Context context, Intent intent)
     {
-        Intent inServer = new Intent(context, UDPListenerService.class);
+        Intent inServer = new Intent(context, CommandListenerService.class);
         context.startService(inServer);
-        Intent in = new Intent(context, QZService.class);
+        Intent in = new Intent(context, MetricReaderBroadcastingService.class);
         context.startService(in);
         setAlarm(context);
     }

@@ -25,7 +25,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import static org.junit.Assert.*;
 
 /**
- * End-to-end Robolectric tests for UDPListenerService.
+ * End-to-end Robolectric tests for CommandListenerService.
  *
  * These tests exercise the full pipeline:
  *   real UDP datagram → service receive loop → CommandDispatcher → Device.execute()
@@ -37,7 +37,7 @@ import static org.junit.Assert.*;
 @Config(sdk = 34)
 public class UDPListenerServiceTest {
 
-    private ServiceController<UDPListenerService> controller;
+    private ServiceController<CommandListenerService> controller;
     private String lastCommand;
 
     @Before
@@ -57,20 +57,20 @@ public class UDPListenerServiceTest {
 
     @Test
     public void serviceCreates_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         assertNotNull(controller.create().get());
     }
 
     @Test
     public void serviceStarts_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(UDPListenerService.class);
-        UDPListenerService svc = controller.create().startCommand(0, 1).get();
+        controller = Robolectric.buildService(CommandListenerService.class);
+        CommandListenerService svc = controller.create().startCommand(0, 1).get();
         assertNotNull(svc);
     }
 
     @Test
     public void serviceDestroysCleanly() {
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1).destroy();
         // No exception = pass
     }
@@ -87,7 +87,7 @@ public class UDPListenerServiceTest {
         x11i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = x11i;
 
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
 
         sendUdp("8.0;3.0");
@@ -105,7 +105,7 @@ public class UDPListenerServiceTest {
         s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = s15i;
 
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
 
         sendUdp("10.0");
@@ -120,7 +120,7 @@ public class UDPListenerServiceTest {
         Device.instance = null;
         CountDownLatch latch = new CountDownLatch(1);
 
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
 
         sendUdp("8.0;3.0");
@@ -140,7 +140,7 @@ public class UDPListenerServiceTest {
         x11i2.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = x11i2;
 
-        controller = Robolectric.buildService(UDPListenerService.class);
+        controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
 
         sendUdp("-1;-100");

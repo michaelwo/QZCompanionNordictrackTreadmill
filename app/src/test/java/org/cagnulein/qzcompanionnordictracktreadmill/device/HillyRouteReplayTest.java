@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

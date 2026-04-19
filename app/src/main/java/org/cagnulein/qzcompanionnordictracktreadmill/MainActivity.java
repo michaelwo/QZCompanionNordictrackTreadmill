@@ -49,7 +49,7 @@ import static android.content.ContentValues.TAG;
 import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.catalog.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 
 import com.cgutman.androidremotedebugger.AdbUtils;
 import com.cgutman.androidremotedebugger.console.ConsoleBuffer;
@@ -369,9 +369,9 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
         AlarmReceiver alarm = new AlarmReceiver();
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
-        Intent inServer = new Intent(getApplicationContext(), UDPListenerService.class);
+        Intent inServer = new Intent(getApplicationContext(), CommandListenerService.class);
         getApplicationContext().startService(inServer);
-        Intent in = new Intent(getApplicationContext(), QZService.class);
+        Intent in = new Intent(getApplicationContext(), MetricReaderBroadcastingService.class);
         getApplicationContext().startService(in);
 
 

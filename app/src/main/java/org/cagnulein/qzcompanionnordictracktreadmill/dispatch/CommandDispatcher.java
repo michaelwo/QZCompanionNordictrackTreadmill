@@ -11,7 +11,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
  * the clock, and routes.
  *
  * Extracted as a plain Java class so it can be tested without Android dependencies.
- * UDPListenerService creates one instance at startup and calls dispatch() per message.
+ * CommandListenerService creates one instance at startup and calls dispatch() per message.
  */
 public class CommandDispatcher {
 
