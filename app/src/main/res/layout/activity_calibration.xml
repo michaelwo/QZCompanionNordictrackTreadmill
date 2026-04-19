@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Device Calibration"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <!-- ── Setup ─────────────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/setupSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sweeps the incline slider through a range of Y positions and records where each one lands using screen OCR. Derives the swipe formula and spring-back compensation automatically."
+                android:layout_marginBottom="16dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Slider X coordinate" />
+                <EditText
+                    android:id="@+id/inputX"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:text="75"
+                    android:inputType="number"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Neutral Y (grade = 0%)" />
+                <EditText
+                    android:id="@+id/inputNeutralY"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:text="622"
+                    android:inputType="number"
+                    android:gravity="end" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="X=75, Y=622 are correct for most S22i variants. Take a screencap to find the correct values for an unknown device."
+                android:textSize="12sp"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btnStart"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Start Calibration" />
+        </LinearLayout>
+
+        <!-- ── Sweep in progress ─────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/sweepSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/ocrReading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="OCR: waiting..."
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Data points:"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/dataPoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btnCancelSweep"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cancel" />
+        </LinearLayout>
+
+        <!-- ── Results ───────────────────────────────────────────────────── -->
+        <LinearLayout
+            android:id="@+id/resultsSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/resultFormula"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/resultR2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/resultHyst"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Data points:"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/resultPoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:layout_marginBottom="16dp" />
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Save as Custom Device" />
+
+            <Button
+                android:id="@+id/btnRetry"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Retry" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Cancel" />
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>

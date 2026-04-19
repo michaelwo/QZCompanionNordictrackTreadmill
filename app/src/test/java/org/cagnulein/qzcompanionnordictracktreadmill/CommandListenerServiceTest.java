@@ -35,7 +35,7 @@ import static org.junit.Assert.*;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
-public class UDPListenerServiceTest {
+public class CommandListenerServiceTest {
 
     private ServiceController<CommandListenerService> controller;
     private String lastCommand;

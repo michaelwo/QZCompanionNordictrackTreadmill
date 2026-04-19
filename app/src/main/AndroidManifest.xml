@@ -26,6 +26,8 @@
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
         <service android:name=".MetricReaderBroadcastingService"/>
         <service android:name=".CommandListenerService"/>
+        <service android:name=".OcrCalibrationService"/>
+        <activity android:name=".CalibrationActivity" android:exported="false"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
             android:enabled="true"

@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.*;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.*;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
@@ -12,7 +13,7 @@ import java.util.Map;
 /**
  * Central registry of all supported fitness devices.
  * Owns the DeviceId enum and the map from id to Device instance.
- * Neither UDPListenerService nor MainActivity need to know about
+ * Neither CommandListenerService nor MainActivity need to know about
  * concrete device classes — they refer only to DeviceId values.
  */
 public class DeviceRegistry {
@@ -63,6 +64,7 @@ public class DeviceRegistry {
         c1750_NTL14122_2_MPH,
         proform_pro_2000,
         se9i_elliptical,
+        custom_calibrated,
     }
 
     private static final Map<DeviceId, Device> DEVICES;
@@ -113,6 +115,7 @@ public class DeviceRegistry {
         m.put(DeviceId.c1750_NTL14122_2_MPH,        new C1750Ntl14122Device());
         m.put(DeviceId.proform_pro_2000,             new Elite1000Device("ProForm Pro 2000 Treadmill"));
         m.put(DeviceId.se9i_elliptical,              new Se9iEllipticalDevice());
+        m.put(DeviceId.custom_calibrated,            new CalibratedBikeDevice());
         DEVICES = Collections.unmodifiableMap(m);
     }
 

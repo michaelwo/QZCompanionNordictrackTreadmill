@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
-public class QZServiceTest {
+public class MetricReaderBroadcastingServiceTest {
 
     private ServiceController<MetricReaderBroadcastingService> controller;
 

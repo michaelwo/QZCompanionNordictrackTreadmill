@@ -10,11 +10,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
-import android.graphics.Rect;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrBlock;
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.Ocr;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
@@ -27,7 +24,7 @@ import java.net.InetAddress;
 import java.util.function.Consumer;
 
 public class MetricReaderBroadcastingService extends Service {
-    private static final String LOG_TAG = "QZ:Service";
+    private static final String LOG_TAG = "QZ:MetricReaderService";
     IBinder binder;
     boolean allowRebind;
     static int clientPort = 8002;
@@ -44,6 +41,7 @@ public class MetricReaderBroadcastingService extends Service {
     boolean ifit_v2 = false;
 
     private final ShellRuntime shellRuntime = new ShellRuntime();
+
 
     /** Tracks the last value sent for each metric — only changed values are broadcast. */
     private final MetricSnapshot broadcastedSoFar = new MetricSnapshot();
@@ -70,13 +68,8 @@ public class MetricReaderBroadcastingService extends Service {
         runnable = new Runnable() {
             @Override
             public void run() {
-                writeLog( "Service run");
-                if(sharedPreferences.getBoolean("OCR", false)) {
-                    pollOCR();
-                    handler.postDelayed(runnable, POLL_INTERVAL_MS);
-                }
-                else
-                    pollLogFile();
+                writeLog("Service run");
+                pollLogFile();
             }
         };
 
@@ -86,99 +79,6 @@ public class MetricReaderBroadcastingService extends Service {
         }
     }
 
-
-    private final WattRectFallback wattFallback = new WattRectFallback();
-
-    private void pollOCR() {
-        String textExtended = ScreenCaptureService.getLastTextExtended();
-        if (textExtended == null || textExtended.isEmpty()) return;
-
-        OcrBlock[] blocks = Ocr.blocks(textExtended);
-        MetricSnapshot ocr = Ocr.extractMetrics(blocks);
-
-        if (ocr.speedKmh      != null) writeLog("OCRlines speed found!");
-        if (ocr.inclinePct    != null) writeLog("OCRlines incline found!");
-        if (ocr.resistanceLvl != null) writeLog("OCRlines resistance found!");
-        if (ocr.cadenceRpm    != null) writeLog("OCRlines cadence found!");
-        if (ocr.watts         != null) writeLog("OCRlines watts found!");
-
-        if (Device.instance != null) Device.instance.updateSnapshot(ocr);
-
-        wattFallback.update(blocks, ocr.watts);
-        if (ocr.watts == null) {
-            Float recovered = wattFallback.tryRecover(blocks);
-            if (recovered != null) {
-                writeLog("OCRlines watts found with cache!");
-                if (Device.instance != null)
-                    Device.instance.updateSnapshot(new MetricSnapshot.Builder().watts(recovered).build());
-            }
-        }
-
-        broadcastLastKnown();
-    }
-
-    /**
-     * Remembers where on screen the watt value appeared so it can be recovered
-     * in frames where OCR misses it.  Keeps the Android Rect dependency out of
-     * Ocr, which must stay pure-Java for unit testing.
-     */
-    private class WattRectFallback {
-        private Rect cache = null;
-
-        /**
-         * If {@code watts} was just parsed, records the screen rect of the value
-         * block that preceded the "watt" label for use as a fallback region later.
-         */
-        void update(OcrBlock[] blocks, Float watts) {
-            if (watts == null) return;
-            for (int i = 1; i < blocks.length; i++) {
-                if (blocks[i].text.toLowerCase().contains("watt")) {
-                    Rect r = rectFromString(blocks[i - 1].rectString);
-                    if (r != null) { cache = r; return; }
-                }
-            }
-        }
-
-        /**
-         * Tries to recover a watt value when Ocr found none.
-         * Expands the cached rect by 50% horizontally and returns the first
-         * numeric value above MIN_WATTS found in an intersecting block.
-         */
-        Float tryRecover(OcrBlock[] blocks) {
-            if (cache == null) return null;
-            int expandedWidth = (int) (cache.width() * 1.5);
-            int expandedLeft  = cache.left - (expandedWidth - cache.width()) / 2;
-            Rect expanded = new Rect(expandedLeft, cache.top, expandedLeft + expandedWidth, cache.bottom);
-            for (OcrBlock block : blocks) {
-                Rect r = rectFromString(block.rectString);
-                if (r != null && Rect.intersects(expanded, r)) {
-                    try {
-                        String[] numbers = block.text.trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
-                        int w = Integer.parseInt(numbers[numbers.length - 1]);
-                        if (w > Ocr.MIN_WATTS) return (float) w;
-                    } catch (Exception ignored) {}
-                }
-            }
-            return null;
-        }
-
-        private Rect rectFromString(String str) {
-            if (str == null) return null;
-            String s = str.replace("Rect(", "").replace(")", "");
-            String[] halves = s.split("-");
-            if (halves.length != 2) return null;
-            String[] lt = halves[0].split(",");
-            String[] rb = halves[1].split(",");
-            if (lt.length != 2 || rb.length != 2) return null;
-            try {
-                return new Rect(
-                    Integer.parseInt(lt[0].trim()), Integer.parseInt(lt[1].trim()),
-                    Integer.parseInt(rb[0].trim()), Integer.parseInt(rb[1].trim()));
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-    }
 
     private void pollLogFile() {
         String file = pickLatestFileFromDownloads();

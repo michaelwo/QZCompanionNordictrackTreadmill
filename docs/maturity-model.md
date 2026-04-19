@@ -109,7 +109,7 @@ Can a new contributor understand and extend the app without reading every file?
 
 ---
 
-## Current Scores (as of 2026-04-18)
+## Current Scores (as of 2026-04-19)
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
@@ -119,10 +119,10 @@ Can a new contributor understand and extend the app without reading every file?
 | Formula Auditability | 1 | S22i incline and resistance calibrated on real device (3-point and 2-point fits, 2026-04-18); 39+ other devices have no derivation notes |
 | Build Reproducibility | 2 | CI signs and publishes on every master push; unpinned/deprecated action refs; publish-on-push vs publish-on-tag |
 | Failure Resilience | 2 | ADB auto-reconnect in place; uncaught exceptions = hard kill not graceful degradation; 4 devices swallow IOException silently |
-| Calibration Capability | 1 | S22i incline and resistance calibrated on real device via screenshot (2026-04-18); OCR path unconfirmed; no ADB sweep script run |
-| Documentation | 2 | architecture.md updated to reflect reader refactor; device-reference.md, calibration-runbook.md written; hand-maintained, not verified |
+| Calibration Capability | 2 | In-app CalibrationActivity: swipe sweep + OCR feedback + FormulaFitter least-squares fit → CalibratedBikeDevice; calibrate-device.sh for shell-based sweep; commanded vs. observed captured automatically |
+| Documentation | 2 | architecture.md updated to reflect service renames; device-reference.md, calibration-runbook.md written; hand-maintained, not verified |
 
-**Overall: 16 / 24**
+**Overall: 17 / 24**
 
 ### Code Quality Gate (not a scored dimension)
 
@@ -143,5 +143,5 @@ in the preview.
 | Formula Auditability | ✓ S22i calibrated; document two-point derivation for C1750 and X32i |
 | Build Reproducibility | Add release signing via GitHub Actions on version tag |
 | Failure Resilience | Audit all catch blocks; ensure no swallowed exceptions in the dispatch path |
-| Calibration Capability | Confirm OCR incline on real device; run sweep script |
+| Calibration Capability | Run calibration on a second device; feed CalibrationResult into a regression test that verifies formula tolerance ≤ 0.5% |
 | Documentation | Verify runbook commands actually execute correctly end-to-end |

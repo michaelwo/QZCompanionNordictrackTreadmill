@@ -16,7 +16,7 @@ QZ App (phone/tablet)
         │       or  "inclinePct;?"        (2-part bike)
         │       or  "resistanceLvl"       (1-part bike)
         ▼
-UDPListenerService.listenAndWaitAndThrowIntent()
+CommandListenerService.listenAndWaitAndThrowIntent()
         │
         │  splits on ";"
         ▼
@@ -53,8 +53,8 @@ CommandExecutor  [set by MainActivity]
 
 ## Key Classes
 
-### `UDPListenerService`
-Android `Service` that loops on a `DatagramSocket` (port 8002), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Handles locale-aware decimal separators (`,` vs `.`).
+### `CommandListenerService`
+Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Handles locale-aware decimal separators (`,` vs `.`).
 
 ### `CommandDispatcher`
 Stateless parser/router. Splits the raw UDP string on `;`, calls `device.decodeCommand()` to get a `Command`, then `device.applyCommand(cmd, now)`. Has an injectable `Clock` interface so tests can drive time without sleeping.
@@ -81,7 +81,7 @@ Represents one physical slider on the iFit touch screen. Subclasses supply:
 - `hysteresisPixels()` — (optional) pixels of directional overshoot to compensate for physical stiction; the swipe goes `hysteresisPixels()` past `targetY`, while `thumbY` still tracks the logical target so de-dup is unaffected. Default: 0.
 
 ### `DeviceRegistry`
-Singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `UDPListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
+Singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `CommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
 ---
 
@@ -97,9 +97,9 @@ Three mechanisms prevent redundant or too-frequent swipes:
 
 ---
 
-## Metric Feedback (QZService → Device)
+## Metric Feedback (MetricReaderBroadcastingService → Device)
 
-`QZService` runs a background poll loop that reads current device state (speed, incline, cadence, watts, etc.) and calls `Device.instance.updateSnapshot(m)`. The updated snapshot is used by:
+`MetricReaderBroadcastingService` runs a background poll loop that reads current device state (speed, incline, cadence, watts, etc.) and calls `Device.instance.updateSnapshot(m)`. The updated snapshot is used by:
 - `currentThumbY()` overrides in `Slider` subclasses — devices that re-derive the slider's starting position from live observed metrics rather than tracking it as internal state
 - The speed gate in `TreadmillDevice` — no speed swipe is sent while `lastSnapshot.speed <= 0`
 
@@ -120,7 +120,7 @@ MetricReader
 ```
 
 Each device returns its reader from `defaultMetricReader()`. iFit v2 adaptation is handled
-orthogonally: `QZService` calls `reader.forIfitV2()` when the newer iFit log path is detected
+orthogonally: `MetricReaderBroadcastingService` calls `reader.forIfitV2()` when the newer iFit log path is detected
 (`/sdcard/android/data/com.ifit.glassos_service/...`). Readers that are format-agnostic
 (CatFile, DirectLogcat, BikeMetric) return `this`; `TailGrepMetricReader` returns a
 `TailGrepIfitV2MetricReader` instance, which overrides two template methods:

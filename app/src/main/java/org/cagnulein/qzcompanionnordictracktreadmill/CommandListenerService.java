@@ -25,7 +25,7 @@ import android.widget.TextView;
  * #socat - UDP-DATAGRAM:192.168.1.255:8002,broadcast,sp=8002
  */
 public class CommandListenerService extends Service {
-    private static final String LOG_TAG = "QZ:UDP";
+    private static final String LOG_TAG = "QZ:CommandListenerService";
 
     static String UDP_BROADCAST = "UDPBroadcast";
 

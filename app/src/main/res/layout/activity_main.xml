@@ -52,23 +52,23 @@
                     android:id="@+id/debuglog"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Debug Log" />
-
-                <CheckBox
-                    android:id="@+id/checkOCR"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="OCR" />
+                    android:text="Verbose Logging" />
 
                 <CheckBox
                     android:id="@+id/checkADBLog"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Use ADB Log" />
+                    android:text="Live Logcat (ADB)" />
             </LinearLayout>
         </LinearLayout>
+
+        <Button
+            android:id="@+id/btnCalibrate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Calibrate New Device" />
 
         <TextView
             android:layout_width="wrap_content"

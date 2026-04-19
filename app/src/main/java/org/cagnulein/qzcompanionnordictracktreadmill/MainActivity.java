@@ -48,6 +48,7 @@ import static android.content.ContentValues.TAG;
 
 import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 
@@ -234,11 +235,22 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         startActivityForResult(intent, REQUEST_CODE);
     }
 
+    private static final int CALIBRATION_REQUEST_CODE = 200;
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_CODE) {
             resultReceiver.handleActivityResult(requestCode, resultCode, data);
+        } else if (requestCode == CALIBRATION_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
+            String deviceId = data.getStringExtra("deviceId");
+            if (deviceId != null) {
+                try {
+                    DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(deviceId);
+                    selectDevice(DeviceRegistry.forId(id));
+                    deviceAdapter.setSelectedId(id);
+                } catch (IllegalArgumentException ignored) {}
+            }
         }
     }
 
@@ -251,13 +263,13 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
 
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
+        CalibrationResult.current = CalibrationResult.load(sharedPreferences);
         initLogFile();
 
         TextView versionLabel = findViewById(R.id.versionLabel);
         versionLabel.setText("v" + BuildConfig.VERSION_NAME + "  (build " + BuildConfig.VERSION_CODE + ")");
 
         CheckBox debugLog = findViewById(R.id.debuglog);
-        CheckBox OCR = findViewById(R.id.checkOCR);
         CheckBox ADBLog = findViewById(R.id.checkADBLog);
 
         debugLog.setOnClickListener(new View.OnClickListener() {
@@ -265,25 +277,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             public void onClick(View view) {
                 SharedPreferences.Editor myEdit = sharedPreferences.edit();
                 myEdit.putBoolean("debugLog", debugLog.isChecked());
-                myEdit.commit();
-
-                new AlertDialog.Builder(view.getContext())
-                        .setTitle("Settings Saved")
-                        .setMessage("Please restart the device to apply the new settings")
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                        .show();
-            }
-        });
-
-        OCR.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SharedPreferences.Editor myEdit = sharedPreferences.edit();
-                myEdit.putBoolean("OCR", OCR.isChecked());
                 myEdit.commit();
 
                 new AlertDialog.Builder(view.getContext())
@@ -334,8 +327,12 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         });
         deviceList.setAdapter(deviceAdapter);
 
+        findViewById(R.id.btnCalibrate).setOnClickListener(v ->
+                startActivityForResult(
+                        new Intent(this, CalibrationActivity.class),
+                        CALIBRATION_REQUEST_CODE));
+
         debugLog.setChecked(sharedPreferences.getBoolean("debugLog", false));
-        OCR.setChecked(sharedPreferences.getBoolean("OCR", false));
         ADBLog.setChecked(sharedPreferences.getBoolean("ADBLog", false));
 
         String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
@@ -373,6 +370,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         getApplicationContext().startService(inServer);
         Intent in = new Intent(getApplicationContext(), MetricReaderBroadcastingService.class);
         getApplicationContext().startService(in);
+        Intent inCalibration = new Intent(getApplicationContext(), OcrCalibrationService.class);
+        getApplicationContext().startService(inCalibration);
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
@@ -417,13 +416,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             }
         }
 
-        if(sharedPreferences.getBoolean("OCR", false))
-            startOCR();
-        else {
-            if (savedInstanceState == null) {
-                moveTaskToBack(true);
-            }
-        }
+        startOCR();
     }
 
     private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {
