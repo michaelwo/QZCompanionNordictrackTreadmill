@@ -5,13 +5,14 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class S22iDevice extends BikeDevice {
     public S22iDevice() {         super(
-            new Slider(622) {
+            new Slider(619) {
                 public int trackX() { return 75; }
-                // Three-point calibration: v=-10→Y=722, v=0→Y=622, v=20→Y=326.
-                // Slope differs across zero: −10 px/% for negative incline, −14.8 px/% for positive.
+                // Calibration 2026-04-19: 13-point ascending swipe sweep (Y=400→700 from neutral=622).
+                // Positive fit (7 clean pts, grades 4–12%): Y = 619 − 18.57 × grade  (R² ≈ 0.999).
+                // Negative slope kept from prior 3-pt cal (only 2 data pts): −10 px/%.
                 public int targetY(double v) {
-                    return v <= 0.0 ? (int) (622.0 - 10.0 * v)
-                                    : (int) (622.0 - 14.8 * v);
+                    return v <= 0.0 ? (int) (619.0 - 10.0 * v)
+                                    : (int) (619.0 - 18.57 * v);
                 }
                 public float quantize(float v) {
                     // iFit slider snaps to 0.5% increments.

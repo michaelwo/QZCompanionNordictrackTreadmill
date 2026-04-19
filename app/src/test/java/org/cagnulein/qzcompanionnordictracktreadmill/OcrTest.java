@@ -123,6 +123,21 @@ public class OcrTest {
     }
 
     @Test
+    public void parse_gradeLabel_extractsInclineValue() {
+        // S22i and other bikes display "GRADE" rather than "INCLINE" on screen
+        MetricSnapshot r = Ocr.extractMetrics(ocr("4.5", "grade"));
+        assertNotNull(r.inclinePct);
+        assertEquals(4.5f, r.inclinePct, 0.01f);
+    }
+
+    @Test
+    public void parse_gradeLabel_negative_extractsInclineValue() {
+        MetricSnapshot r = Ocr.extractMetrics(ocr("-2.0", "grade"));
+        assertNotNull(r.inclinePct);
+        assertEquals(-2.0f, r.inclinePct, 0.01f);
+    }
+
+    @Test
     public void parse_inclineWithCommaDecimal_normalizedAndExtracted() {
         // OCR on comma-locale devices may produce "5,5" — comma is replaced with dot
         MetricSnapshot r = Ocr.extractMetrics(ocr("5,5", "incline"));

@@ -60,7 +60,7 @@ public class Ocr {
                 } catch (Exception ignored) { }
             }
 
-            if (label.contains("incline")) {
+            if (label.contains("incline") || label.contains("grade")) {
                 b.inclinePct(parseFloatOrNull(valueLine.replace(',', '.')));
             }
 
