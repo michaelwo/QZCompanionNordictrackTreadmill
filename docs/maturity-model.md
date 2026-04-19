@@ -113,9 +113,9 @@ Can a new contributor understand and extend the app without reading every file?
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
-| Test Coverage | 3 | HillyRouteReplayTest, TreadmillDeviceTest (139 tests across 27 devices), BikeDeviceTest (56 tests across 14 devices), MetricReaderTest (22); all 45 registry devices have ≥1 test; T95s and X22iNoAdb limited to isinstance/displayName (override swipe() → MyAccessibilityService) |
-| Observability | 2 | Structured tags, monitor-ride.sh, analyze-ride.sh working; no rate-based de-dup/throttle thresholds |
-| Device Portability | 3 | DeviceRegistry pattern solid; all 45 devices have ≥1 test; device classes know nothing about iFit log format versions (orthogonal to reader layer via `MetricReader.forIfitV2()`) |
+| Test Coverage | 3 | HillyRouteReplayTest (full S22i route replay + de-dup verification), TreadmillDeviceTest (139 tests across 27 devices), BikeDeviceTest (60 tests across 14 devices), MetricReaderTest (22); all 46 registry devices have ≥1 test; T95s and X22iNoAdb limited to isinstance/displayName (override swipe() → MyAccessibilityService) |
+| Observability | 2 | Structured tags (QZ:Dispatch, QZ:CommandListenerService, QZ:OcrCalibration, QZ:Shell, QZ:ADB); analyze-ride.sh reports dispatch count, de-dup/throttle counts, ADB DOWN events, and warns on INJECT_EVENTS failures; no memory/CPU trend; no automated pass/fail rate thresholds |
+| Device Portability | 3 | DeviceRegistry pattern solid; all 46 devices have ≥1 test; device classes in device/bike/ and device/treadmill/ (one file per device, self-contained); reader layer orthogonal via `MetricReader.forIfitV2()` |
 | Formula Auditability | 1 | S22i incline and resistance calibrated on real device (3-point and 2-point fits, 2026-04-18); 39+ other devices have no derivation notes |
 | Build Reproducibility | 2 | CI signs and publishes on every master push; unpinned/deprecated action refs; publish-on-push vs publish-on-tag |
 | Failure Resilience | 2 | ADB auto-reconnect in place; uncaught exceptions = hard kill not graceful degradation; 4 devices swallow IOException silently |
@@ -138,9 +138,9 @@ in the preview.
 | Dimension | Next action to reach 3 |
 |-----------|----------------------|
 | Test Coverage | ✓ Done — all devices covered |
-| Observability | Add de-dup rate and throttle rate to analyze-ride.sh thresholds |
-| Device Portability | ✓ Orthogonal reader design complete; add checklist assertion that every DeviceId in registry has ≥1 test |
-| Formula Auditability | ✓ S22i calibrated; document two-point derivation for C1750 and X32i |
+| Observability | Add memory/CPU trend to monitor-ride.sh; add automated pass/fail thresholds to analyze-ride.sh |
+| Device Portability | ✓ Orthogonal reader design complete; all 46 DeviceId entries have ≥1 test |
+| Formula Auditability | Add two-point derivation comments to X32i and C1750 device files (methodology visible without real-device access); then expand to remaining devices |
 | Build Reproducibility | Add release signing via GitHub Actions on version tag |
 | Failure Resilience | Audit all catch blocks; ensure no swallowed exceptions in the dispatch path |
 | Calibration Capability | Run calibration on a second device; feed CalibrationResult into a regression test that verifies formula tolerance ≤ 0.5% |
