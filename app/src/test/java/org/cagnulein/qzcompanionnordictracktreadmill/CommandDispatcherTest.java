@@ -170,11 +170,11 @@ public class CommandDispatcherTest {
 
     @Test
     public void bike_incline_appliesInclineSwipe() {
-        // S22i v>0: targetInclineY(5.0)=(int)(622-14.8*5.0)=548; initialY=622
-        // Going up (toY<fromY): hysteresis overshoot = 548-15 = 533
+        // S22i v>0: targetInclineY(5.0)=(int)(619-18.57*5.0)=526; initialY=619
+        // Going up (toY<fromY): travel=93 ≥ 40 → h=15; dispatch=526-15=511
         CommandDispatcher d = dispatcher();
         d.dispatch("5.0;0", '.', dev(new S22iDevice()));
-        assertEquals("input swipe 75 622 75 533 200", lastCommand);
+        assertEquals("input swipe 75 619 75 511 200", lastCommand);
     }
 
     @Test

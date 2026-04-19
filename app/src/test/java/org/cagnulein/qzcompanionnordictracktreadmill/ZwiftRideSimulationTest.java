@@ -23,12 +23,12 @@ import java.util.List;
  * All assertions verify both the swipe command format and the y1→y2 chain
  * (confirming that state tracking is correct across calls).
  *
- * S22i formula: x=75, piecewise — v≤0: (int)(622-10*v); v>0: (int)(622-14.8*v)
- * Calibrated 2026-04-18 from three measured points: v=-10→Y=722, v=0→Y=622, v=20→Y=326.
- *   grade 0%  → y2=622   (initial y1=622)
- *   grade 5%  → y2=548
- *   grade 8%  → y2=503
- *   grade 10% → y2=474
+ * S22i formula: x=75, piecewise — v≤0: (int)(619-10*v); v>0: (int)(619-18.57*v)
+ * Calibrated 2026-04-19 from 13-point swipe sweep (positive fit R²≈0.999).
+ *   grade 0%  → y2=619   (initial y1=619)
+ *   grade 5%  → y2=526
+ *   grade 8%  → y2=470
+ *   grade 10% → y2=433
  *
  * Incoming grades are quantized to the nearest 0.5% before comparison and dispatch.
  * This ensures swipes only target valid iFit snap positions (0.0, 0.5, 1.0, ...) so
@@ -68,10 +68,10 @@ public class ZwiftRideSimulationTest {
         return "input swipe 75 " + y1 + " 75 " + y2 + " 200";
     }
 
-    /** S22i target y for a given grade percentage. Piecewise calibrated 2026-04-18. */
+    /** S22i target y for a given grade percentage. Piecewise calibrated 2026-04-19. */
     private static int targetY(float grade) {
-        return grade <= 0.0f ? (int) (622.0 - 10.0 * grade)
-                             : (int) (622.0 - 14.8 * grade);
+        return grade <= 0.0f ? (int) (619.0 - 10.0 * grade)
+                             : (int) (619.0 - 18.57 * grade);
     }
 
     /**
@@ -104,7 +104,7 @@ public class ZwiftRideSimulationTest {
         assertEquals("expected 5 swipes for 5 grade changes", 5, commands.size());
 
         // y1 of each swipe = logical thumbY from previous interval (not the dispatched overshoot Y)
-        int logicalY = 622;
+        int logicalY = 619;
         for (int i = 0; i < grades.length; i++) {
             int toY = targetY(grades[i]);
             assertEquals("swipe " + i + " (grade " + grades[i] + "%)",
@@ -132,7 +132,7 @@ public class ZwiftRideSimulationTest {
 
         // First message fires immediately
         assertEquals(1, commands.size());
-        assertEquals(swipe(622, dispatchY(622, targetY(5f))), commands.get(0));
+        assertEquals(swipe(619, dispatchY(619, targetY(5f))), commands.get(0));
 
         // Advance past throttle window and send another message
         send(d, bike, 10f, 600);  // t=1900, window open — fires (10f != 5f)
@@ -152,7 +152,7 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 7f, 600);  // de-dup: same as last, skipped
 
         assertEquals(1, commands.size());
-        assertEquals(swipe(622, dispatchY(622, targetY(7f))), commands.get(0));
+        assertEquals(swipe(619, dispatchY(619, targetY(7f))), commands.get(0));
     }
 
     // ── test 4: sentinel flood — no swipes ────────────────────────────────────
@@ -218,7 +218,7 @@ public class ZwiftRideSimulationTest {
 
         assertEquals(profile.length, commands.size());
 
-        int logicalY = 622;
+        int logicalY = 619;
         for (int i = 0; i < profile.length; i++) {
             int toY = targetY(profile[i]);
             assertEquals("step " + i + " (grade " + profile[i] + "%)",
@@ -228,7 +228,7 @@ public class ZwiftRideSimulationTest {
 
         // After the descent, we should be near flat (y = 622, the calibrated zero point)
         int finalY = targetY(0f);
-        assertEquals("final position should be flat", 622, finalY);
+        assertEquals("final position should be flat", 619, finalY);
         assertEquals(swipe(targetY(2f), dispatchY(targetY(2f), finalY)), commands.get(commands.size() - 1));
     }
 
@@ -249,7 +249,7 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 6.5f, 600);  // quantized 6.5 → fires
 
         assertEquals("only snap-grid changes should fire; 6.7→7.0 quantizes to same as last", 2, commands.size());
-        assertEquals(swipe(622,           dispatchY(622,           targetY(7.0f))), commands.get(0));
+        assertEquals(swipe(619,           dispatchY(619,           targetY(7.0f))), commands.get(0));
         assertEquals(swipe(targetY(7.0f), dispatchY(targetY(7.0f), targetY(6.5f))), commands.get(1));
     }
 
@@ -299,7 +299,7 @@ public class ZwiftRideSimulationTest {
         assertEquals("descent in 0.1% steps should fire at every 0.5% boundary",
                 expectedGrades.length, commands.size());
 
-        int logicalY = 622;
+        int logicalY = 619;
         for (int i = 0; i < expectedGrades.length; i++) {
             int toY = targetY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
@@ -330,7 +330,7 @@ public class ZwiftRideSimulationTest {
         assertEquals("ascent in 0.1% steps should fire at every 0.5% boundary",
                 expectedGrades.length, commands.size());
 
-        int logicalY = 622;
+        int logicalY = 619;
         for (int i = 0; i < expectedGrades.length; i++) {
             int toY = targetY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
