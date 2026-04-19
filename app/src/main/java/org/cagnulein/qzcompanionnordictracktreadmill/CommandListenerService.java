@@ -41,7 +41,7 @@ public class CommandListenerService extends Service {
         if (sharedPreferences.getBoolean("debugLog", false)) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
-            QZService.sendBroadcast(command);
+            MetricReaderBroadcastingService.sendBroadcast(command);
         }
     }
 
