@@ -82,8 +82,8 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atTwenty_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(20.0);
-        // v>0 branch: toY=(int)(622-14.8*20)=326 < 459 → h=10; dispatch=326-10=316
-        assertEquals("input swipe 75 622 75 316 200", lastCommand);
+        // v>0 branch: toY=(int)(622-14.8*20)=326; travel=296 ≥ 40 → h=15; dispatch=326-15=311
+        assertEquals("input swipe 75 622 75 311 200", lastCommand);
     }
 
     @Test

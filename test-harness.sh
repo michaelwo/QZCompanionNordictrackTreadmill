@@ -32,12 +32,15 @@ expected_y() {
 }
 
 # Returns the actual dispatch Y (target ± hysteresis)
+# Travel ≥ 40px → 15px overshoot; shorter travel → 10px (spring-back is smaller)
 dispatch_y() {
     local from_y=$1
     local to_y=$2
     if [ "$to_y" -eq "$from_y" ]; then echo "$to_y"; return; fi
-    local h=15
-    [ "$to_y" -lt 459 ] && h=10
+    local travel=$((to_y - from_y))
+    [ "$travel" -lt 0 ] && travel=$((-travel))
+    local h=10
+    [ "$travel" -ge 40 ] && h=15
     if [ "$to_y" -lt "$from_y" ]; then echo $((to_y - h))
     else echo $((to_y + h)); fi
 }

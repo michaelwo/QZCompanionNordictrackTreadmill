@@ -22,12 +22,12 @@ public class S22iDevice extends BikeDevice {
                     return s.inclinePct != null ? targetY(s.inclinePct) : thumbY();
                 }
                 // Physical hysteresis: slider undershoots ~0.5-1% in both directions.
-                // 15px (~1%) is correct for grades 0–11%; beyond that (targetY < 459) the
-                // slider is near its upper limit and spring-back is empirically ~8px, so 10px
-                // overshoots just enough without overcorrecting.
+                // Spring-back is ~15px for swipes ≥ 40px travel (mid-range grades),
+                // ~8px for shorter swipes (near physical limits or small grade steps).
+                // 10px overshoot for short travel lands within 2px of target after spring-back.
                 @Override
                 protected int hysteresisPixels(int fromY, int toY) {
-                    return toY < 459 ? 10 : 15;
+                    return Math.abs(toY - fromY) >= 40 ? 15 : 10;
                 }
             },
             new Slider(724) {

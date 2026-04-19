@@ -37,8 +37,8 @@ The sentinel values `-1` and `-100` are discarded (no-op).
 Both sliders read live observed values from the iFit log (`Changed Grade to:`, `Changed Resistance to:`) and use them as the starting position for each swipe, self-correcting for drift.
 
 **Hysteresis correction (incline only):** Physical slider stiction causes ~0.5–1% undershoot in both directions. The swipe overshoots `targetY` in the direction of travel; `thumbY` still tracks the logical target so de-dup and state-tracking are unaffected. The `currentThumbY` override reads back the actual iFit-reported grade before the next swipe, correcting residual error one interval later.
-- **≤ 11% grade (targetY ≥ 459):** 15 px overshoot — empirically correct for mid-range stiction.
-- **> 11% grade (targetY < 459):** 10 px — slider is near its upper limit; spring-back is ~8 px so 15 px would overcorrect by 0.5%.
+- **Swipe travel ≥ 40 px:** 15 px overshoot — spring-back is ~15 px for longer swipes.
+- **Swipe travel < 40 px:** 10 px — spring-back is ~8 px for short swipes; 15 px would overcorrect by ~0.5%.
 
 ---
 

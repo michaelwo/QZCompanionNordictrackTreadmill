@@ -75,13 +75,13 @@ public class ZwiftRideSimulationTest {
     }
 
     /**
-     * Y coordinate actually dispatched, after applying S22i incline hysteresis (15px).
-     * thumbY tracks the logical {@code toY}; the swipe overshoots by 15px in the direction
-     * of travel so the physical slider reaches the target despite stiction.
+     * Y coordinate actually dispatched, after applying S22i incline hysteresis.
+     * Travel ≥ 40px → 15px overshoot (spring-back ~15px); shorter travel → 10px.
      */
     private static int dispatchY(int fromY, int toY) {
         if (toY == fromY) return toY;
-        return toY < fromY ? toY - 15 : toY + 15;
+        int h = Math.abs(toY - fromY) >= 40 ? 15 : 10;
+        return toY < fromY ? toY - h : toY + h;
     }
 
     // ── test 1: full Zwift ride — correct swipe chain ─────────────────────────
