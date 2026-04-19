@@ -11,7 +11,7 @@ QZCompanion receives workout targets from the QZ fitness app over UDP and transl
 ```
 QZ App (phone/tablet)
         │
-        │  UDP broadcast, port 8002
+        │  UDP datagram, port 8003
         │  format: "speedKmh;inclinePct"  (treadmill)
         │       or  "inclinePct;?"        (2-part bike)
         │       or  "resistanceLvl"       (1-part bike)
@@ -140,7 +140,7 @@ This abstraction keeps readers free of Android dependencies and allows them to b
 
 ### `MetricSnapshot`
 
-Holds all observable metrics as nullable `Float` fields. `null` means "not observed this cycle" — `QZService` re-broadcasts the last known value rather than emitting zero. The `speed()`, `incline()`, `resistance()`, and `gear()` accessors return `0f` when the field is null, which is safe for arithmetic but should not be confused with a confirmed zero reading.
+Holds all observable metrics as nullable `Float` fields. `null` means "not observed this cycle" — `MetricReaderBroadcastingService` re-broadcasts the last known value rather than emitting zero. The `speed()`, `incline()`, `resistance()`, and `gear()` accessors return `0f` when the field is null, which is safe for arithmetic but should not be confused with a confirmed zero reading.
 
 | Field | Unit | Source keyword |
 |-------|------|----------------|
@@ -202,6 +202,8 @@ The ADB connection is managed by `ShellService` (from the `android-remote-debugg
 
 ---
 
-## OCR Pipeline (optional)
+## OCR Pipeline (calibration only)
 
-When the OCR checkbox is enabled, `ScreenCaptureService` captures the screen and passes frames to `Ocr.extractMetrics()`. Recognised labels (`"speed"`, `"incline"`, `"cadence"`, `"resistance"`, `"watt"`, `"strokes per min"`, `"500 split"`) are parsed into a `MetricSnapshot` and fed into `QZService`'s delta-broadcast loop, identical to the log-reader path. The OCR path supplements the log reader; it does not replace it.
+`OcrCalibrationService` runs continuously in the background after the user grants screen-capture permission on first launch. It captures frames via `ScreenCaptureService`, passes them to `Ocr.extractMetrics()`, and logs each recognised metric (`QZ:OcrCalibration` tag). Recognised labels: `"speed"`, `"incline"`, `"cadence"`, `"resistance"`, `"watt"`, `"strokes per min"`, `"500 split"`.
+
+OCR output is **not** broadcast to the QZ app — it is used exclusively by `CalibrationActivity`, which reads `OcrCalibrationService.latestReading` during a swipe sweep to build a commanded-Y → observed-incline table. `MetricReaderBroadcastingService` (the production metric path) reads from the iFit log file only; it has no OCR dependency.

@@ -72,7 +72,7 @@ Inherits all slider geometry from `S22iDevice`. Swipe injected via `MyAccessibil
 
 ### S15i Bike (`s15i`)
 **Command mode:** ADB  
-**Metric reader:** `TailGrepMetricReader` (default)
+**Metric reader:** `BikeMetricReader` (inherited from `BikeDevice`)
 
 | Slider | trackX | Initial thumbY | Formula | currentThumbY |
 |--------|--------|---------------|---------|---------------|
@@ -83,7 +83,7 @@ Inherits all slider geometry from `S22iDevice`. Swipe injected via `MyAccessibil
 
 ### S27i Bike (`s27i`)
 **Command mode:** ADB  
-**Metric reader:** `TailGrepMetricReader` (default)
+**Metric reader:** `BikeMetricReader` (inherited from `BikeDevice`)
 
 Range assumptions: incline −10%..+20% mapped to Y 803..248; resistance levels 1..24 mapped to Y 803..248.
 
