@@ -62,6 +62,7 @@ public class CommandListenerService extends Service {
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 socket.receive(pkt);
                 String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
+                Log.i(LOG_TAG, "rx: " + msg);
                 dispatcher.dispatch(msg, decimalSeparator, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
