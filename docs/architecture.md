@@ -102,6 +102,7 @@ Three mechanisms prevent redundant or too-frequent swipes:
 `MetricReaderBroadcastingService` runs a background poll loop that reads current device state (speed, incline, cadence, watts, etc.) and calls `Device.instance.updateSnapshot(m)`. The updated snapshot is used by:
 - `currentThumbY()` overrides in `Slider` subclasses — devices that re-derive the slider's starting position from live observed metrics rather than tracking it as internal state
 - The speed gate in `TreadmillDevice` — no speed swipe is sent while `lastSnapshot.speed <= 0`
+- `QZ:Snapshot` log emission — `updateSnapshot()` logs `incline %.1f%%` whenever `inclinePct` changes, closing the observability loop: UDP rx → dispatch → swipe → iFit feedback
 
 ### MetricReader Interface
 

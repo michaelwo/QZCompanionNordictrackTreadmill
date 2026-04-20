@@ -26,7 +26,11 @@ public abstract class Device {
     /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
     public void updateSnapshot(MetricSnapshot m) {
         if (m.speedKmh      != null) lastSnapshot.speedKmh      = m.speedKmh;
-        if (m.inclinePct    != null) lastSnapshot.inclinePct    = m.inclinePct;
+        if (m.inclinePct    != null) {
+            if (!m.inclinePct.equals(lastSnapshot.inclinePct))
+                logger.log("QZ:Snapshot", String.format("incline %.1f%%", m.inclinePct));
+            lastSnapshot.inclinePct = m.inclinePct;
+        }
         if (m.resistanceLvl != null) lastSnapshot.resistanceLvl = m.resistanceLvl;
         if (m.cadenceRpm    != null) lastSnapshot.cadenceRpm    = m.cadenceRpm;
         if (m.watts         != null) lastSnapshot.watts         = m.watts;
