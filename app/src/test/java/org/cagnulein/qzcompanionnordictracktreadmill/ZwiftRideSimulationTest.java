@@ -249,7 +249,7 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 6.5f, 600);  // quantized 6.5 → fires
 
         assertEquals("only snap-grid changes should fire; 6.7→7.0 quantizes to same as last", 2, commands.size());
-        assertEquals(swipe(619,           dispatchY(619,           targetY(7.0f))), commands.get(0));
+        assertEquals(swipe(622,           dispatchY(622,           targetY(7.0f))), commands.get(0));
         assertEquals(swipe(targetY(7.0f), dispatchY(targetY(7.0f), targetY(6.5f))), commands.get(1));
     }
 
@@ -299,7 +299,7 @@ public class ZwiftRideSimulationTest {
         assertEquals("descent in 0.1% steps should fire at every 0.5% boundary",
                 expectedGrades.length, commands.size());
 
-        int logicalY = 619;
+        int logicalY = 622;
         for (int i = 0; i < expectedGrades.length; i++) {
             int toY = targetY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
@@ -330,7 +330,7 @@ public class ZwiftRideSimulationTest {
         assertEquals("ascent in 0.1% steps should fire at every 0.5% boundary",
                 expectedGrades.length, commands.size());
 
-        int logicalY = 619;
+        int logicalY = 622;
         for (int i = 0; i < expectedGrades.length; i++) {
             int toY = targetY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
