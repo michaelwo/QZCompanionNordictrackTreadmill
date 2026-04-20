@@ -27,12 +27,12 @@ The sentinel values `-1` and `-100` are discarded (no-op).
 
 | Slider | trackX | Initial thumbY | Formula | Quantize | currentThumbY | Hysteresis |
 |--------|--------|---------------|---------|----------|---------------|------------|
-| Incline | 75 | 619 | `v≤0: (int)(619 - 10*v)` / `v>0: (int)(619 - 18.57*v)` | 0.5% steps | `snapshot.inclinePct` when non-null | 15 px |
+| Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 18.57*v)` | 0.5% steps | `snapshot.inclinePct` when non-null | 15 px |
 | Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | `snapshot.resistanceLvl` when ≥1 | — |
 
 **Calibration (2026-04-19, screen 1920×1080):**
-- Incline (positive): 13-point ascending swipe sweep via `calibrate-device.sh --sweep-swipe` (Y=400→700 from neutral=622). 7 clean positive-grade points (4–12%), least-squares fit: Y = 619 − 18.57 × grade (R² ≈ 0.999). Updates slope from 14.8→18.57 px/%, intercept from 622→619.
-- Incline (negative): prior 3-point calibration slope (−10 px/%) retained — only 2 data points available from the 2026-04-19 sweep (insufficient for reliable refit). Intercept updated to 619 for consistency.
+- Incline (positive): 13-point ascending swipe sweep via `calibrate-device.sh --sweep-swipe` (Y=400→700 from neutral=622). 7 clean positive-grade points (4–12%), least-squares fit: Y = 622 − 18.57 × grade (R² ≈ 0.999). Updates slope from 14.8→18.57 px/%. Intercept fixed at 622 (iFit log confirmed device self-reports 0% at Y≈622; initial 619 estimate was 3 px low).
+- Incline (negative): prior 3-point calibration slope (−10 px/%) retained — only 2 data points available from the 2026-04-19 sweep (insufficient for reliable refit). Intercept 622 consistent with iFit neutral reading.
 - Resistance: two points measured — level=1→Y=724, level=24→Y=323. Slope = −401/23 ≈ −17.43 px/level. Resistance=0 readings from the log are noise and ignored in `currentThumbY`.
 
 Both sliders read live observed values from the iFit log (`Changed Grade to:`, `Changed Resistance to:`) and use them as the starting position for each swipe, self-correcting for drift.

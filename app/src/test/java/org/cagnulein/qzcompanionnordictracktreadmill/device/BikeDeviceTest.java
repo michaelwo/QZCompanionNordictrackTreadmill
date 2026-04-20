@@ -51,47 +51,47 @@ public class BikeDeviceTest {
     }
 
     // ── S22iDevice ────────────────────────────────────────────────────────────
-    // Calibration 2026-04-19: positive fit Y = 619 − 18.57 × grade; negative: −10 px/%.
-    // Piecewise: v<=0 → (int)(619 - 10*v); v>0 → (int)(619 - 18.57*v). initialY=619.
+    // Calibration 2026-04-19: positive slope 18.57 px/%, intercept 622 (matches iFit neutral).
+    // Piecewise: v<=0 → (int)(622 - 10*v); v>0 → (int)(622 - 18.57*v). initialY=622.
 
     @Test
     public void s22i_applyIncline_atZero_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(0.0);
-        // y2 = (int)(619 - 10*0) = 619; y1 = 619 (initial) — no travel, swipeY = toY
-        assertEquals("input swipe 75 619 75 619 200", lastCommand);
+        // y2 = (int)(622 - 10*0) = 622; y1 = 622 (initial) — no travel, swipeY = toY
+        assertEquals("input swipe 75 622 75 622 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atNegativeTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-10.0);
-        // v<=0 branch: toY=(int)(619-10*(-10))=719; going down → travel=100 ≥ 40 → h=15; dispatch=719+15=734
-        assertEquals("input swipe 75 619 75 734 200", lastCommand);
+        // v<=0 branch: toY=(int)(622-10*(-10))=722; going down → travel=100 ≥ 40 → h=15; dispatch=722+15=737
+        assertEquals("input swipe 75 622 75 737 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0);
-        // v>0 branch: toY=(int)(619-18.57*10)=433; going up → travel=186 ≥ 40 → h=15; dispatch=433-15=418
-        assertEquals("input swipe 75 619 75 418 200", lastCommand);
+        // v>0 branch: toY=(int)(622-18.57*10)=436; going up → travel=186 ≥ 40 → h=15; dispatch=436-15=421
+        assertEquals("input swipe 75 622 75 421 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTwenty_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(20.0);
-        // v>0 branch: toY=(int)(619-18.57*20)=247; travel=372 ≥ 40 → h=15; dispatch=247-15=232
-        assertEquals("input swipe 75 619 75 232 200", lastCommand);
+        // v>0 branch: toY=(int)(622-18.57*20)=250; travel=372 ≥ 40 → h=15; dispatch=250-15=235
+        assertEquals("input swipe 75 622 75 235 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = dev(new S22iDevice());
-        dev.applyIncline(10.0); // toY=433 (up → travel=186 ≥ 40 → h=15 → dispatch=418); thumbY=433
-        dev.applyIncline(5.0);  // toY=526 (down from 433 → travel=93 ≥ 40 → h=15 → dispatch=541); thumbY=526
-        assertEquals("input swipe 75 433 75 541 200", lastCommand);
+        dev.applyIncline(10.0); // toY=436 (up → travel=186 ≥ 40 → h=15 → dispatch=421); thumbY=436
+        dev.applyIncline(5.0);  // toY=529 (down from 436 → travel=93 ≥ 40 → h=15 → dispatch=544); thumbY=529
+        assertEquals("input swipe 75 436 75 544 200", lastCommand);
     }
 
     @Test
@@ -115,8 +115,8 @@ public class BikeDeviceTest {
         // ShellRuntime overrides execute().  We test the formula via the parent S22iDevice.
         S22iDevice base = dev(new S22iDevice());
         base.applyIncline(0.0);
-        // y2 = (int)(619 - 10*0) = 619; y1 = 619 (initial) — same formula as S22iDevice
-        assertEquals("input swipe 75 619 75 619 200", lastCommand);
+        // y2 = (int)(622 - 10*0) = 622; y1 = 622 (initial) — same formula as S22iDevice
+        assertEquals("input swipe 75 622 75 622 200", lastCommand);
     }
 
     @Test
