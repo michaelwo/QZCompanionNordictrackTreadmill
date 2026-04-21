@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.ocr;
+package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 

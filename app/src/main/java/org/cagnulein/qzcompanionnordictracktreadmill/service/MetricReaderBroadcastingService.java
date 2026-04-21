@@ -1,4 +1,7 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.service;
+
+import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
+import org.cagnulein.qzcompanionnordictracktreadmill.ShellRuntime;
 
 import android.app.Service;
 import android.content.Context;

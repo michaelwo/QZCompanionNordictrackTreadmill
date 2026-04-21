@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.service;
 
 import android.app.Service;
 import android.content.Intent;
@@ -7,8 +7,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.Ocr;
-import org.cagnulein.qzcompanionnordictracktreadmill.ocr.OcrBlock;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.Ocr;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.OcrBlock;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 /**

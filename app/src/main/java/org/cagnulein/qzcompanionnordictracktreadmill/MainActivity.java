@@ -55,6 +55,9 @@ import static android.content.ContentValues.TAG;
 
 import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderBroadcastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;

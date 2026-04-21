@@ -24,9 +24,9 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
-        <service android:name=".MetricReaderBroadcastingService"/>
-        <service android:name=".CommandListenerService"/>
-        <service android:name=".OcrCalibrationService"/>
+        <service android:name=".service.MetricReaderBroadcastingService"/>
+        <service android:name=".service.CommandListenerService"/>
+        <service android:name=".service.OcrCalibrationService"/>
         <activity android:name=".CalibrationActivity" android:exported="false"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
@@ -35,7 +35,7 @@
         </service>
 
         <service
-            android:name=".MyAccessibilityService"
+            android:name=".service.MyAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
@@ -64,7 +64,7 @@
             </intent-filter>
         </activity>
             <service
-        android:name=".ScreenCaptureService"
+        android:name=".service.ScreenCaptureService"
         android:foregroundServiceType="mediaProjection" />
         <meta-data
         android:name="com.google.mlkit.vision.DEPENDENCIES"

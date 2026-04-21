@@ -7,6 +7,8 @@ import android.provider.Settings;
 import android.app.AppOpsManager;
 import android.annotation.TargetApi;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.service.ScreenCaptureService;
+
 import com.rvalerio.fgchecker.AppChecker;
 
 public class MediaProjection  {

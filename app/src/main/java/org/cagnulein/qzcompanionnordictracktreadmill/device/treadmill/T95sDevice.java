@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.MyAccessibilityService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class T95sDevice extends TreadmillDevice {

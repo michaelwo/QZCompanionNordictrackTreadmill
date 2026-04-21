@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.MyAccessibilityService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 
 /**
  * S22i Bike variant that injects swipe gestures via AccessibilityService

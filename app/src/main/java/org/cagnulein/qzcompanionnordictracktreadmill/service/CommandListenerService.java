@@ -1,5 +1,7 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.service;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
+import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 

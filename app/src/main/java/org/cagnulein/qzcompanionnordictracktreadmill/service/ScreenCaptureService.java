@@ -1,4 +1,6 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.service;
+
+import org.cagnulein.qzcompanionnordictracktreadmill.NotificationUtils;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

@@ -7,6 +7,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderBroadcastingService;
+
 public class AlarmReceiver extends BroadcastReceiver
 {
     @Override

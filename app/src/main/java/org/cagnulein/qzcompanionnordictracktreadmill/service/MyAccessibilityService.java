@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.service;
 
 // MyAccessibilityService.java
 import android.accessibilityservice.AccessibilityService;

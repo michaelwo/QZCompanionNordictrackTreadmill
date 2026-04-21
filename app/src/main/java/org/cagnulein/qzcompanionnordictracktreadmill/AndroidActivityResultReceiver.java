@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.util.Log;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.service.OcrCalibrationService;
 
 public class AndroidActivityResultReceiver {
 

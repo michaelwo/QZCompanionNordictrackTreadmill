@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.service.OcrCalibrationService;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.FormulaFitter;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
