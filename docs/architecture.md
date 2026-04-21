@@ -44,9 +44,15 @@ QZCompanion has no direct connection to Zwift. It speaks only to the QZ app over
 
 ---
 
-## End-to-End Pipeline
+## End-to-End Pipeline: Inbound Commands (Zwift → hardware)
+
+Zwift grade and resistance targets travel through the QZ app and arrive here as UDP datagrams. QZCompanion translates them into swipe gestures on the iFit touchscreen.
 
 ```
+Zwift (PC/console)
+        │
+        │  FTMS control point (BLE)
+        ▼
 QZ App (phone/tablet)
         │
         │  UDP datagram, port 8003
@@ -86,6 +92,49 @@ CommandExecutor  [set by MainActivity]
         └── AccessibilityService path (NoADB variants, T95s):
               MyAccessibilityService.performSwipe()
 ```
+
+---
+
+## End-to-End Pipeline: Outbound Metrics (hardware → Zwift)
+
+The iFit firmware writes speed, incline, cadence, and other metrics to a log file on the device. QZCompanion polls that file continuously, extracts changed values, and broadcasts them back to the QZ app, which forwards them to Zwift so the rider's avatar stays in sync with the real hardware.
+
+```
+iFit firmware
+        │
+        │  writes to log file every ~1 s
+        │  e.g. /sdcard/android/data/com.ifit.glassos_service/
+        │            files/.valinorlogs/log.latest.txt
+        ▼
+MetricReaderBroadcastingService   [polls every 250 ms]
+        │
+        │  MetricReader.read(file, shell)
+        │    → grep/tail/cat for metric keywords
+        │    → returns MetricSnapshot{speedKmh, inclinePct,
+        │               cadenceRpm, watts, resistanceLvl, heartRate}
+        │
+        │  Device.instance.updateSnapshot(snapshot)
+        │    → updates lastSnapshot (used by speed gate + currentThumbY)
+        │    → emits QZ:Snapshot log line when incline changes
+        │
+        │  delta check: only changed fields are broadcast
+        ▼
+UDP datagram, port 8002
+        │  "Changed KPH <value>"
+        │  "Changed Grade <value>"
+        │  "Changed RPM <value>"
+        │  "Changed Watts <value>"   etc.
+        ▼
+QZ App (phone/tablet)
+        │
+        │  FTMS measurement characteristic (BLE notify)
+        ▼
+Zwift (PC/console)
+```
+
+The 250 ms poll interval is intentionally faster than the firmware's ~1 Hz write rate so that every firmware update is caught within a quarter second. Only fields that changed since the last broadcast are sent — unchanged metrics produce no UDP traffic.
+
+Reader implementations vary by device; see [MetricReader Interface](#metricreader-interface) below.
 
 ---
 
