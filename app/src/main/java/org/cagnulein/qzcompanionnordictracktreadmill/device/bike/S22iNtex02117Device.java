@@ -10,7 +10,9 @@ public class S22iNtex02117Device extends S22iDevice {
 
     public S22iNtex02117Device() {
         commandExecutor = cmd -> {
-            try { shellRuntime.exec(cmd); } catch (java.io.IOException ignored) {}
+            try { shellRuntime.exec(cmd); } catch (java.io.IOException e) {
+                android.util.Log.e("QZ:Dispatch", "exec failed: " + e.getMessage());
+            }
         };
     }
 

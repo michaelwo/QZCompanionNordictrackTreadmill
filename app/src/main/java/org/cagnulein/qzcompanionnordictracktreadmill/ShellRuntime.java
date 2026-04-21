@@ -49,7 +49,9 @@ public class ShellRuntime implements Shell {
             try (InputStream err = proc.getErrorStream()) {
                 byte[] buf = new byte[4096];
                 while (err.read(buf) != -1) {}
-            } catch (IOException ignored) {}
+            } catch (IOException e) {
+                Log.w(LOG_TAG, "stderr drain failed: " + e.getMessage());
+            }
             try {
                 int exit = proc.waitFor();
                 if (exit != 0) {

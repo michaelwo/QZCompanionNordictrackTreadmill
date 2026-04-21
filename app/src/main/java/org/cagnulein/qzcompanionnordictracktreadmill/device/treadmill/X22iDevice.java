@@ -21,7 +21,9 @@ public class X22iDevice extends TreadmillDevice {
             }
         );
         commandExecutor = cmd -> {
-            try { shellRuntime.exec(cmd); } catch (java.io.IOException ignored) {}
+            try { shellRuntime.exec(cmd); } catch (java.io.IOException e) {
+                android.util.Log.e("QZ:Dispatch", "exec failed: " + e.getMessage());
+            }
         };
     }
 
