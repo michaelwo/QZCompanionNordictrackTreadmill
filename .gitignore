@@ -17,3 +17,10 @@ local.properties
 .idea/deploymentTargetDropDown.xml
 /.idea
 /.vscode
+*.jks
+*.p12
+*.keystore
+Thursday.rtf
+download-build.sh~
+QZCompanionNordictrackTreadmill/
+.claude/settings.local.json

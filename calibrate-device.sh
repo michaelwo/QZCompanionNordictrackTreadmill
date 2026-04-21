@@ -195,6 +195,26 @@ run_swipe_sweep() {
     echo "    Note: sweep both ascending and descending to reveal hysteresis asymmetry."
     echo ""
 
+    # ── preflight: verify OcrCalibrationService is producing readings ─────────
+    echo "Preflight: checking OcrCalibrationService is active…"
+    clear_logcat
+    sleep 3
+    local preflight_logcat
+    preflight_logcat=$(capture_logcat)
+    if ! echo "$preflight_logcat" | grep -q "incline="; then
+        echo ""
+        echo "ERROR: No OCR incline readings in the last 3 seconds."
+        echo "  1. Open QZCompanion on the fitness device"
+        echo "  2. Tap 'Calibrate New Device' and grant screen-capture permission"
+        echo "  3. Ensure iFit is running an active ride with the incline value visible"
+        echo "  4. Back out to the main screen and re-run this script"
+        echo ""
+        echo "Verify with: adb logcat -d | grep 'QZ:OcrCalibration'"
+        exit 1
+    fi
+    echo "  OCR active — $(echo "$preflight_logcat" | grep -c "incline=") incline reading(s) seen."
+    echo ""
+
     clear_logcat
 
     local step=0

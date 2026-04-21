@@ -109,20 +109,20 @@ Can a new contributor understand and extend the app without reading every file?
 
 ---
 
-## Current Scores (as of 2026-04-19)
+## Current Scores (as of 2026-04-21)
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
 | Test Coverage | 3 | HillyRouteReplayTest (full S22i route replay + de-dup verification), TreadmillDeviceTest (139 tests across 27 devices), BikeDeviceTest (60 tests across 14 devices), MetricReaderTest (22); all 46 registry devices have ≥1 test; T95s and X22iNoAdb limited to isinstance/displayName (override swipe() → MyAccessibilityService) |
-| Observability | 2 | Structured tags (QZ:Dispatch, QZ:CommandListenerService, QZ:OcrCalibration, QZ:Shell, QZ:ADB); analyze-ride.sh reports dispatch count, de-dup/throttle counts, ADB DOWN events, and warns on INJECT_EVENTS failures; no memory/CPU trend; no automated pass/fail rate thresholds |
+| Observability | 3 | Structured tags (QZ:Dispatch, QZ:Shell, QZ:ADB, QZ:Snapshot); analyze-ride.sh reports dispatch count, de-dup/throttle, ADB DOWN, INJECT_EVENTS failures, heap/CPU/thread/FD stats with min/max/avg, monotonic heap-trend flag, 5 auto-warning thresholds; monitor-ride.sh captures per-interval metrics + continuous logcat |
 | Device Portability | 3 | DeviceRegistry pattern solid; all 46 devices have ≥1 test; device classes in device/bike/ and device/treadmill/ (one file per device, self-contained); reader layer orthogonal via `MetricReader.forIfitV2()` |
-| Formula Auditability | 1 | S22i incline and resistance calibrated on real device (3-point and 2-point fits, 2026-04-18); 39+ other devices have no derivation notes |
-| Build Reproducibility | 2 | CI signs and publishes on every master push; unpinned/deprecated action refs; publish-on-push vs publish-on-tag |
-| Failure Resilience | 2 | ADB auto-reconnect in place; uncaught exceptions = hard kill not graceful degradation; 4 devices swallow IOException silently |
-| Calibration Capability | 2 | In-app CalibrationActivity: swipe sweep + OCR feedback + FormulaFitter least-squares fit → CalibratedBikeDevice; calibrate-device.sh for shell-based sweep; commanded vs. observed captured automatically |
-| Documentation | 2 | architecture.md updated to reflect service renames; device-reference.md, calibration-runbook.md written; hand-maintained, not verified |
+| Formula Auditability | 1 | S22i incline and resistance calibrated on real device (least-squares fit, 2026-04-19); 37+ other devices have no derivation notes |
+| Build Reproducibility | 2 | CI signs and publishes on every master push; unpinned action refs (checkout@v2, sign-android-release@v1, etc.) = mutable external dependencies |
+| Failure Resilience | 2 | ADB auto-reconnects with 3 s delay on all 3 failure events; throttle window prevents command storms; dispatch path silent swallows fixed (all commandExecutors log Log.e on IOException); uncaught exceptions = hard kill not graceful degradation |
+| Calibration Capability | 2 | In-app CalibrationActivity: swipe sweep + OCR feedback + FormulaFitter least-squares fit → CalibratedBikeDevice; calibrate-device.sh for shell-based sweep; CalibrationResult not yet fed into a regression test |
+| Documentation | 2 | architecture.md, device-reference.md, calibration-runbook.md written and current; hand-maintained in docs/ (not adjacent to code); formula reference not verified against source; runbook commands not tested end-to-end |
 
-**Overall: 17 / 24**
+**Overall: 18 / 24**
 
 ### Code Quality Gate (not a scored dimension)
 
@@ -138,10 +138,10 @@ in the preview.
 | Dimension | Next action to reach 3 |
 |-----------|----------------------|
 | Test Coverage | ✓ Done — all devices covered |
-| Observability | Add memory/CPU trend to monitor-ride.sh; add automated pass/fail thresholds to analyze-ride.sh |
+| Observability | ✓ Done — memory/CPU/thread/FD trends captured; anomaly thresholds automated |
 | Device Portability | ✓ Orthogonal reader design complete; all 46 DeviceId entries have ≥1 test |
 | Formula Auditability | Add two-point derivation comments to X32i and C1750 device files (methodology visible without real-device access); then expand to remaining devices |
 | Build Reproducibility | Add release signing via GitHub Actions on version tag |
-| Failure Resilience | Audit all catch blocks; ensure no swallowed exceptions in the dispatch path |
+| Failure Resilience | Add per-feature graceful degradation so uncaught exceptions don't hard-kill the app |
 | Calibration Capability | Run calibration on a second device; feed CalibrationResult into a regression test that verifies formula tolerance ≤ 0.5% |
 | Documentation | Verify runbook commands actually execute correctly end-to-end |
