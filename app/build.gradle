@@ -5,6 +5,17 @@ plugins {
 def versionProps = new Properties()
 file("../version.properties").withInputStream { versionProps.load(it) }
 
+def gitHash = { ->
+    try {
+        def out = new ByteArrayOutputStream()
+        exec { commandLine 'git', 'rev-parse', '--short', 'HEAD'; standardOutput = out; ignoreExitValue = true }
+        def hash = out.toString().trim()
+        return hash.isEmpty() ? 'unknown' : hash
+    } catch (ignored) {
+        return 'unknown'
+    }
+}
+
 android {
     namespace 'org.cagnulein.qzcompanionnordictracktreadmill'
     compileSdk 34
@@ -15,6 +26,9 @@ android {
         targetSdk 34
         versionCode (project.hasProperty('versionCode') ? project.versionCode.toInteger() : 1)
         versionName versionProps['versionName']
+
+        buildConfigField "boolean", "IS_CI_BUILD", "${project.hasProperty('versionCode')}"
+        buildConfigField "String",  "GIT_HASH",    "\"${gitHash()}\""
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
