@@ -1,5 +1,21 @@
 # Architecture & Data Flow
 
+## Package Layout
+
+```
+org.cagnulein.qzcompanionnordictracktreadmill
+├── service/          CommandListenerService, MetricReaderBroadcastingService,
+│                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
+│   ├── bike/         One class per bike device
+│   └── treadmill/    One class per treadmill device
+├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult
+├── dispatch/         CommandDispatcher, Command
+└── reader/           MetricReader hierarchy, MetricSnapshot, ShellRuntime
+```
+
+---
+
 ## Overview
 
 QZCompanion receives workout targets from the QZ fitness app over UDP and translates them into simulated touch-screen swipe gestures that physically move the sliders on NordicTrack/ProForm iFit devices. It is entirely open-loop: commands are sent and forgotten — there is no confirmation that the device reached the requested position.

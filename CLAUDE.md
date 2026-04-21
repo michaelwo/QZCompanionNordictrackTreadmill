@@ -4,88 +4,88 @@
 Android app for controlling NordicTrack and ProForm fitness devices via ADB/shell commands.
 
 ### Main Files
-- `app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/UDPListenerService.java` - Core UDP listener and device management
-- `app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/MainActivity.java` - Main UI and device selection handling
-- `app/src/main/res/layout/activity_main.xml` - UI layout with radio buttons for device selection
-- `app/build.gradle` - Android build configuration
-- `app/src/main/AndroidManifest.xml` - Android manifest
-- `.github/workflows/main.yml` - GitHub Actions CI/CD
+- `app/src/main/java/.../service/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
+- `app/src/main/java/.../service/MetricReaderBroadcastingService.java` — polls iFit log file and broadcasts metric changes over UDP (port 8002)
+- `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for NoADB devices via the Android Accessibility API
+- `app/src/main/java/.../service/OcrCalibrationService.java` — calibration-only OCR polling loop
+- `app/src/main/java/.../service/ScreenCaptureService.java` — captures screen frames for OCR during calibration
+- `app/src/main/java/.../MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
+- `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
+- `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
+- `app/src/main/java/.../calibration/` — `Ocr.java`, `OcrBlock.java`, `FormulaFitter.java`, `CalibrationResult.java`
+- `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI (no radio buttons)
+- `app/build.gradle` — Android build configuration
+- `app/src/main/AndroidManifest.xml` — Android manifest
+- `.github/workflows/main.yml` — GitHub Actions CI/CD
 
-## S22i Device Implementation
+### Package Layout
 
-### S22i Standard Pattern
-S22i devices are bike devices that control resistance/inclination via simulated touch coordinates.
+```
+org.cagnulein.qzcompanionnordictracktreadmill
+├── service/          CommandListenerService, MetricReaderBroadcastingService,
+│                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
+│   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
+│   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
+├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult
+├── dispatch/         CommandDispatcher, Command
+└── reader/           MetricReader hierarchy, MetricSnapshot, ShellRuntime
+```
 
-#### 1. Device Enum (UDPListenerService.java:45-86)
+---
+
+## New Device Implementation Pattern
+
+All devices are self-contained classes. There is no enum switch or coordinate lookup table.
+
+### 1. Create the device class
+
+Bike device (`device/bike/MyNewDevice.java`):
 ```java
-public enum _device {
-    s22i,                    // Standard S22i
-    s22i_NTEX02121_5,       // Existing variant
-    s22i_NTEX02117_2,       // New device added
+package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+
+public class MyNewDevice extends BikeDevice {
+    public MyNewDevice() {
+        super(
+            new Slider(/* maxValue */) {
+                public int trackX()          { return /* px */; }
+                public int targetY(double v) { return /* base */ - (int)(/* scale */ * v); }
+            }
+        );
+    }
+    @Override public String displayName() { return "My New Device"; }
+    @Override public boolean requiresAdb() { return true; }  // or false for shell/accessibility
 }
 ```
 
-#### 2. Coordinate Configuration (UDPListenerService.java:139-155)
-```java
-case s22i:
-    lastReqResistance = 0;
-    y1Resistance = 618;     // Base Y coordinate
-    break;
-case s22i_NTEX02117_2:
-    lastReqResistance = 0;
-    y1Resistance = 618;     // Same coordinates as standard s22i
-    break;
-```
+Treadmill device: extend `TreadmillDevice` and pass two `Slider` instances (speed + incline).
 
-#### 3. Resistance Control Calculation (UDPListenerService.java:303-314)
+### 2. AccessibilityService devices (NoADB variants)
+
+Override `swipe()` to call `MyAccessibilityService.performSwipe()` and add:
 ```java
-} else if (device == _device.s22i) {
-    x1 = 75;
-    y2 = (int) (616.18 - (17.223 * reqResistance));
-} else if (device == _device.s22i_NTEX02117_2) {
-    x1 = 75;
-    y2 = (int) (616.18 - (17.223 * reqResistance)); // Identical formula
+@Override public boolean requiresAdb()          { return false; }
+@Override public boolean requiresAccessibility() { return true; }
+@Override protected void swipe(int x, int y1, int y2) {
+    MyAccessibilityService.performSwipe(x, y1, x, y2, 200);
 }
 ```
+Import: `org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService`
 
-#### 4. UI Selection (activity_main.xml:196-200)
-```xml
-<RadioButton
-    android:id="@+id/s22i_NTEX02117_2"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:text="S22i Bike (NTEX02117.2)" />
-```
+### 3. Register the device
 
-#### 5. Selection Handling (MainActivity.java:320-321)
+Add a `DeviceId` value to `DeviceRegistry.DeviceId`, then add an entry in `DeviceRegistry.DEVICES`:
 ```java
-} else if(i == R.id.s22i_NTEX02117_2) {
-    UDPListenerService.setDevice(UDPListenerService._device.s22i_NTEX02117_2);
+.put(DeviceId.my_new_device, new MyNewDevice())
 ```
 
-#### 6. Bike Device Conditions (UDPListenerService.java:277, 358)
-Add `|| device == _device.s22i_NTEX02117_2` to existing conditions.
+### 4. Add to the UI
 
-### Key Difference: Command Execution
+Add the `DeviceId` to the appropriate list in `DeviceAdapter` (`BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`).
 
-#### MainActivity.sendCommand() (Default for S22i)
-- Uses ADB connection (`connection.queueCommand()`)
-- Requires active ADB connection
-- Pattern for most devices
-
-#### shellRuntime.exec() (For S22i_NTEX02117_2)
-- Direct shell execution via `Runtime.getRuntime()`
-- Does not require ADB connection
-- Pattern used by x22i and x14i
-
-```java
-String command = "input swipe " + x1 + " " + y1Resistance + " " + x1 + " " + y2 + " 200";
-if (device == _device.s22i_NTEX02117_2) {
-    shellRuntime.exec(command);
-} else {
-    MainActivity.sendCommand(command);
-}
-```
+---
 
 ## Version Management
 
@@ -96,6 +96,8 @@ if (device == _device.s22i_NTEX02117_2) {
    - `versionName` (semantic versioning): `3.6.29 → 3.6.30`
 
 `versionCode` is set automatically from the GitHub Actions run number — never edit it manually. `build.gradle` reads `versionName` from `version.properties`. `AndroidManifest.xml` no longer carries version fields — AGP injects them at build time. CI publishes the release as `3.6.30 (build 214)` automatically.
+
+Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a build number.
 
 ### Version Bump Process
 ```bash
@@ -109,68 +111,34 @@ if (device == _device.s22i_NTEX02117_2) {
 3.6.19 → 4.0.0
 ```
 
+---
+
 ## Device Naming Convention
-- Pattern: `{series}{model}_{variant}` (e.g. `s22i_NTEX02117_2`)
-- UI Text: `"{Series} Bike ({Model})"` (e.g. `"S22i Bike (NTEX02117.2)"`)
-- NO strings.xml usage, text hardcoded directly in layout
+- `DeviceId` enum value: `{series}{model}_{variant}` (e.g. `s22i_NTEX02117_2`)
+- `displayName()`: `"{Series} {Type} ({Model})"` (e.g. `"S22i Bike (NTEX02117.2)"`)
+- Class name: `{Series}{Model}Device.java` (e.g. `S22iNtex02117Device.java`)
+- No strings.xml — display names are hardcoded in `displayName()`
 
-## S22i Coordinates and Formulas
-### S22i Standard and NTEX02117_2
-- X: `75`
-- Base Y: `618`
-- Y Formula: `(int) (616.18 - (17.223 * reqResistance))`
+---
 
-### S22i NTEX02121_5 (Special Variant)
-- X: `75`
-- Base Y: `535`
-- Dynamic Y formula based on current inclination
+## OCR / Calibration
 
-## New Device Implementation Pattern
+OCR parsing lives in `calibration/Ocr.java`. It has no Android dependencies and is fully unit-tested.
 
-### 1. Standard Device (ADB)
-1. Add enum in `UDPListenerService._device`
-2. Configure coordinates in switch case
-3. Add control calculation
-4. Add radio button UI
-5. Add selection handling
-6. Add to bike/treadmill conditions
+### Recognised metric labels (case-insensitive)
+| Metric | Labels |
+|--------|--------|
+| Speed (km/h) | `"speed"` |
+| Speed from 500m split | `"500 split"`, `"/500m"` → `km/h = 1800 / seconds` |
+| Incline | `"incline"` |
+| Resistance | `"resistance"` |
+| Cadence | `"cadence"`, `"rpm"`, `"strokes per min"` |
+| Watts | `"watt"` |
 
-### 2. Shell Device (Non-ADB)
-Follow pattern above + modify command execution:
-```java
-if (device == _device.{new_device}) {
-    shellRuntime.exec(command);
-} else {
-    MainActivity.sendCommand(command);
-}
-```
+---
 
-## OCR Pattern Recognition
-
-### Supported OCR Patterns (QZService.java:getOCR())
-
-#### Speed Patterns
-1. **Standard Speed:** `"speed"` - Direct km/h value
-2. **500m Split Time:** `"500 split"` or `"/500m"` - Converts seconds to km/h
-   - Formula: `km/h = 1800 / seconds`
-   - Example: 41 seconds → 43.9 km/h
-
-#### Cadence Patterns
-1. **Standard:** `"cadence"` or `"rpm"`
-2. **Rowing:** `"strokes per min"` - Added for rowing machine support
-
-#### Other Patterns
-- **Incline:** `"incline"`
-- **Resistance:** `"resistance"`
-- **Watts:** `"watt"`
-
-### Code Style Guidelines
+## Code Style Guidelines
 - All comments must be in English
 - Use descriptive variable names
 - Follow existing indentation patterns
-
-## Latest Implementation
-**Feature:** OCR pattern support for rowing machines  
-**Version:** 3.6.20 (versionCode 172)  
-**Date:** 2025-08-07  
-**Changes:** Added "STROKES PER MIN" cadence pattern and "500 SPLIT (/500M)" speed conversion
+- No comments explaining what the code does — only why (non-obvious constraints, workarounds)
