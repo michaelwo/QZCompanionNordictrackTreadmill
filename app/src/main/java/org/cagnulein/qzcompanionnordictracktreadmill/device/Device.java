@@ -55,6 +55,9 @@ public abstract class Device {
     /** Returns true if this device sends commands via the ADB loopback connection. */
     public boolean requiresAdb() { return true; }
 
+    /** Returns true if this device sends commands via the Android AccessibilityService. */
+    public boolean requiresAccessibility() { return false; }
+
     /**
      * Interprets a raw UDP message (already split on ";") for this device type.
      * Returns a MetricSnapshot whose non-null fields represent the requested values.

@@ -28,6 +28,9 @@ public class T95sDevice extends TreadmillDevice {
 
 
 
+    @Override public boolean requiresAdb() { return false; }
+    @Override public boolean requiresAccessibility() { return true; }
+
     @Override
     protected void swipe(int x, int y1, int y2) {
         MyAccessibilityService.performSwipe(x, y1, x, y2, 200);

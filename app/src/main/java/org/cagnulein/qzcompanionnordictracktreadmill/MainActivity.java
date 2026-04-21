@@ -19,15 +19,22 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
-import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.TextView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import android.content.DialogInterface;
+
+import java.net.Inet4Address;
+import java.net.NetworkInterface;
+
+import android.content.pm.PackageManager;
+import android.graphics.Typeface;
+import android.util.TypedValue;
+import android.widget.LinearLayout;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -94,6 +101,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     public void notifyConnectionEstablished(DeviceConnection devConn) {
         ADBConnected = true;
         Log.i(LOG_TAG, "notifyConnectionEstablished" + lastCommand);
+        runOnUiThread(this::updateRequirementsCard);
     }
 
     @Override
@@ -101,6 +109,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         ADBConnected = false;
         Log.e(LOG_TAG, "notifyConnectionFailed: " + e.getMessage() + " — scheduling reconnect");
         scheduleReconnect();
+        runOnUiThread(this::updateRequirementsCard);
     }
 
     @Override
@@ -108,6 +117,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         ADBConnected = false;
         Log.e(LOG_TAG, "notifyStreamFailed: " + e.getMessage() + " — scheduling reconnect");
         scheduleReconnect();
+        runOnUiThread(this::updateRequirementsCard);
     }
 
     @Override
@@ -115,6 +125,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         ADBConnected = false;
         Log.e(LOG_TAG, "notifyStreamClosed — scheduling reconnect");
         scheduleReconnect();
+        runOnUiThread(this::updateRequirementsCard);
     }
 
     private void scheduleReconnect() {
@@ -266,49 +277,12 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         CalibrationResult.current = CalibrationResult.load(sharedPreferences);
         initLogFile();
 
-        TextView versionLabel = findViewById(R.id.versionLabel);
-        versionLabel.setText("v" + BuildConfig.VERSION_NAME + "  (build " + BuildConfig.VERSION_CODE + ")");
-
-        CheckBox debugLog = findViewById(R.id.debuglog);
-        CheckBox ADBLog = findViewById(R.id.checkADBLog);
-
-        debugLog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SharedPreferences.Editor myEdit = sharedPreferences.edit();
-                myEdit.putBoolean("debugLog", debugLog.isChecked());
-                myEdit.commit();
-
-                new AlertDialog.Builder(view.getContext())
-                        .setTitle("Settings Saved")
-                        .setMessage("Please restart the device to apply the new settings")
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                        .show();
-            }
-        });
-
-        ADBLog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                SharedPreferences.Editor myEdit = sharedPreferences.edit();
-                myEdit.putBoolean("ADBLog", ADBLog.isChecked());
-                myEdit.commit();
-
-                new AlertDialog.Builder(view.getContext())
-                        .setTitle("Settings Saved")
-                        .setMessage("Please restart the device to apply the new settings")
-                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                        .show();
-            }
-        });
+        if (getSupportActionBar() != null) {
+            String buildId = BuildConfig.IS_CI_BUILD
+                    ? "build " + BuildConfig.VERSION_CODE
+                    : "dev-" + BuildConfig.GIT_HASH;
+            getSupportActionBar().setSubtitle("v" + BuildConfig.VERSION_NAME + "  ·  " + buildId);
+        }
 
         RecyclerView deviceList = findViewById(R.id.deviceList);
         deviceList.setLayoutManager(new LinearLayoutManager(this));
@@ -332,9 +306,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
                         new Intent(this, CalibrationActivity.class),
                         CALIBRATION_REQUEST_CODE));
 
-        debugLog.setChecked(sharedPreferences.getBoolean("debugLog", false));
-        ADBLog.setChecked(sharedPreferences.getBoolean("ADBLog", false));
-
         String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
         try {
             DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(savedId);
@@ -342,26 +313,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             selectDevice(DeviceRegistry.forId(id));
         } catch (IllegalArgumentException ignored) {}
 
-        Button dumplog = findViewById(R.id.dumplog);
-        dumplog.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // test
-                DeviceRegistry.DeviceId selectedId = deviceAdapter.getSelectedId();
-                if (selectedId == DeviceRegistry.DeviceId.x22i_noadb || selectedId == DeviceRegistry.DeviceId.t95s)
-                    MyAccessibilityService.performSwipe(600, 600, 300, 400, 100);
-
-
-                TextView tv = (TextView)findViewById(R.id.dumplog_tv);
-                synchronized (appLogBuffer) {
-                    tv.setText(android.text.TextUtils.join("\n", appLogBuffer));
-                }
-
-                String command = "logcat -b all -d > /sdcard/logcat.log";
-                MainActivity.sendCommand(command);
-                Log.i(LOG_TAG, command);
-            }
-        });
+        updateStatusChip();
 
 
         AlarmReceiver alarm = new AlarmReceiver();
@@ -447,11 +399,172 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         return false;
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        menu.findItem(R.id.menu_verbose_logging).setChecked(
+                sharedPreferences.getBoolean("debugLog", false));
+        menu.findItem(R.id.menu_live_logcat).setChecked(
+                sharedPreferences.getBoolean("ADBLog", false));
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.menu_verbose_logging) {
+            boolean next = !item.isChecked();
+            item.setChecked(next);
+            sharedPreferences.edit().putBoolean("debugLog", next).apply();
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Settings Saved")
+                    .setMessage("Restart the app to apply logging changes.")
+                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                    .show();
+            return true;
+        } else if (id == R.id.menu_live_logcat) {
+            boolean next = !item.isChecked();
+            item.setChecked(next);
+            sharedPreferences.edit().putBoolean("ADBLog", next).apply();
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Settings Saved")
+                    .setMessage("Restart the app to apply logging changes.")
+                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                    .show();
+            return true;
+        } else if (id == R.id.menu_dump_log) {
+            String command = "logcat -b all -d > /sdcard/logcat.log";
+            MainActivity.sendCommand(command);
+            Log.i(LOG_TAG, command);
+            new androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("Log Dumped")
+                    .setMessage("Logcat saved to /sdcard/logcat.log")
+                    .setPositiveButton("OK", (d, w) -> d.dismiss())
+                    .show();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateStatusChip();
+        updateRequirementsCard();
+    }
+
+    private void updateRequirementsCard() {
+        LinearLayout list = findViewById(R.id.requirementsList);
+        if (list == null || Device.instance == null) return;
+        list.removeAllViews();
+
+        Device device = Device.instance;
+
+        if (device.requiresAccessibility()) {
+            boolean ok = isAccessibilityServiceEnabled(this, MyAccessibilityService.class);
+            addRequirementRow(list, ok,
+                    "Accessibility service",
+                    ok ? "Enabled" : "Not enabled — tap to open Settings",
+                    ok ? null : v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
+
+        } else if (device.requiresAdb()) {
+            addRequirementRow(list, ADBConnected,
+                    "ADB loopback",
+                    ADBConnected ? "Connected" : "Not connected — enable wireless ADB on this device",
+                    null);
+
+        } else {
+            boolean hasInject = checkSelfPermission("android.permission.INJECT_EVENTS")
+                    == PackageManager.PERMISSION_GRANTED;
+            addRequirementRow(list, hasInject,
+                    "Input injection",
+                    hasInject ? "Granted" : "Not granted — run via ADB:\n"
+                            + "adb shell pm grant " + getPackageName()
+                            + " android.permission.INJECT_EVENTS",
+                    null);
+        }
+    }
+
+    private void addRequirementRow(LinearLayout container, boolean ok,
+                                   String name, String detail,
+                                   View.OnClickListener action) {
+        Context ctx = container.getContext();
+        int px16 = dpToPx(ctx, 16);
+        int px10 = dpToPx(ctx, 10);
+
+        LinearLayout row = new LinearLayout(ctx);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(px16, px10, px16, px10);
+        if (action != null) {
+            row.setClickable(true);
+            row.setFocusable(true);
+            row.setOnClickListener(action);
+            TypedValue ripple = new TypedValue();
+            ctx.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, ripple, true);
+            row.setBackgroundResource(ripple.resourceId);
+        }
+
+        TextView dot = new TextView(ctx);
+        dot.setText("● ");
+        dot.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        dot.setTextColor(ok ? 0xFF4CAF50 : 0xFFFF5722);
+        dot.setTypeface(null, Typeface.BOLD);
+
+        TextView text = new TextView(ctx);
+        text.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        android.text.SpannableStringBuilder sb = new android.text.SpannableStringBuilder();
+        sb.append(name, new android.text.style.StyleSpan(Typeface.BOLD),
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        sb.append("  ");
+        sb.append(detail);
+        if (action != null) {
+            sb.append("  ›");
+        }
+        text.setText(sb);
+
+        row.addView(dot);
+        row.addView(text);
+        container.addView(row);
+    }
+
+    private static int dpToPx(Context ctx, int dp) {
+        return Math.round(TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, dp,
+                ctx.getResources().getDisplayMetrics()));
+    }
+
+    private void updateStatusChip() {
+        TextView chip = findViewById(R.id.statusChip);
+        if (chip == null) return;
+        String deviceName = Device.instance != null
+                ? Device.instance.displayName()
+                : "No device selected";
+        String ip = getLocalIpAddress();
+        chip.setText("UDP 8003  ·  " + deviceName + "  ·  " + ip);
+    }
+
+    private String getLocalIpAddress() {
+        try {
+            for (NetworkInterface ni :
+                    java.util.Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                for (java.net.InetAddress addr :
+                        java.util.Collections.list(ni.getInetAddresses())) {
+                    if (!addr.isLoopbackAddress() && addr instanceof Inet4Address)
+                        return addr.getHostAddress();
+                }
+            }
+        } catch (Exception ignored) {}
+        return "no IP";
+    }
+
     /** Selects {@code device} as the active device and wires up its executor and logger. */
     private void selectDevice(Device device) {
         device.commandExecutor = MainActivity::sendCommand;
         device.logger = (tag, msg) -> Log.i(tag, msg);
         Device.instance = device;
+        updateStatusChip();
+        updateRequirementsCard();
     }
 
     static public void sendCommand(String command) {

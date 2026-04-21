@@ -15,6 +15,7 @@ public class S22iNoAdbDevice extends S22iDevice {
     public String displayName() { return "S22i Bike (No ADB)"; }
 
     @Override public boolean requiresAdb() { return false; }
+    @Override public boolean requiresAccessibility() { return true; }
 
     @Override
     protected void swipe(int x, int y1, int y2) {
