@@ -18,7 +18,29 @@ org.cagnulein.qzcompanionnordictracktreadmill
 
 ## Overview
 
-QZCompanion receives workout targets from the QZ fitness app over UDP and translates them into simulated touch-screen swipe gestures that physically move the sliders on NordicTrack/ProForm iFit devices. It is entirely open-loop: commands are sent and forgotten — there is no confirmation that the device reached the requested position.
+QZCompanion is the bridge between the Zwift cycling/running ecosystem and NordicTrack/ProForm iFit fitness hardware. It runs on the iFit device itself (the Android tablet embedded in the treadmill or bike) and has two jobs that run simultaneously: **accepting control commands** and **reporting live metrics**.
+
+### The two data flows
+
+**Inbound — Zwift → QZ App → QZCompanion → hardware**
+
+Zwift drives grade and resistance changes as the rider moves through a virtual course. The QZ fitness app (running on a separate phone or tablet) receives those targets from Zwift and forwards them as UDP datagrams to QZCompanion on port 8003. QZCompanion translates each target into a simulated swipe gesture that physically moves the incline or resistance slider on the iFit touchscreen — exactly as if a user had dragged it by hand.
+
+**Outbound — hardware → QZCompanion → QZ App → Zwift**
+
+The iFit firmware writes speed, incline, cadence, watts, and other metrics to a log file on the device. `MetricReaderBroadcastingService` polls that file every 250 ms and broadcasts changed values as UDP datagrams on port 8002. The QZ app receives those values and feeds them back to Zwift so the rider's on-screen avatar responds correctly to what the real hardware is actually doing.
+
+The result is a closed loop: Zwift sets a target → QZCompanion moves the hardware → the hardware reports back its actual state → QZ forwards that to Zwift.
+
+### Why QZCompanion exists
+
+Modern fitness equipment exposes a Bluetooth Low Energy profile called FTMS (Fitness Machine Service) that allows apps like Zwift to send control commands and read metrics directly — no intermediary needed. Older NordicTrack and ProForm iFit devices do not implement FTMS. Their BLE stack is read-only: Zwift can see the metrics but cannot send grade or resistance targets back to the machine.
+
+QZCompanion works around this gap. The QZ app bridges Zwift's FTMS control commands over UDP to QZCompanion on the device, which then drives the hardware by simulating the touch gestures a user would perform on the iFit screen. If these devices implemented FTMS fully, QZCompanion would not need to exist.
+
+### What QZCompanion does not do
+
+QZCompanion has no direct connection to Zwift. It speaks only to the QZ app over UDP on the local network. It does not confirm that the hardware reached the requested position — the inbound path is entirely open-loop: swipes are sent and forgotten. Feedback comes exclusively through the outbound metric path described above.
 
 ---
 
