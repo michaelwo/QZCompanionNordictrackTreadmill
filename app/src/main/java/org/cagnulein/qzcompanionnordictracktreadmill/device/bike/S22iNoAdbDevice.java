@@ -11,6 +11,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityServ
  */
 public class S22iNoAdbDevice extends S22iDevice {
 
+    public S22iNoAdbDevice() { super(0, 0); }
+
     @Override
     public String displayName() { return "S22i Bike (No ADB)"; }
 

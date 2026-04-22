@@ -105,6 +105,28 @@ public class BikeDeviceTest {
         assertEquals("S22i Bike", new S22iDevice().displayName());
     }
 
+    // ── S22iNoAdbDevice ───────────────────────────────────────────────────────
+    // Calls S22iDevice(0, 0) → hystLong=0, hystShort=0 → dispatchY = targetY exactly.
+    // S22iNoAdbDevice.swipe() routes to AccessibilityService and cannot be captured in a
+    // unit test, so h=0 behaviour is verified via an anonymous S22iDevice(0, 0) subclass
+    // that exercises the same Slider code path.
+
+    @Test
+    public void s22iNoAdb_applyIncline_atTen_ascending_noHysteresis() {
+        S22iDevice dev = dev(new S22iDevice(0, 0) {});
+        dev.applyIncline(10.0);
+        // h=0 → dispatchY = targetY(10) = (int)(622 - 18.57*10) = 436 (no overshoot)
+        assertEquals("input swipe 75 622 75 436 200", lastCommand);
+    }
+
+    @Test
+    public void s22iNoAdb_applyIncline_atTen_descending_noHysteresis() {
+        S22iDevice dev = dev(new S22iDevice(0, 0) {});
+        dev.applyIncline(12.0); // toY=(int)(622-18.57*12)=399; h=0 → dispatch=399; thumbY=399
+        dev.applyIncline(10.0); // fromY=399; toY=436; h=0 → dispatch=436 (no overshoot)
+        assertEquals("input swipe 75 399 75 436 200", lastCommand);
+    }
+
     // ── S22iNtex02117Device ───────────────────────────────────────────────────
     // Shell execution (overrides execute); same formula as S22i
 

@@ -17,32 +17,25 @@ TARGET=${1:-"DRY_RUN"}
 PORT=8003
 DELAY=1.5   # seconds between messages — outside the 500ms throttle window
 
-# ── S22i formula ─────────────────────────────────────────────────────────────
+# ── S22i formula (S22iNoAdbDevice — AccessibilityService path) ────────────────
 # x=75, y1=previous logical targetY (self-correcting from iFit log in production)
 # v≤0 → (int)(622 - 10*v)
-# v>0 → (int)(622 - 14.8*v)
-# Calibrated 2026-04-18: v=-10→Y=722, v=0→Y=622, v=20→Y=326
-# Hysteresis: h=15px for grade ≤ ~11% (targetY ≥ 459); h=10px for grade > ~11%
+# v>0 → (int)(622 - 18.57*v)
+# Calibrated 2026-04-19: 13-point ascending sweep; slope=18.57 px/%, intercept=622.
+# hysteresis=0: AccessibilityService swipes land exactly at targetY (no spring-back).
 expected_y() {
     local grade=$1
     echo "$grade" | awk '{
         if ($1 <= 0) printf "%d", int(622 - 10 * $1)
-        else         printf "%d", int(622 - 14.8 * $1)
+        else         printf "%d", int(622 - 18.57 * $1)
     }'
 }
 
-# Returns the actual dispatch Y (target ± hysteresis)
-# Travel ≥ 40px → 15px overshoot; shorter travel → 10px (spring-back is smaller)
+# No hysteresis overshoot — dispatch lands exactly at targetY.
 dispatch_y() {
     local from_y=$1
     local to_y=$2
-    if [ "$to_y" -eq "$from_y" ]; then echo "$to_y"; return; fi
-    local travel=$((to_y - from_y))
-    [ "$travel" -lt 0 ] && travel=$((-travel))
-    local h=10
-    [ "$travel" -ge 40 ] && h=15
-    if [ "$to_y" -lt "$from_y" ]; then echo $((to_y - h))
-    else echo $((to_y + h)); fi
+    echo "$to_y"
 }
 
 expected_swipe() {

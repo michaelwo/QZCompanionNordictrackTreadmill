@@ -4,7 +4,12 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class S22iDevice extends BikeDevice {
-    public S22iDevice() {         super(
+    public S22iDevice() { this(15, 10); }
+
+    // hystLong: overshoot pixels for travel ≥ 40px; hystShort: for shorter swipes.
+    // S22iNoAdbDevice passes (0, 0) — AccessibilityService swipes have no spring-back.
+    protected S22iDevice(int hystLong, int hystShort) {
+        super(
             new Slider(622) {
                 public int trackX() { return 75; }
                 // Calibration 2026-04-19: 13-point ascending swipe sweep (Y=400→700 from neutral=622).
@@ -23,13 +28,9 @@ public class S22iDevice extends BikeDevice {
                 protected int currentThumbY(MetricSnapshot s) {
                     return s.inclinePct != null ? targetY(s.inclinePct) : thumbY();
                 }
-                // Physical hysteresis: slider undershoots ~0.5-1% in both directions.
-                // Spring-back is ~15px for swipes ≥ 40px travel (mid-range grades),
-                // ~8px for shorter swipes (near physical limits or small grade steps).
-                // 10px overshoot for short travel lands within 2px of target after spring-back.
                 @Override
                 protected int hysteresisPixels(int fromY, int toY) {
-                    return Math.abs(toY - fromY) >= 40 ? 15 : 10;
+                    return Math.abs(toY - fromY) >= 40 ? hystLong : hystShort;
                 }
             },
             new Slider(724) {
@@ -46,11 +47,9 @@ public class S22iDevice extends BikeDevice {
                             ? targetY(s.resistanceLvl) : thumbY();
                 }
             }
-        ); }
+        );
+    }
 
     @Override
     public String displayName() { return "S22i Bike"; }
-
-
-
 }
