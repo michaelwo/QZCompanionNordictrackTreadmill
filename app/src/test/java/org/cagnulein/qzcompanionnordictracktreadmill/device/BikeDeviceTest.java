@@ -289,6 +289,13 @@ public class BikeDeviceTest {
     }
 
     @Test
+    public void decodeCommand_heartbeat_incline_returnsNull() {
+        // "-100;N" is QZ's "no grade" heartbeat (Zwift paused/loading); incline must be ignored.
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100", "16"}, '.');
+        assertNull(cmd.inclinePct);
+    }
+
+    @Test
     public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
         Command cmd = new S22iDevice().decodeCommand(new String[]{"8.5"}, ',');
         assertEquals(8.5f, cmd.resistanceLvl, 0.001f);

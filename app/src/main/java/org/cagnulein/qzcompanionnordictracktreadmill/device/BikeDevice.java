@@ -80,7 +80,9 @@ public abstract class BikeDevice extends Device {
             // legitimate Zwift grade of -1.0% (sent as "-1.0;0") is not swallowed.
             if ("-1".equals(parts[0]) && "-100".equals(parts[1])) return cmd;
             Float v = parseField(parts[0], decimalSeparator);
-            if (v != null) cmd.inclinePct = roundToOneDecimal(v);
+            // -100 in the incline slot is QZ's "no grade" heartbeat ("-100;N" while paused).
+            // A real Zwift grade of -1% arrives as "-1.0", so this check is safe.
+            if (v != null && v != -100) cmd.inclinePct = roundToOneDecimal(v);
         }
         if (parts.length == 1) {
             Float v = parseField(parts[0], decimalSeparator);
