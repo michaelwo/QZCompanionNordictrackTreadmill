@@ -32,6 +32,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1151,6 +1152,69 @@ public class TreadmillDeviceTest {
         dev.applyIncline(5.0);
         // fromY=450; y2=450-(int)(5*20.83)=450-(int)104.15=450-104=346
         assertEquals("input swipe 76 450 76 346 200", lastCommand);
+    }
+
+    // ── Negative incline ──────────────────────────────────────────────────────
+
+    @Test
+    public void x11i_applyIncline_atNegativeTwo_generatesCorrectSwipe() {
+        X11iDevice dev = dev(new X11iDevice());
+        dev.applyIncline(-2.0);
+        // y2=(int)(565.491 - 8.44*(-2.0))=(int)(565.491+16.88)=(int)582.371=582; y1=557
+        assertEquals("input swipe 75 557 75 582 200", lastCommand);
+    }
+
+    @Test
+    public void x11i_applyIncline_atNegativeFive_generatesCorrectSwipe() {
+        X11iDevice dev = dev(new X11iDevice());
+        dev.applyIncline(-5.0);
+        // y2=(int)(565.491 - 8.44*(-5.0))=(int)(565.491+42.2)=(int)607.691=607; y1=557
+        assertEquals("input swipe 75 557 75 607 200", lastCommand);
+    }
+
+    @Test
+    public void x32i_applyIncline_atNegativeFive_generatesCorrectSwipe() {
+        X32iDevice dev = dev(new X32iDevice());
+        dev.applyIncline(-5.0);
+        // y2=(int)(734.07 - 12.297*(-5.0))=(int)(734.07+61.485)=(int)795.555=795; y1=881
+        assertEquals("input swipe 76 881 76 795 200", lastCommand);
+    }
+
+    // ── Speed/incline boundary values ────────────────────────────────────────
+
+    @Test
+    public void treadmill_speedGateAtExactlyZero_cachesSpeed() {
+        // guard is speed() > 0; device that previously moved but is now stopped at 0.0f
+        // must still cache the command (not apply it).
+        X11iDevice device = dev(new X11iDevice());
+        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build()); // was moving
+        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(0.0f).build()); // now stopped
+        CommandDispatcher d = new CommandDispatcher(() -> 1_000L + Device.SWIPE_THROTTLE_MS + 100);
+        d.dispatch("8.0;-100", '.', device);
+        assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
+    }
+
+    @Test
+    public void treadmill_cachedSpeedOverwrite_latestThrottledValueWins() {
+        // Two successive throttled speeds — only the last one should be applied after the window.
+        // X11i targetSpeedY(10.0)=(int)(621.997-21.785*10)=(int)404.147=404; fromY=447 (after 8.0)
+        final long[] t = {1_000L};
+        X11iDevice device = dev(new X11iDevice());
+        CommandDispatcher d = new CommandDispatcher(() -> t[0]);
+
+        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build());
+        d.dispatch("8.0;-100", '.', device);  // applied at t=1000; currentSpeedY → 447
+
+        t[0] += 200;
+        d.dispatch("9.0;-100", '.', device);  // throttled → cached as 9.0
+
+        t[0] += 100;
+        d.dispatch("10.0;-100", '.', device); // still throttled → overwrites 9.0 → cached as 10.0
+
+        t[0] = 1_000L + Device.SWIPE_THROTTLE_MS + 100;
+        lastCommand = null;
+        d.dispatch("-1;-100", '.', device);   // flush → must apply 10.0
+        assertEquals("input swipe 1207 447 1207 404 200", lastCommand);
     }
 
     // ── T95sDevice — accessibility service, instanceof only ───────────────────

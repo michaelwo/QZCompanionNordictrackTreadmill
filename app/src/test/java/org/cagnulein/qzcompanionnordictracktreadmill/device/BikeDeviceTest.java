@@ -18,6 +18,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
 import org.junit.After;
 import org.junit.Before;
@@ -473,6 +474,53 @@ public class BikeDeviceTest {
         dev.applyResistance(5.0);
         // fromY=886; y2=858-(int)(4*650/23)=858-(int)113.04=858-113=745
         assertEquals("input swipe 1857 886 1857 745 200", lastCommand);
+    }
+
+    // ── applyCommand edge cases ────────────────────────────────────────────────
+
+    @Test
+    public void bikeDevice_nullResistanceSlider_resistanceCommandIsIgnored() {
+        // ProformCarbonC10 has resistance slider = null (incline-only bike).
+        // A 1-part message sets cmd.resistanceLvl in decodeCommand but applyCommand
+        // silently skips it because the resistance Slider is null.
+        ProformCarbonC10Device dev = dev(new ProformCarbonC10Device());
+        CommandDispatcher d = new CommandDispatcher(() -> 1000L);
+        d.dispatch("10.0", '.', dev);
+        assertNull("null resistance slider must not generate a swipe", lastCommand);
+    }
+
+    @Test
+    public void bikeDevice_throttleCacheOverwrite_latestValueAppliedAfterWindow() {
+        // When two resistance commands are throttled back-to-back, the second
+        // overwrites the first in the cache; after the window only the latest fires.
+        // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
+        final long[] t = {1_000L};
+        S15iDevice device = dev(new S15iDevice());
+        CommandDispatcher d = new CommandDispatcher(() -> t[0]);
+
+        d.dispatch("10.0", '.', device);  // applied at t=1000
+
+        t[0] += 200;
+        d.dispatch("11.0", '.', device);  // throttled → cache=11.0
+
+        t[0] += 100;
+        d.dispatch("12.0", '.', device);  // still throttled → overwrites cache=12.0
+
+        t[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
+        lastCommand = null;
+        d.dispatch("-1", '.', device);    // flush → must apply 12.0, not 11.0
+        assertEquals("input swipe 1848 790 1848 513 200", lastCommand);
+    }
+
+    // ── Negative incline tests ─────────────────────────────────────────────────
+
+    @Test
+    public void s22i_applyIncline_atNegativeFive_usesNegativeBranch() {
+        S22iDevice dev = dev(new S22iDevice());
+        dev.applyIncline(-5.0);
+        // v<=0 branch: toY=(int)(622-10*(-5))=672; going down (672>622) → travel=50 ≥ 40 → h=15
+        // dispatch = 672+15 = 687
+        assertEquals("input swipe 75 622 75 687 200", lastCommand);
     }
 
     // ── Tdf10InclinationDevice ────────────────────────────────────────────────

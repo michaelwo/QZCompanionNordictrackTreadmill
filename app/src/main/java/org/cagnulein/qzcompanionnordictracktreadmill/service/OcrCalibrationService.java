@@ -2,13 +2,13 @@ package org.cagnulein.qzcompanionnordictracktreadmill.service;
 
 import android.app.Service;
 import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.Ocr;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.OcrBlock;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.WattRectFallback;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 /**
@@ -76,57 +76,4 @@ public class OcrCalibrationService extends Service {
         }
     }
 
-    /**
-     * Remembers where on screen the watt value appeared so it can be recovered
-     * in frames where OCR misses it. Keeps the Android Rect dependency out of Ocr,
-     * which must stay pure-Java for unit testing.
-     */
-    private static class WattRectFallback {
-        private Rect cache = null;
-
-        void update(OcrBlock[] blocks, Float watts) {
-            if (watts == null) return;
-            for (int i = 1; i < blocks.length; i++) {
-                if (blocks[i].text.toLowerCase().contains("watt")) {
-                    Rect r = rectFromString(blocks[i - 1].rectString);
-                    if (r != null) { cache = r; return; }
-                }
-            }
-        }
-
-        Float tryRecover(OcrBlock[] blocks) {
-            if (cache == null) return null;
-            int expandedWidth = (int) (cache.width() * 1.5);
-            int expandedLeft  = cache.left - (expandedWidth - cache.width()) / 2;
-            Rect expanded = new Rect(expandedLeft, cache.top, expandedLeft + expandedWidth, cache.bottom);
-            for (OcrBlock block : blocks) {
-                Rect r = rectFromString(block.rectString);
-                if (r != null && Rect.intersects(expanded, r)) {
-                    try {
-                        String[] numbers = block.text.trim().replaceAll("[^0-9]", " ").trim().split("\\s+");
-                        int w = Integer.parseInt(numbers[numbers.length - 1]);
-                        if (w > Ocr.MIN_WATTS) return (float) w;
-                    } catch (Exception ignored) {}
-                }
-            }
-            return null;
-        }
-
-        private static Rect rectFromString(String str) {
-            if (str == null) return null;
-            String s = str.replace("Rect(", "").replace(")", "");
-            String[] halves = s.split("-");
-            if (halves.length != 2) return null;
-            String[] lt = halves[0].split(",");
-            String[] rb = halves[1].split(",");
-            if (lt.length != 2 || rb.length != 2) return null;
-            try {
-                return new Rect(
-                    Integer.parseInt(lt[0].trim()), Integer.parseInt(lt[1].trim()),
-                    Integer.parseInt(rb[0].trim()), Integer.parseInt(rb[1].trim()));
-            } catch (NumberFormatException e) {
-                return null;
-            }
-        }
-    }
 }

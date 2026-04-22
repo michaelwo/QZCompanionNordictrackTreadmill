@@ -224,4 +224,17 @@ public class CommandDispatcherTest {
         d.dispatch("-1", '.', dev(new S15iDevice()));
         assertNull(lastCommand);
     }
+
+    // ── Locale mismatch ───────────────────────────────────────────────────────
+
+    @Test
+    public void treadmill_commaInValueWithDotSeparator_fallbackParsesCorrectly() {
+        // "8,0;3,0" with separator '.' — parseField fallback replaces ',' with '.'
+        // X11i targetSpeedY(8.0) = (int)(621.997 - 21.785*8.0) = (int)447.117 = 447
+        X11iDevice device = dev(new X11iDevice());
+        setMoving(device);
+        CommandDispatcher d = dispatcher();
+        d.dispatch("8,0;3,0", '.', device);
+        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+    }
 }
