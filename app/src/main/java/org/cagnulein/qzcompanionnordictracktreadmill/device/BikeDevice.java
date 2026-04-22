@@ -76,8 +76,11 @@ public abstract class BikeDevice extends Device {
     public Command decodeCommand(String[] parts, char decimalSeparator) {
         Command cmd = new Command();
         if (parts.length == 2) {
+            // "-1;-100" is the QZ end-of-ride sentinel; skip it by raw string so that a
+            // legitimate Zwift grade of -1.0% (sent as "-1.0;0") is not swallowed.
+            if ("-1".equals(parts[0]) && "-100".equals(parts[1])) return cmd;
             Float v = parseField(parts[0], decimalSeparator);
-            if (v != null && v != -1 && v != -100) cmd.inclinePct = roundToOneDecimal(v);
+            if (v != null) cmd.inclinePct = roundToOneDecimal(v);
         }
         if (parts.length == 1) {
             Float v = parseField(parts[0], decimalSeparator);

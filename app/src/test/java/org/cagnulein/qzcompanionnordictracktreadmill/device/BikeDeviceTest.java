@@ -52,8 +52,8 @@ public class BikeDeviceTest {
     }
 
     // ── S22iDevice ────────────────────────────────────────────────────────────
-    // Calibration 2026-04-19: positive slope 18.57 px/%, intercept 622 (matches iFit neutral).
-    // Piecewise: v<=0 → (int)(622 - 10*v); v>0 → (int)(622 - 18.57*v). initialY=622.
+    // Single linear fit: targetY(v) = (int)(622 - 18.57*v) for all v. initialY=622.
+    // Calibration 2026-04-19 (positive) + 2026-04-22 (negative); intercept=622.
 
     @Test
     public void s22i_applyIncline_atZero_generatesCorrectSwipe() {
@@ -67,8 +67,8 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atNegativeTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-10.0);
-        // v<=0 branch: toY=(int)(622-10*(-10))=722; going down → travel=100 ≥ 40 → h=15; dispatch=722+15=737
-        assertEquals("input swipe 75 622 75 737 200", lastCommand);
+        // unified formula: toY=(int)(622-18.57*(-10))=(int)(807.7)=807; going down → travel=185 ≥ 40 → h=15; dispatch=822
+        assertEquals("input swipe 75 622 75 822 200", lastCommand);
     }
 
     @Test
@@ -275,15 +275,17 @@ public class BikeDeviceTest {
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOne_incline_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1", "unused"}, '.');
+    public void decodeCommand_sentinel_incline_returnsNull() {
+        // The exact QZ sentinel packet "-1;-100" must not produce a command.
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100", "unused"}, '.');
-        assertNull(cmd.inclinePct);
+    public void decodeCommand_negativeOnePercent_incline_parsesCorrectly() {
+        // "-1.0;0" is a legitimate Zwift grade, not the sentinel; it must not be swallowed.
+        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1.0", "0"}, '.');
+        assertEquals(-1.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
@@ -537,12 +539,11 @@ public class BikeDeviceTest {
     // ── Negative incline tests ─────────────────────────────────────────────────
 
     @Test
-    public void s22i_applyIncline_atNegativeFive_usesNegativeBranch() {
+    public void s22i_applyIncline_atNegativeFive_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-5.0);
-        // v<=0 branch: toY=(int)(622-10*(-5))=672; going down (672>622) → travel=50 ≥ 40 → h=15
-        // dispatch = 672+15 = 687
-        assertEquals("input swipe 75 622 75 687 200", lastCommand);
+        // unified formula: toY=(int)(622-18.57*(-5))=(int)(714.85)=714; going down → travel=92 ≥ 40 → h=15; dispatch=729
+        assertEquals("input swipe 75 622 75 729 200", lastCommand);
     }
 
     // ── Tdf10InclinationDevice ────────────────────────────────────────────────

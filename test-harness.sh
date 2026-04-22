@@ -19,16 +19,12 @@ DELAY=1.5   # seconds between messages — outside the 500ms throttle window
 
 # ── S22i formula (S22iNoAdbDevice — AccessibilityService path) ────────────────
 # x=75, y1=previous logical targetY (self-correcting from iFit log in production)
-# v≤0 → (int)(622 - 10*v)
-# v>0 → (int)(622 - 18.57*v)
-# Calibrated 2026-04-19: 13-point ascending sweep; slope=18.57 px/%, intercept=622.
+# Single linear fit: targetY(v) = (int)(622 - 18.57*v) for all v.
+# Calibrated 2026-04-19 (positive) + 2026-04-22 (negative); slope=18.57 px/%, intercept=622.
 # hysteresis=0: AccessibilityService swipes land exactly at targetY (no spring-back).
 expected_y() {
     local grade=$1
-    echo "$grade" | awk '{
-        if ($1 <= 0) printf "%d", int(622 - 10 * $1)
-        else         printf "%d", int(622 - 18.57 * $1)
-    }'
+    echo "$grade" | awk '{printf "%d", int(622 - 18.57 * $1)}'
 }
 
 # No hysteresis overshoot — dispatch lands exactly at targetY.
@@ -93,8 +89,8 @@ else
     echo ""
 fi
 
-echo "--- Profile: flat start → climb → descent → flat ---"
-run_profile 0.0 3.0 7.0 10.0 12.0 10.0 7.0 3.0 0.0
+echo "--- Profile: flat start → climb → descent → flat → negative ---"
+run_profile 0.0 3.0 7.0 10.0 12.0 10.0 7.0 3.0 0.0 -1.0 -3.0 -8.0 -3.0 -1.0 0.0
 echo ""
 
 echo "--- Sentinel (end of ride) ---"

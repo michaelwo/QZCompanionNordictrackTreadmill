@@ -36,42 +36,42 @@ public class HillyRouteReplayTest {
 
     // Expected swipe command per interval. null = de-duped (no dispatch expected).
     // Pipeline: actual × 0.5 → roundToOneDecimal → quantize(0.5 steps) → targetY → ±hysteresis
-    // S22i formula: v≤0 → (int)(622-10*v); v>0 → (int)(622-18.57*v). Calibrated 2026-04-19.
-    // S22i hysteresis: travel ≥ 40px → 15px overshoot; shorter → 10px.
+    // S22i formula: targetY(v) = (int)(622 - 18.57*v) for all v. Calibrated 2026-04-19/22.
+    // S22i hysteresis (ADB path): travel ≥ 40px → 15px overshoot; shorter → 10px.
     // trackX = 75, initial thumbY = 622
-    // dispatchY = toY∓h (up) | toY±h (down); most intervals travel < 40px → h=10
+    // dispatchY = toY-h (up) | toY+h (down)
     private static final String[] EXPECTED = {
-        "input swipe 75 622 75 602 200",  //  1: q0.5  → y612 ↑ t10 h10 d602
-        "input swipe 75 612 75 565 200",  //  2: q2.5  → y575 ↑ t37 h10 d565
-        "input swipe 75 575 75 537 200",  //  3: q4.0  → y547 ↑ t28 h10 d537
-        "input swipe 75 547 75 585 200",  //  4: q2.5  → y575 ↓ t28 h10 d585
-        "input swipe 75 575 75 604 200",  //  5: q1.5  → y594 ↓ t19 h10 d604
-        "input swipe 75 594 75 642 200",  //  6: q-1.0 → y632 ↓ t38 h10 d642
-        "input swipe 75 632 75 602 200",  //  7: q0.5  → y612 ↑ t20 h10 d602
-        "input swipe 75 612 75 637 200",  //  8: q-0.5 → y627 ↓ t15 h10 d637
-        "input swipe 75 627 75 612 200",  //  9: q0.0  → y622 ↑ t5  h10 d612
-        "input swipe 75 622 75 647 200",  // 10: q-1.5 → y637 ↓ t15 h10 d647
-        "input swipe 75 637 75 579 200",  // 11: q1.5  → y594 ↑ t43 h15 d579  ← travel ≥ 40
-        "input swipe 75 594 75 632 200",  // 12: q0.0  → y622 ↓ t28 h10 d632
-        "input swipe 75 622 75 642 200",  // 13: q-1.0 → y632 ↓ t10 h10 d642
-        "input swipe 75 632 75 652 200",  // 14: q-2.0 → y642 ↓ t10 h10 d652
-        "input swipe 75 642 75 662 200",  // 15: q-3.0 → y652 ↓ t10 h10 d662
-        "input swipe 75 652 75 627 200",  // 16: q-1.5 → y637 ↑ t15 h10 d627
-        "input swipe 75 637 75 617 200",  // 17: q-0.5 → y627 ↑ t10 h10 d617
-        "input swipe 75 627 75 593 200",  // 18: q1.0  → y603 ↑ t24 h10 d593
-        "input swipe 75 603 75 642 200",  // 19: q-1.0 → y632 ↓ t29 h10 d642
-        "input swipe 75 632 75 647 200",  // 20: q-1.5 → y637 ↓ t5  h10 d647
-        "input swipe 75 637 75 612 200",  // 21: q0.0  → y622 ↑ t15 h10 d612
-        "input swipe 75 622 75 574 200",  // 22: q2.0  → y584 ↑ t38 h10 d574
-        "input swipe 75 584 75 652 200",  // 23: q-1.5 → y637 ↓ t53 h15 d652  ← travel ≥ 40
-        "input swipe 75 637 75 657 200",  // 24: q-2.5 → y647 ↓ t10 h10 d657
-        "input swipe 75 647 75 602 200",  // 25: q0.5  → y612 ↑ t35 h10 d602
-        "input swipe 75 612 75 632 200",  // 26: q0.0  → y622 ↓ t10 h10 d632
-        "input swipe 75 622 75 642 200",  // 27: q-1.0 → y632 ↓ t10 h10 d642
-        "input swipe 75 632 75 593 200",  // 28: q1.0  → y603 ↑ t29 h10 d593
-        "input swipe 75 603 75 642 200",  // 29: q-1.0 → y632 ↓ t29 h10 d642
+        "input swipe 75 622 75 602 200",  //  1: q+0.5 → y612 ↑ t10 h10 d602
+        "input swipe 75 612 75 565 200",  //  2: q+2.5 → y575 ↑ t37 h10 d565
+        "input swipe 75 575 75 537 200",  //  3: q+4.0 → y547 ↑ t28 h10 d537
+        "input swipe 75 547 75 585 200",  //  4: q+2.5 → y575 ↓ t28 h10 d585
+        "input swipe 75 575 75 604 200",  //  5: q+1.5 → y594 ↓ t19 h10 d604
+        "input swipe 75 594 75 655 200",  //  6: q-1.0 → y640 ↓ t46 h15 d655  ← travel ≥ 40
+        "input swipe 75 640 75 602 200",  //  7: q+0.5 → y612 ↑ t28 h10 d602
+        "input swipe 75 612 75 641 200",  //  8: q-0.5 → y631 ↓ t19 h10 d641
+        "input swipe 75 631 75 612 200",  //  9: q+0.0 → y622 ↑ t9  h10 d612
+        "input swipe 75 622 75 659 200",  // 10: q-1.5 → y649 ↓ t27 h10 d659
+        "input swipe 75 649 75 579 200",  // 11: q+1.5 → y594 ↑ t55 h15 d579  ← travel ≥ 40
+        "input swipe 75 594 75 632 200",  // 12: q+0.0 → y622 ↓ t28 h10 d632
+        "input swipe 75 622 75 650 200",  // 13: q-1.0 → y640 ↓ t18 h10 d650
+        "input swipe 75 640 75 669 200",  // 14: q-2.0 → y659 ↓ t19 h10 d669
+        "input swipe 75 659 75 687 200",  // 15: q-3.0 → y677 ↓ t18 h10 d687
+        "input swipe 75 677 75 639 200",  // 16: q-1.5 → y649 ↑ t28 h10 d639
+        "input swipe 75 649 75 621 200",  // 17: q-0.5 → y631 ↑ t18 h10 d621
+        "input swipe 75 631 75 593 200",  // 18: q+1.0 → y603 ↑ t28 h10 d593
+        "input swipe 75 603 75 650 200",  // 19: q-1.0 → y640 ↓ t37 h10 d650
+        "input swipe 75 640 75 659 200",  // 20: q-1.5 → y649 ↓ t9  h10 d659
+        "input swipe 75 649 75 612 200",  // 21: q+0.0 → y622 ↑ t27 h10 d612
+        "input swipe 75 622 75 574 200",  // 22: q+2.0 → y584 ↑ t38 h10 d574
+        "input swipe 75 584 75 664 200",  // 23: q-1.5 → y649 ↓ t65 h15 d664  ← travel ≥ 40
+        "input swipe 75 649 75 678 200",  // 24: q-2.5 → y668 ↓ t19 h10 d678
+        "input swipe 75 668 75 597 200",  // 25: q+0.5 → y612 ↑ t56 h15 d597  ← travel ≥ 40
+        "input swipe 75 612 75 632 200",  // 26: q+0.0 → y622 ↓ t10 h10 d632
+        "input swipe 75 622 75 650 200",  // 27: q-1.0 → y640 ↓ t18 h10 d650
+        "input swipe 75 640 75 593 200",  // 28: q+1.0 → y603 ↑ t37 h10 d593
+        "input swipe 75 603 75 650 200",  // 29: q-1.0 → y640 ↓ t37 h10 d650
         null,                             // 30: q-1.0 → DE-DUPED (same as #29)
-        "input swipe 75 632 75 612 200",  // 31: q0.0  → y622 ↑ t10 h10 d612
+        "input swipe 75 640 75 612 200",  // 31: q+0.0 → y622 ↑ t18 h10 d612
     };
 
     @Test

@@ -12,13 +12,11 @@ public class S22iDevice extends BikeDevice {
         super(
             new Slider(622) {
                 public int trackX() { return 75; }
-                // Calibration 2026-04-19: 13-point ascending swipe sweep (Y=400→700 from neutral=622).
-                // Positive fit (7 clean pts, grades 4–12%): slope = 18.57 px/%.
-                // Intercept fixed at 622 (device self-reports 0% at Y≈622 in iFit log).
-                // Negative slope kept from prior 3-pt cal (only 2 data pts): −10 px/%.
+                // Calibration 2026-04-19 (positive) + 2026-04-22 (negative):
+                // Single linear fit — 18.57 px/% across the full range.
+                // Intercept 622 = device-reported neutral (0% grade in iFit log).
                 public int targetY(double v) {
-                    return v <= 0.0 ? (int) (622.0 - 10.0 * v)
-                                    : (int) (622.0 - 18.57 * v);
+                    return (int) (622.0 - 18.57 * v);
                 }
                 public float quantize(float v) {
                     // iFit slider snaps to 0.5% increments.
