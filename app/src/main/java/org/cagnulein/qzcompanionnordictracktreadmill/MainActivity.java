@@ -90,6 +90,15 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
     private DeviceAdapter deviceAdapter;
     SharedPreferences sharedPreferences;
 
+    private final android.os.Handler heartbeatHandler =
+            new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable heartbeatTick = new Runnable() {
+        @Override public void run() {
+            updateRequirementsCard();
+            heartbeatHandler.postDelayed(this, 5_000);
+        }
+    };
+
     private boolean checkPermissions(){
         if(ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
             return true;
@@ -454,6 +463,13 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         super.onResume();
         updateStatusChip();
         updateRequirementsCard();
+        heartbeatHandler.postDelayed(heartbeatTick, 5_000);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        heartbeatHandler.removeCallbacks(heartbeatTick);
     }
 
     private void updateRequirementsCard() {
@@ -486,6 +502,14 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
                             + " android.permission.INJECT_EVENTS",
                     null);
         }
+
+        long lastHb = CommandListenerService.lastQzHeartbeatMs;
+        boolean heartbeatActive = lastHb > 0
+                && (System.currentTimeMillis() - lastHb) < 30_000;
+        addRequirementRow(list, heartbeatActive,
+                "QZ App",
+                heartbeatActive ? "Broadcasting command heartbeat" : "No heartbeat received yet",
+                null);
     }
 
     private void addRequirementRow(LinearLayout container, boolean ok,

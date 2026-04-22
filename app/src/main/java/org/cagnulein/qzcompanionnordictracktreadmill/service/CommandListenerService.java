@@ -31,6 +31,9 @@ public class CommandListenerService extends Service {
 
     static String UDP_BROADCAST = "UDPBroadcast";
 
+    /** Wall-clock ms of the last -100;N heartbeat packet from QZ. 0 = never received. */
+    public static volatile long lastQzHeartbeatMs = 0;
+
     static DatagramSocket socket;
 
     static SharedPreferences sharedPreferences;
@@ -65,6 +68,7 @@ public class CommandListenerService extends Service {
                 socket.receive(pkt);
                 String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 Log.i(LOG_TAG, "rx: " + msg);
+                if (msg.startsWith("-100;")) lastQzHeartbeatMs = System.currentTimeMillis();
                 dispatcher.dispatch(msg, decimalSeparator, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
