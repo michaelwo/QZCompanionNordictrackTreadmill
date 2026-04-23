@@ -1,5 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 
 /**
@@ -15,6 +17,9 @@ public class S22iNoAdbDevice extends S22iDevice {
 
     @Override
     public String displayName() { return "S22i Bike (No ADB)"; }
+
+    @Override
+    public MetricReader defaultMetricReader() { return new MonoStdoutMetricReader(); }
 
     @Override public boolean requiresAdb() { return false; }
     @Override public boolean requiresAccessibility() { return true; }

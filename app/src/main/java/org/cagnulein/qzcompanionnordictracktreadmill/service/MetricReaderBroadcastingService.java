@@ -18,6 +18,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -49,24 +50,28 @@ public class MetricReaderBroadcastingService extends Service {
     /** Tracks the last value sent for each metric — only changed values are broadcast. */
     private final MetricSnapshot broadcastedSoFar = new MetricSnapshot();
 
+    /** Current reader; replaced on every device switch via {@link #applyDevice(Device)}. */
+    private MetricReader cachedReader = null;
+
     /** Log file and UDP broadcast poll interval. The iFit firmware writes metrics at ~1 Hz;
      *  250 ms gives four reads per source update — fast enough to catch every change while
      *  reducing CPU, shell-exec, and network load by 60% versus the previous 100 ms. */
     private static final int POLL_INTERVAL_MS = 250;
 
+    /** Singleton pointer — set in onCreate, cleared in onDestroy. */
+    private static MetricReaderBroadcastingService instance;
+
     @Override
     public void onCreate() {
-
-        sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
+        instance = this;
+        sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
         try {
             broadcastAddress = getBroadcastAddress();
         } catch (IOException e) {
             Log.e(LOG_TAG, e.getMessage());
         }
 
-        // The service is being created
-        //Toast.makeText(this, "Service created!", Toast.LENGTH_LONG).show();
-        writeLog( "Service onCreate");
+        writeLog("Service onCreate");
 
         runnable = new Runnable() {
             @Override
@@ -75,13 +80,37 @@ public class MetricReaderBroadcastingService extends Service {
                 pollLogFile();
             }
         };
+    }
 
-        if(runnable != null) {
-            writeLog( "Service postDelayed");
+    /**
+     * Called by {@link org.cagnulein.qzcompanionnordictracktreadmill.MainActivity} whenever the
+     * user selects a different device. Stops the poll loop (if running), creates the appropriate
+     * reader, and either starts the poll loop (pull-based) or subscribes to the reader's push
+     * notifications (streaming).
+     */
+    public static void applyDevice(Device device) {
+        if (instance != null) instance.applyDeviceInternal(device);
+    }
+
+    private void applyDeviceInternal(Device device) {
+        handler.removeCallbacks(runnable);
+
+        cachedReader = sharedPreferences.getBoolean("ADBLog", false)
+                ? new DirectLogcatMetricReader()
+                : device.defaultMetricReader();
+        if (ifit_v2) cachedReader = cachedReader.forIfitV2();
+
+        if (cachedReader instanceof MonoStdoutMetricReader) {
+            MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
+        }
+        if (cachedReader.subscribe(this::applyAndBroadcast)) {
+            writeLog("Device " + device.displayName() + ": streaming reader active");
+            try { cachedReader.read(null, shellRuntime); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
+        } else {
+            writeLog("Device " + device.displayName() + ": starting poll loop");
             handler.postDelayed(runnable, POLL_INTERVAL_MS);
         }
     }
-
 
     private void pollLogFile() {
         String file = pickLatestFileFromDownloads();
@@ -90,16 +119,8 @@ public class MetricReaderBroadcastingService extends Service {
             handler.postDelayed(runnable, POLL_INTERVAL_MS);
             return;
         }
-
         try {
-            writeLog("Device: " + (Device.instance != null ? Device.instance.displayName() : "none"));
-
-            MetricReader reader = sharedPreferences.getBoolean("ADBLog", false)
-                    ? new DirectLogcatMetricReader()
-                    : Device.instance.defaultMetricReader();
-            if (ifit_v2) reader = reader.forIfitV2();
-
-            applyAndBroadcast(reader.read(file, shellRuntime));
+            applyAndBroadcast(cachedReader.read(file, shellRuntime));
         } catch (Exception ex) {
             Log.e(LOG_TAG, "parse error: " + ex.getMessage());
         }
@@ -196,7 +217,9 @@ public class MetricReaderBroadcastingService extends Service {
     }
     @Override
     public void onDestroy() {
-        if (runnable != null) handler.removeCallbacks(runnable);
+        handler.removeCallbacks(runnable);
+        cachedReader = null;
+        instance = null;
     }
 
     public String pickLatestFileFromDownloads() {

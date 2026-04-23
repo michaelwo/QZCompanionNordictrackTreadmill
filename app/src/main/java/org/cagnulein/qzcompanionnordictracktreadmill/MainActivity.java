@@ -590,6 +590,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         device.commandExecutor = MainActivity::sendCommand;
         device.logger = (tag, msg) -> Log.i(tag, msg);
         Device.instance = device;
+        MetricReaderBroadcastingService.applyDevice(device);
         updateStatusChip();
         updateRequirementsCard();
     }

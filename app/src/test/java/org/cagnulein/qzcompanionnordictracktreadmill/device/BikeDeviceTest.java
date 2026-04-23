@@ -8,6 +8,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformCarbonE7
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformStudioBikePro22Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNoAdbDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02117Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02121Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S27iDevice;
@@ -15,6 +16,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Se9iEllipticalD
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
@@ -125,6 +127,11 @@ public class BikeDeviceTest {
         dev.applyIncline(12.0); // toY=(int)(622-18.57*12)=399; h=0 → dispatch=399; thumbY=399
         dev.applyIncline(10.0); // fromY=399; toY=436; h=0 → dispatch=436 (no overshoot)
         assertEquals("input swipe 75 399 75 436 200", lastCommand);
+    }
+
+    @Test
+    public void s22iNoAdb_defaultMetricReader_returnsMonoStdoutMetricReader() {
+        assertTrue(new S22iNoAdbDevice().defaultMetricReader() instanceof MonoStdoutMetricReader);
     }
 
     // ── S22iNtex02117Device ───────────────────────────────────────────────────

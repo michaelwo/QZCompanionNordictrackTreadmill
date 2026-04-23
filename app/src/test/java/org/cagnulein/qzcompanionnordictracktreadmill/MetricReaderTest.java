@@ -3,6 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
@@ -67,12 +68,17 @@ public class MetricReaderTest {
     public void resetStaticState() {
         LogcatDumpMetricReader.adbSender = cmd -> {};
         DirectLogcatMetricReader.factory = () -> fakeProcess("");
+        MonoStdoutMetricReader.factory = () -> fakeProcess("");
+        MonoStdoutMetricReader.onError = e -> {};
     }
 
     @After
     public void restoreStaticState() {
         LogcatDumpMetricReader.adbSender = MainActivity::sendCommand;
         DirectLogcatMetricReader.factory = () -> Runtime.getRuntime().exec("logcat -b all -d");
+        MonoStdoutMetricReader.factory = () -> Runtime.getRuntime().exec(
+                new String[]{"logcat", "-s", "mono-stdout"});
+        MonoStdoutMetricReader.onError = e -> {};
     }
 
     // ── CatFileMetricReader ───────────────────────────────────────────────────
@@ -202,6 +208,39 @@ public class MetricReaderTest {
         );
         MetricSnapshot m = new DirectLogcatMetricReader().read("any.log", fixedShell(""));
         assertEquals(6.0f, m.speedKmh, DELTA);
+    }
+
+    // ── MonoStdoutMetricReader ────────────────────────────────────────────────
+
+    @Test
+    public void monoStdout_parsesAllMetrics() throws IOException, InterruptedException {
+        MonoStdoutMetricReader.factory = () -> fakeProcess(
+            "V/mono-stdout(2174): [Trace:FitPro] Changed KPH to: 12.11\n" +
+            "V/mono-stdout(2174): [Trace:FitPro] Changed Grade to: 5\n" +
+            "V/mono-stdout(2174): [Trace:FitPro] Changed Resistance to: 13\n" +
+            "V/mono-stdout(2174): [Trace:FitPro] Changed Watts to: 128\n" +
+            "V/mono-stdout(2174): [Trace:FitPro] Changed RPM to: 43\n"
+        );
+        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.read("any.log", null);
+        MetricSnapshot m = reader.awaitCurrentStream();
+        assertEquals(12.11f, m.speedKmh,      DELTA);
+        assertEquals(5f,     m.inclinePct,    DELTA);
+        assertEquals(13f,    m.resistanceLvl, DELTA);
+        assertEquals(128f,   m.watts,         DELTA);
+        assertEquals(43f,    m.cadenceRpm,    DELTA);
+    }
+
+    @Test
+    public void monoStdout_filtersOwnLogTag() throws IOException, InterruptedException {
+        MonoStdoutMetricReader.factory = () -> fakeProcess(
+            "QZ:Service Changed KPH 99.9\n" +
+            "V/mono-stdout(2174): [Trace:FitPro] Changed KPH to: 12.11\n"
+        );
+        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.read("any.log", null);
+        MetricSnapshot m = reader.awaitCurrentStream();
+        assertEquals(12.11f, m.speedKmh, DELTA);
     }
 
     // ── TailGrepMetricReader ──────────────────────────────────────────────────
