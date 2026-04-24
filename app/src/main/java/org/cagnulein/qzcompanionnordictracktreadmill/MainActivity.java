@@ -4,6 +4,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.app.Service;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -483,21 +485,24 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             boolean ok = isAccessibilityServiceEnabled(this, MyAccessibilityService.class);
             addRequirementRow(list, ok,
                     "Accessibility service",
-                    ok ? "Enabled" : "Not enabled — tap to open Settings",
+                    ok ? "Enabled — app can adjust speed and incline"
+                       : "Tap to enable — required to control the bike",
                     ok ? null : v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
 
         } else if (device.requiresAdb()) {
             addRequirementRow(list, ADBConnected,
-                    "ADB loopback",
-                    ADBConnected ? "Connected" : "Not connected — enable wireless ADB on this device",
+                    "Shell connection",
+                    ADBConnected ? "Connected — commands reach the bike"
+                                 : "Not connected — enable Wireless ADB in Developer Options",
                     null);
 
         } else {
             boolean hasInject = checkSelfPermission("android.permission.INJECT_EVENTS")
                     == PackageManager.PERMISSION_GRANTED;
             addRequirementRow(list, hasInject,
-                    "Input injection",
-                    hasInject ? "Granted" : "Not granted — run via ADB:\n"
+                    "Tap control",
+                    hasInject ? "Permission granted — app can send taps"
+                              : "Permission needed — run via ADB:\n"
                             + "adb shell pm grant " + getPackageName()
                             + " android.permission.INJECT_EVENTS",
                     null);
@@ -508,8 +513,24 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
                 && (System.currentTimeMillis() - lastHb) < 30_000;
         addRequirementRow(list, heartbeatActive,
                 "QZ App",
-                heartbeatActive ? "Broadcasting command heartbeat" : "No heartbeat received yet",
+                heartbeatActive ? "Connected — receiving workout commands"
+                                : "Not detected — open QZ App and start a workout",
                 null);
+
+        BluetoothManager btMgr = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+        BluetoothAdapter btAdapter = btMgr != null ? btMgr.getAdapter() : null;
+        boolean bleSupported = btAdapter != null
+                && btAdapter.isEnabled()
+                && btAdapter.isMultipleAdvertisementSupported();
+        String bleDetail;
+        if (!bleSupported) {
+            bleDetail = "Not supported on this device";
+        } else if (BleCanaryService.isRunning) {
+            bleDetail = "Active — Zwift can pair with this device via QZ";
+        } else {
+            bleDetail = "Available — use QZ to pair Zwift over Bluetooth";
+        }
+        addRequirementRow(list, bleSupported, "Zwift via Bluetooth", bleDetail, null);
     }
 
     private void addRequirementRow(LinearLayout container, boolean ok,
