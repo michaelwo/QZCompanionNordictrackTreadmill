@@ -3,13 +3,17 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 /**
  * Screen geometry profiles for iFit console displays.
  *
- * Track positions are derived from iFit APK layout resources:
- *   workout_slider_margin = 12 dp, workout_slider_width = 125 dp  (mdpi: 1 dp = 1 px)
- *   left track centre = margin + width / 2 = 12 + 62.5 = 74.5 → rounded per screen calibration
+ * Constants derived from iFit APK 2.6.90 (versionCode 4963), package com.ifit.standalone.
+ * Source files: res/layout/inworkouttablet.xml, res/values/dimens.xml.
+ *   workout_slider_margin = 12 dp
+ *   workout_slider_width  = 125 dp
+ *   left track centre     = margin + width / 2 = 12 + 62.5 = 74.5 dp
  *
- * Both leftTrackX and rightTrackX are the hardware-calibrated values; they satisfy
- * leftTrackX + rightTrackX ≈ screen width but are stored independently because
- * the rounding used on each side can differ by 1–2 px.
+ * If the iFit app is updated and these layout constants change, re-derive leftTrackX and
+ * rightTrackX from the new APK before updating device classes.
+ *
+ * Both leftTrackX and rightTrackX are stored independently (not derived as width − left)
+ * because Android's dp→px rounding can produce asymmetric results at the pixel boundary.
  *
  * Usage in device constructors:
  *   new Slider(initialY, ScreenProfile.W1920.leftTrackX)    // incline / grade slider
