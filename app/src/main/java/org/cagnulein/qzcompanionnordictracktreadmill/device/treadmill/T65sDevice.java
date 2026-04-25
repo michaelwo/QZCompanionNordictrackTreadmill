@@ -11,7 +11,8 @@ public class T65sDevice extends TreadmillDevice {
     public T65sDevice(String name) { this(name, null); }
 
     public T65sDevice(String name, MetricReader reader) {
-                super(
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(495) {
                 public int trackX() { return 1205; }
                 public int targetY(double v) { return (int) (578.36 - 35.866 * v * 0.621371); }

@@ -5,7 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Nordictrack2950MaxSpeed22Device extends TreadmillDevice {
-    public Nordictrack2950MaxSpeed22Device() {         super(
+    public Nordictrack2950MaxSpeed22Device() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(807) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return 682 - (int) ((v - 1.0) * 26.5); }

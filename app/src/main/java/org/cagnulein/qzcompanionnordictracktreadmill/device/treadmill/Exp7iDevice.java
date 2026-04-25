@@ -5,7 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Exp7iDevice extends TreadmillDevice {
-    public Exp7iDevice() {         super(
+    public Exp7iDevice() {
+        // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(430) {
                 public int trackX() { return 950; }
                 public int targetY(double v) { return 453 - (int) ((v * 0.621371 - 1.0) * 22.702); }

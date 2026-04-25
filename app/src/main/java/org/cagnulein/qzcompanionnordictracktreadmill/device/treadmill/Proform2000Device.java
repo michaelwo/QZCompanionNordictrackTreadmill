@@ -5,7 +5,10 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Proform2000Device extends TreadmillDevice {
-    public Proform2000Device() {         super(
+    public Proform2000Device() {
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Incline trackX=79 is 4.5px off APK-expected 74.5; matches hardware calibration.
+        super(
             new Slider(598) {
                 public int trackX() { return 1205; }
                 public int targetY(double v) { return (int) (631.03 - 19.921 * v); }

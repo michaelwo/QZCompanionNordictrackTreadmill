@@ -3,7 +3,10 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 public class X32iDevice extends TreadmillDevice {
-    public X32iDevice() {         super(
+    public X32iDevice() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Speed initialThumbY=927 starts below targetY(0)≈835; conservative position ensures the first speed swipe always travels upward.
+        super(
             new Slider(927) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return (int) (834.85 - 26.946 * v); }

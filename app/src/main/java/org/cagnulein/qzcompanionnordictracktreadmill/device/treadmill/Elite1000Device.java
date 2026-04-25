@@ -8,7 +8,9 @@ public class Elite1000Device extends TreadmillDevice {
     private final String name;
 
     public Elite1000Device(String name) {
-                super(
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Speed trackX=1209 is 3.5px off APK-expected 1205.5; matches hardware calibration.
+        super(
             new Slider(600) {
                 public int trackX() { return 1209; }
                 public int targetY(double v) { return 600 - (int) (v * 0.621371 * 31.33); }

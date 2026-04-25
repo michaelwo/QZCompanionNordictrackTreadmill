@@ -7,7 +7,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class ProformCarbonC10Device extends BikeDevice {
-    public ProformCarbonC10Device() {         super(
+    public ProformCarbonC10Device() {
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(632) {
                 public int trackX() { return 1205; }
                 public int targetY(double v) { return 632 - (int) (v * 18.45); }

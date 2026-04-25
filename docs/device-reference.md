@@ -521,3 +521,63 @@ a = Y1 + b * v1
 For more than two points, use `FormulaFitter.fit()` (least-squares; also reports R² and hysteresis classification). The interactive calibration flow in `calibrate-device.sh` automates the sweep and calls the fitter — see `calibration-runbook.md`.
 
 To observe current slider positions: `adb shell screencap -p /sdcard/screen.png` or use the OCR calibration UI in `CalibrationActivity`.
+
+---
+
+## Validating Slider Coordinates Against the APK Layout
+
+All `trackX()` and `targetY()` values can be cross-checked against the iFit APK's Android layout resources without hardware. Run:
+
+```bash
+python3 tools/validate_swipe_targets.py
+```
+
+Exit code 0 means all checks pass. The script reads the decoded APK (`ifit_decoded/res/`) and all device Java files.
+
+### How the validator derives expected trackX values
+
+The iFit workout HUD (`inworkouttablet.xml`) positions slider containers using two dimensions from the APK:
+
+```
+workout_slider_margin =  12.0 dp   (gap between screen edge and slider container)
+workout_slider_width  = 125.0 dp   (container width; track is centred at 50%)
+```
+
+At the iFit tablet's density (1 dp = 1 px on all tested models), the expected track centres are:
+
+| Slider side | Expected trackX | Derivation |
+|-------------|----------------|------------|
+| Left (incline / speed) | ≈ 75 px | `12 + 125 / 2 = 74.5 dp` |
+| Right (resistance / speed) | screen\_width − 75 px | e.g. `1920 − 74.5 = 1845.5 → 1845 px` |
+
+The right-slider trackX also implies the device's screen width:
+
+| right trackX | Inferred screen width | Devices |
+|---|---|---|
+| ~725  | 800 px  | X9i |
+| ~950  | 1024 px | Elite 900, EXP 7i, NTEX71021, ProForm Carbon E7, S40 |
+| ~1205 | 1280 px | C1750 (2020/2021), ProForm 2000, T6.5s family, X11i, TDF10, ProForm Carbon C10 |
+| ~1845 | 1920 px | S22i, S27i, X22i/X32i family, C1750, NordicTrack 2450/2950, ProForm Carbon T14, T9.5s, X14i |
+
+### Checks the validator runs
+
+| Check | What it verifies |
+|-------|-----------------|
+| **A — Horizontal position** | `trackX ≈ 74.5` for left sliders; right `trackX + 74.5` lands on a recognised screen width (±15 px) |
+| **B — Initial thumb vs. formula** | `new Slider(initialThumbY)` should equal `targetY(0)` for incline/speed sliders |
+| **C — Monotonicity** | Higher metric values produce lower Y (slider moves up); inverted slopes are flagged |
+| **D — Sindarin global bounds** | `targetY()` at `MaxIncline=40°`, `MinIncline=−20°`, and practical max speed 22 km/h must land within `[0, screen_height]` |
+
+### Known anomalies
+
+Three devices produce `WARN` entries for trackX values that do not match the APK-derived expected position. Their formulas are internally consistent and work on the calibrated hardware; the anomaly is that the trackX position does not match the APK layout XML. Device-specific comments in the Java source explain what was found.
+
+| Device | Slider | trackX | Expected | Delta | Notes |
+|--------|--------|--------|----------|-------|-------|
+| ProForm Pro 9000 | Speed (right) | 1825 | 1845.5 | −20.5 px | Inferred ~1900 px screen; non-standard width |
+| ProForm Pro 9000 | Incline (left) | 90 | 74.5 | +15.5 px | Consistent with non-standard slider margin |
+| ProForm Studio Bike Pro 2.2 | Resistance (right) | 1828 | 1845.5 | −17.5 px | Inferred ~1903 px screen; non-standard width |
+| SE9i Elliptical | Incline (left) | 57 | 74.5 | −17.5 px | Asymmetric offsets on both sides; possibly different slider margins |
+| SE9i Elliptical | Resistance (right) | 1857 | 1845.5 | +11.5 px | |
+
+If you own one of these devices and can confirm the correct pixel position from a screenshot, a correction PR is welcome.

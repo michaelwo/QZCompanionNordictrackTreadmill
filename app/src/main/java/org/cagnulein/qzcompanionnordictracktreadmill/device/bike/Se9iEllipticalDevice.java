@@ -5,7 +5,11 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Se9iEllipticalDevice extends BikeDevice {
-    public Se9iEllipticalDevice() {         super(
+    public Se9iEllipticalDevice() {
+        // Screen: assumed 1920px, but both trackX values deviate from APK-expected:
+        //   incline trackX=57 (expected≈75, −18px), resistance trackX=1857 (+11.5px).
+        // Asymmetric offsets suggest non-standard slider margins on this model.
+        super(
             new Slider(858) {
                 public int trackX() { return 57; }
                 public int targetY(double v) { return 858 - (int) (v * (858.0 - 208.0) / 20.0); }

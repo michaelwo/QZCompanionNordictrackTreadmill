@@ -33,7 +33,9 @@ public class X14iDevice extends TreadmillDevice {
         {39.0, 308}, {39.5, 302}, {40.0, 295}
     };
 
-    public X14iDevice() {         super(
+    public X14iDevice() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(785) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return 807 - (int) ((v - 1.0) * 31); }

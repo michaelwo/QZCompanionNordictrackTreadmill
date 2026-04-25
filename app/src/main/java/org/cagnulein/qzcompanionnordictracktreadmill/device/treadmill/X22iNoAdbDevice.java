@@ -6,7 +6,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityServ
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class X22iNoAdbDevice extends TreadmillDevice {
-    public X22iNoAdbDevice() {         super(
+    public X22iNoAdbDevice() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(785) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return (int) (785 - 23.636363636363636 * v); }

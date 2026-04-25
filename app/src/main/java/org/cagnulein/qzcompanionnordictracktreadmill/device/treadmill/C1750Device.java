@@ -7,7 +7,10 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class C1750Device extends TreadmillDevice {
-    public C1750Device() {         super(
+    public C1750Device() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Incline trackX=79 is 4.5px off APK-expected 74.5; matches hardware calibration.
+        super(
             new Slider(793) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return 785 - (int) ((v - 1.0) * 31.42); }

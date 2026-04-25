@@ -5,7 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class Elite900Device extends TreadmillDevice {
-    public Elite900Device() {         super(
+    public Elite900Device() {
+        // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(450) {
                 public int trackX() { return 950; }
                 public int targetY(double v) { return 450 - (int) (v * 14.705); }

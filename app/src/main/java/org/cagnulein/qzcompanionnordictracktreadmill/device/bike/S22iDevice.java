@@ -9,6 +9,7 @@ public class S22iDevice extends BikeDevice {
     // hystLong: overshoot pixels for travel ≥ 40px; hystShort: for shorter swipes.
     // S22iNoAdbDevice passes (0, 0) — AccessibilityService swipes have no spring-back.
     protected S22iDevice(int hystLong, int hystShort) {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
             new Slider(622) {
                 public int trackX() { return 75; }

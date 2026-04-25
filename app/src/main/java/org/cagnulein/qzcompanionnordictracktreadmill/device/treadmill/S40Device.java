@@ -3,7 +3,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 public class S40Device extends TreadmillDevice {
-    public S40Device() {         super(
+    public S40Device() {
+        // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(482) {
                 public int trackX() { return 949; }
                 public int targetY(double v) { return (int) (507 - 12.5 * v); }

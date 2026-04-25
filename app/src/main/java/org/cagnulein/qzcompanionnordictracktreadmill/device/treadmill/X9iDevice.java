@@ -8,7 +8,9 @@ public class X9iDevice extends TreadmillDevice {
     @Override public boolean requiresAdb() { return false; }
     private final ShellRuntime shellRuntime = new ShellRuntime();
 
-    public X9iDevice() {         super(
+    public X9iDevice() {
+        // Screen: 800px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(332) {
                 public int trackX() { return 725; }
                 public int targetY(double v) { return (int) (345.6315 - 13.6315 * v); }

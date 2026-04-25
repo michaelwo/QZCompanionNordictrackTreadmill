@@ -6,7 +6,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 
 public class ProformCarbonT14Device extends TreadmillDevice {
-    public ProformCarbonT14Device() {         super(
+    public ProformCarbonT14Device() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(807) {
                 public int trackX() { return 1845; }
                 public int targetY(double v) { return (int) (810 - 52.8 * v * 0.621371); }

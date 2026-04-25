@@ -5,7 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class S22iNtex02121Device extends BikeDevice {
-    public S22iNtex02121Device() {         super(
+    public S22iNtex02121Device() {
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(535) {
                 public int trackX() { return 75; }
                 public int targetY(double v) { return 800 - (int) ((v + 10) * 19); }

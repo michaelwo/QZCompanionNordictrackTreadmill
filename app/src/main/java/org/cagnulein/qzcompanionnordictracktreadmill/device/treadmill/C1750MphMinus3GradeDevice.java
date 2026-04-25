@@ -5,7 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class C1750MphMinus3GradeDevice extends TreadmillDevice {
-    public C1750MphMinus3GradeDevice() {         super(
+    public C1750MphMinus3GradeDevice() {
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        super(
             new Slider(603) {
                 public int trackX() { return 1206; }
                 public int targetY(double v) {
