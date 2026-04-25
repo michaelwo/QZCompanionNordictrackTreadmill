@@ -16,15 +16,22 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  */
 public abstract class Slider {
 
+    private final int trackX;
     private int thumbY;
     private Float lastApplied = null;
 
+    protected Slider(int initialThumbY, int trackX) {
+        this.thumbY  = initialThumbY;
+        this.trackX  = trackX;
+    }
+
+    /** Single-arg constructor for subclasses that override {@link #trackX()} at runtime. */
     protected Slider(int initialThumbY) {
-        this.thumbY = initialThumbY;
+        this(initialThumbY, 0);
     }
 
     /** Fixed horizontal pixel coordinate of this slider's track on screen. */
-    public abstract int trackX();
+    public int trackX() { return trackX; }
 
     /** Pixel Y coordinate the thumb should move to for the given metric {@code value}. */
     public abstract int targetY(double v);

@@ -8,13 +8,11 @@ public class S27iDevice extends BikeDevice {
     public S27iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(803) {
-                public int trackX() { return 76; }
+            new Slider(803, 76) {
                 public int targetY(double v) { return 803 - (int) ((v + 10) * (803.0 - 248.0) / 30.0); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             },
-            new Slider(803) {
-                public int trackX() { return 1847; }
+            new Slider(803, 1847) {
                 public int targetY(double v) { return 803 - (int) ((v - 1) * (803.0 - 248.0) / 23.0); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.resistance()); }
             }

@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
@@ -21,8 +22,7 @@ public class C1750_2020KphDevice extends TreadmillDevice {
     public C1750_2020KphDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(598) {
-                public int trackX() { return 1205; }
+            new Slider(598, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) {
                     if (v <= 11) return (int)(v + 16.0 - 16.0 * 592);
                     else if (v < 12) return (int)(v + 8.0 - 16.0 * 592);
@@ -30,8 +30,7 @@ public class C1750_2020KphDevice extends TreadmillDevice {
                 }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(525) {
-                public int trackX() { return 75; }
+            new Slider(525, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

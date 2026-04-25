@@ -9,13 +9,11 @@ public class ProformPro9000Device extends TreadmillDevice {
         // Screen width unconfirmed: right trackX=1825 implies ~1900px — not a standard iFit screen width.
         // Incline trackX=90 is 15.5px off APK-expected 74.5. Calibrated from hardware; may use non-standard slider margins.
         super(
-            new Slider(800) {
-                public int trackX() { return 1825; }
+            new Slider(800, 1825) {
                 public int targetY(double v) { return 800 - (int) ((v * 0.621371 - 1.0) * 41.6666); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(715) {
-                public int trackX() { return 90; }
+            new Slider(715, 90) {
                 public int targetY(double v) { return 720 - (int) (v * 34.583); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

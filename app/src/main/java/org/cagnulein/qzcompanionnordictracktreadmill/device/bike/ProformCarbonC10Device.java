@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
@@ -10,8 +11,7 @@ public class ProformCarbonC10Device extends BikeDevice {
     public ProformCarbonC10Device() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(632) {
-                public int trackX() { return 1205; }
+            new Slider(632, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return 632 - (int) (v * 18.45); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.resistance()); }
             },

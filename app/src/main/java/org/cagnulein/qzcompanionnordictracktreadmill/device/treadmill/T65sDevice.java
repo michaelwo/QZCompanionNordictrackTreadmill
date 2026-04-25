@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
@@ -13,12 +14,10 @@ public class T65sDevice extends TreadmillDevice {
     public T65sDevice(String name, MetricReader reader) {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(495) {
-                public int trackX() { return 1205; }
+            new Slider(495, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return (int) (578.36 - 35.866 * v * 0.621371); }
             },
-            new Slider(585) {
-                public int trackX() { return 74; }
+            new Slider(585, 74) {
                 public int targetY(double v) { return (int) (576.91 - 34.182 * v); }
             }
         );

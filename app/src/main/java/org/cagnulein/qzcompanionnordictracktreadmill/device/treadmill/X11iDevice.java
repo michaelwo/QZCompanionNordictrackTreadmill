@@ -6,12 +6,10 @@ public class X11iDevice extends TreadmillDevice {
     public X11iDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(600) {
-                public int trackX() { return 1207; }
+            new Slider(600, 1207) {
                 public int targetY(double v) { return (int) (621.997 - 21.785 * v); }
             },
-            new Slider(557) {
-                public int trackX() { return 75; }
+            new Slider(557, 75) {
                 public int targetY(double v) { return (int) (565.491 - 8.44 * v); }
             }
         ); }

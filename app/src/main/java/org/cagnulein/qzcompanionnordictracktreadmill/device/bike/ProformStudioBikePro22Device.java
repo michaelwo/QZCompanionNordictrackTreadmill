@@ -7,8 +7,7 @@ public class ProformStudioBikePro22Device extends BikeDevice {
         // Screen width unconfirmed: right trackX=1828 implies ~1903px — not a standard iFit screen width.
         // Calibrated from hardware; may use non-standard slider margins.
         super(
-            new Slider(805) {
-                public int trackX() { return 1828; }
+            new Slider(805, 1828) {
                 public int targetY(double v) { return (int) (826.25 - 21.25 * v); }
             },
             null

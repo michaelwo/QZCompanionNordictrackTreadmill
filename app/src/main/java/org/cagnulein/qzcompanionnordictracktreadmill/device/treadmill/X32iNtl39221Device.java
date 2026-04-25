@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
@@ -8,13 +9,11 @@ public class X32iNtl39221Device extends TreadmillDevice {
     public X32iNtl39221Device() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(579) {
-                public int trackX() { return 1845; }
+            new Slider(579, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return (int) (900.26 - 46.63 * v * 0.621371); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(635) {
-                public int trackX() { return 75; }
+            new Slider(635, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return 750 - (int) (v * 12.05); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

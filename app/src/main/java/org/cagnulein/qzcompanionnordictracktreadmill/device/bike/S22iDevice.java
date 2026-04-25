@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
@@ -11,8 +12,7 @@ public class S22iDevice extends BikeDevice {
     protected S22iDevice(int hystLong, int hystShort) {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(622) {
-                public int trackX() { return 75; }
+            new Slider(622, ScreenProfile.W1920.leftTrackX) {
                 // Calibration 2026-04-19 (positive) + 2026-04-22 (negative):
                 // Single linear fit — 18.57 px/% across the full range.
                 // Intercept 622 = device-reported neutral (0% grade in iFit log).
@@ -32,8 +32,7 @@ public class S22iDevice extends BikeDevice {
                     return Math.abs(toY - fromY) >= 40 ? hystLong : hystShort;
                 }
             },
-            new Slider(724) {
-                public int trackX() { return 1845; }
+            new Slider(724, ScreenProfile.W1920.rightTrackX) {
                 // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
                 // Slope = (323−724) / 23 = −401/23 ≈ −17.43 px per level.
                 public int targetY(double v) { return (int) (724.0 - 401.0 / 23 * (v - 1)); }

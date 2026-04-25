@@ -6,8 +6,7 @@ public class Tdf10InclinationDevice extends BikeDevice {
     public Tdf10InclinationDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(482) {
-                public int trackX() { return 74; }
+            new Slider(482, 74) {
                 public int targetY(double v) { return (int) (-12.499 * v + 482.2); }
             },
             null

@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.ShellRuntime;
@@ -36,13 +37,11 @@ public class X14iDevice extends TreadmillDevice {
     public X14iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(785) {
-                public int trackX() { return 1845; }
+            new Slider(785, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return 807 - (int) ((v - 1.0) * 31); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(645) {
-                public int trackX() { return 75; }
+            new Slider(645, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
