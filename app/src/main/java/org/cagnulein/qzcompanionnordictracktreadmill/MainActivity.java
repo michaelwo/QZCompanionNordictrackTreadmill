@@ -531,6 +531,24 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             bleDetail = "Available — use QZ to pair Zwift over Bluetooth";
         }
         addRequirementRow(list, bleSupported, "Zwift via Bluetooth", bleDetail, null);
+
+        IfitConsoleSnapshot snap = IfitConsoleSnapshot.load(sharedPreferences);
+        if (snap != null && snap.isValid()) {
+            String detail = snap.machineType + "  ·  Part# " + snap.partNumber;
+            if (!snap.maxKph.isEmpty()) detail += "  ·  Max " + snap.maxKph + " kph";
+            addRequirementRow(list, true, "iFit Hardware", detail, null);
+        } else {
+            addRequirementRow(list, false,
+                    "iFit Hardware",
+                    "Open iFit → Settings → Equipment Info → Machine Info  ›",
+                    v -> {
+                        Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
+                        ifitIntent.setPackage("com.ifit.standalone");
+                        ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        try { startActivity(ifitIntent); }
+                        catch (Exception ignored) {}
+                    });
+        }
     }
 
     private void addRequirementRow(LinearLayout container, boolean ok,
