@@ -1,6 +1,6 @@
 # Device Reference
 
-All coordinates are screen pixels on the iFit touch display. Swipe format:
+All coordinates are screen pixels on the iFit touch display, standardised to **iFit APK 2.6.90** (versionCode 4963, `com.ifit.standalone`). TrackX values are derived from the APK layout resources and expressed via the `ScreenProfile` enum in source — see `device/ScreenProfile.java`. If the iFit app is updated to a version with different slider geometry, re-derive the constants from the new APK before editing device classes. Swipe format:
 
 ```
 input swipe <trackX> <fromY> <trackX> <targetY(v)> 200
@@ -84,7 +84,7 @@ Bike UDP message: `"inclinePct;?"` (2-part) or `"resistanceLvl"` (1-part). Senti
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Incline | 75 | 618 | `616 - (int)(v * 17.65)` | from `snapshot.incline()` |
-| Resistance | 1848 | 790 | `790 - (int)(v * 23.16)` | from `snapshot.gear()` |
+| Resistance | 1845 | 790 | `790 - (int)(v * 23.16)` | from `snapshot.gear()` |
 
 ---
 
@@ -127,8 +127,8 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 76 | 803 | `803 - (int)((v + 10) * (803-248) / 30.0)` | from `snapshot.incline()` |
-| Resistance | 1847 | 803 | `803 - (int)((v - 1) * (803-248) / 23.0)` | from `snapshot.resistance()` |
+| Incline | 75 | 803 | `803 - (int)((v + 10) * (803-248) / 30.0)` | from `snapshot.incline()` |
+| Resistance | 1845 | 803 | `803 - (int)((v - 1) * (803-248) / 23.0)` | from `snapshot.resistance()` |
 
 ---
 
@@ -153,7 +153,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
-| Incline | 74 | 482 | `(int)(-12.499 * v + 482.2)` |
+| Incline | 75 | 482 | `(int)(-12.499 * v + 482.2)` |
 
 ---
 
@@ -161,7 +161,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
-| Resistance | 1828 | 805 | `(int)(826.25 - 21.25 * v)` |
+| Resistance | 1845 | 805 | `(int)(826.25 - 21.25 * v)` |
 
 ---
 
@@ -169,7 +169,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 75 | 440 | `440 - (int)(v * 11)` | from `snapshot.incline()` |
+| Incline | 74 | 440 | `440 - (int)(v * 11)` | from `snapshot.incline()` |
 | Resistance | 950 | 440 | `440 - (int)(v * 9.16)` | from `snapshot.resistance()` |
 
 ---
@@ -206,7 +206,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
-| Speed | 1207 | 600 | `(int)(621.997 - 21.785 * v)` |
+| Speed | 1205 | 600 | `(int)(621.997 - 21.785 * v)` |
 | Incline | 75 | 557 | `(int)(565.491 - 8.44 * v)` |
 
 ---
@@ -254,7 +254,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
 | Speed | 1845 | 927 | `(int)(834.85 - 26.946 * v)` |
-| Incline | 76 | 881 | `(int)(734.07 - 12.297 * v)` |
+| Incline | 75 | 881 | `(int)(734.07 - 12.297 * v)` |
 
 ---
 
@@ -263,7 +263,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
 | Speed | 1845 | 779 | `(int)(817.5 - 42.5 * v * 0.621371)` *(mph input scaled to km/h)* |
-| Incline | 74 | 740 | `(int)(749 - 11.8424 * v)` |
+| Incline | 75 | 740 | `(int)(749 - 11.8424 * v)` |
 
 ---
 
@@ -282,7 +282,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1845 | 793 | `785 - (int)((v - 1.0) * 31.42)` | from `snapshot.speed()` |
-| Incline | 79 | 694 | `(int)(700 - 34.9 * v)` | — |
+| Incline | 75 | 694 | `(int)(700 - 34.9 * v)` | — |
 
 ---
 
@@ -310,7 +310,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1206 | 603 | `603 - (int)((v * 0.621371 - 0.5) * 21.722)` *(mph scaled)* | from `snapshot.speed()` |
+| Speed | 1205 | 603 | `603 - (int)((v * 0.621371 - 0.5) * 21.722)` *(mph scaled)* | from `snapshot.speed()` |
 | Incline | 75 | 603 | `603 - (int)((v + 3.0) * 21.722)` | from `snapshot.incline()` |
 
 ---
@@ -319,8 +319,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1850 | 787 | `787 - (int)(v * 43.5)` | from `snapshot.speed()` |
-| Incline | 70 | 787 | `787 - (int)((v + 3) * 29)` | from `snapshot.incline()` |
+| Speed | 1845 | 787 | `787 - (int)(v * 43.5)` | from `snapshot.speed()` |
+| Incline | 75 | 787 | `787 - (int)((v + 3) * 29)` | from `snapshot.incline()` |
 
 ---
 
@@ -330,7 +330,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1205 | 592 | `620 - (int)((v - 1.0) * 20.73)` | from `snapshot.speed()` |
-| Incline | 79 | 547 | `(int)(553 - 22 * v)` | — |
+| Incline | 75 | 547 | `(int)(553 - 22 * v)` | — |
 
 ---
 
@@ -347,7 +347,7 @@ These three devices share the `T65sDevice` geometry — only the display name an
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
 | Speed | 1205 | 495 | `(int)(578.36 - 35.866 * v * 0.621371)` *(mph scaled)* |
-| Incline | 74 | 585 | `(int)(576.91 - 34.182 * v)` |
+| Incline | 75 | 585 | `(int)(576.91 - 34.182 * v)` |
 
 ---
 
@@ -355,7 +355,7 @@ These three devices share the `T65sDevice` geometry — only the display name an
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1207 | 609 | `(int)(629.81 - 20.81 * v)` | from `snapshot.speed()` |
+| Speed | 1205 | 609 | `(int)(629.81 - 20.81 * v)` | from `snapshot.speed()` |
 | Incline | 75 | 609 | `(int)(609 - 36.417 * v)` | from `snapshot.incline()` |
 
 ---
@@ -365,7 +365,7 @@ These three devices share the `T65sDevice` geometry — only the display name an
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1845 | 817 | `847 - (int)(30.0 * v)` | from `snapshot.speed()` |
-| Incline | 76 | 817 | `846 - (int)(46.0 * v)` | from `snapshot.incline()` |
+| Incline | 75 | 817 | `846 - (int)(46.0 * v)` | from `snapshot.incline()` |
 
 ---
 
@@ -373,8 +373,8 @@ These three devices share the `T65sDevice` geometry — only the display name an
 
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
-| Speed | 949 | 482 | `(int)(507 - 12.5 * v)` |
-| Incline | 75 | 490 | `(int)(490 - 21.4 * v)` |
+| Speed | 950 | 482 | `(int)(507 - 12.5 * v)` |
+| Incline | 74 | 490 | `(int)(490 - 21.4 * v)` |
 
 ---
 
@@ -383,7 +383,7 @@ These three devices share the `T65sDevice` geometry — only the display name an
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1845 | 807 | `(int)(-26.33 * (v * 0.621371) + 831.39)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 72 | 717 | `715 - (int)((v + 3) * 29.26)` | from `snapshot.incline()` |
+| Incline | 75 | 717 | `715 - (int)((v + 3) * 29.26)` | from `snapshot.incline()` |
 
 ---
 
@@ -412,7 +412,7 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1205 | 598 | `(int)(631.03 - 19.921 * v)` | — |
-| Incline | 79 | 522 | `520 - (int)((v + 3) * 21.804)` | from `snapshot.incline()` |
+| Incline | 75 | 522 | `520 - (int)((v + 3) * 21.804)` | from `snapshot.incline()` |
 
 ---
 
@@ -422,7 +422,7 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
 | Speed | 1845 | 807 | `(int)(810 - 52.8 * v * 0.621371)` *(mph scaled)* |
-| Incline | 76 | 844 | `(int)(844 - 46.833 * v)` |
+| Incline | 75 | 844 | `(int)(844 - 46.833 * v)` |
 
 ---
 
@@ -430,8 +430,8 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1825 | 800 | `800 - (int)((v * 0.621371 - 1.0) * 41.667)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 90 | 715 | `720 - (int)(v * 34.583)` | from `snapshot.incline()` |
+| Speed | 1845 | 800 | `800 - (int)((v * 0.621371 - 1.0) * 41.667)` *(mph scaled)* | from `snapshot.speed()` |
+| Incline | 75 | 715 | `720 - (int)(v * 34.583)` | from `snapshot.incline()` |
 
 ---
 
@@ -446,8 +446,8 @@ Both share `Elite1000Device` geometry — only the display name differs.
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1209 | 600 | `600 - (int)(v * 0.621371 * 31.33)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 76 | 600 | `589 - (int)(v * 32.8)` | from `snapshot.incline()` |
+| Speed | 1205 | 600 | `600 - (int)(v * 0.621371 * 31.33)` *(mph scaled)* | from `snapshot.speed()` |
+| Incline | 75 | 600 | `589 - (int)(v * 32.8)` | from `snapshot.incline()` |
 
 ---
 
@@ -456,7 +456,7 @@ Both share `Elite1000Device` geometry — only the display name differs.
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 950 | 450 | `450 - (int)(v * 14.705)` | from `snapshot.speed()` |
-| Incline | 76 | 450 | `450 - (int)(v * 20.83)` | from `snapshot.incline()` |
+| Incline | 74 | 450 | `450 - (int)(v * 20.83)` | from `snapshot.incline()` |
 
 ---
 
@@ -477,8 +477,8 @@ Physically an elliptical but treated as a bike (extends `BikeDevice`). Incline r
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 57 | 858 | `858 - (int)(v * (858-208) / 20.0)` | from `snapshot.incline()` |
-| Resistance | 1857 | 858 | `858 - (int)((v-1) * (858-208) / 23.0)` | from `snapshot.resistance()` |
+| Incline | 75 | 858 | `858 - (int)(v * (858-208) / 20.0)` | from `snapshot.incline()` |
+| Resistance | 1845 | 858 | `858 - (int)((v-1) * (858-208) / 23.0)` | from `snapshot.resistance()` |
 
 ---
 
@@ -489,14 +489,14 @@ Fallback device. Uses ProForm 2000 geometry without `currentThumbY`. Useful for 
 | Slider | trackX | Initial Y | Formula |
 |--------|--------|-----------|---------|
 | Speed | 1205 | 0 | `(int)(631.03 - 19.921 * v)` |
-| Incline | 79 | 0 | `(int)(520.11 - 21.804 * v)` |
+| Incline | 75 | 0 | `(int)(520.11 - 21.804 * v)` |
 
 ---
 
 ## Adding a New Device
 
 1. Create a class in `device/bike/` (extends `BikeDevice`) or `device/treadmill/` (extends `TreadmillDevice`).
-2. Pass one or two anonymous `Slider` subclasses to `super()`. Each supplies `trackX()` and `targetY()`; optionally override `quantize()`, `currentThumbY()`, and `hysteresisPixels()`.
+2. Pass one or two anonymous `Slider` subclasses to `super()`. Construct each as `new Slider(initialThumbY, ScreenProfile.Wxxx.leftTrackX)` or `new Slider(initialThumbY, ScreenProfile.Wxxx.rightTrackX)` — choose the profile that matches the device's screen width (W1920=1920px, W1280=1280px, W1024=1024px, W800=800px). Each subclass must supply `targetY()`; optionally override `quantize()`, `currentThumbY()`, and `hysteresisPixels()`.
 3. Override `displayName()`.
 4. **Shell mode:** override `requiresAdb()` to return `false`; add a `ShellRuntime` field and wire `commandExecutor = shellRuntime::exec` in the constructor.
 5. **Accessibility mode:** override `requiresAdb()` to return `false`, `requiresAccessibility()` to return `true`, and `swipe()` to call `MyAccessibilityService.performSwipe(x, y1, x, y2, 200)`.
@@ -536,7 +536,7 @@ Exit code 0 means all checks pass. The script reads the decoded APK (`ifit_decod
 
 ### How the validator derives expected trackX values
 
-The iFit workout HUD (`inworkouttablet.xml`) positions slider containers using two dimensions from the APK:
+Constants are anchored to **iFit APK 2.6.90** (versionCode 4963). The iFit workout HUD (`inworkouttablet.xml`) positions slider containers using two dimensions from the APK:
 
 ```
 workout_slider_margin =  12.0 dp   (gap between screen edge and slider container)
@@ -570,14 +570,4 @@ The right-slider trackX also implies the device's screen width:
 
 ### Known anomalies
 
-Three devices produce `WARN` entries for trackX values that do not match the APK-derived expected position. Their formulas are internally consistent and work on the calibrated hardware; the anomaly is that the trackX position does not match the APK layout XML. Device-specific comments in the Java source explain what was found.
-
-| Device | Slider | trackX | Expected | Delta | Notes |
-|--------|--------|--------|----------|-------|-------|
-| ProForm Pro 9000 | Speed (right) | 1825 | 1845.5 | −20.5 px | Inferred ~1900 px screen; non-standard width |
-| ProForm Pro 9000 | Incline (left) | 90 | 74.5 | +15.5 px | Consistent with non-standard slider margin |
-| ProForm Studio Bike Pro 2.2 | Resistance (right) | 1828 | 1845.5 | −17.5 px | Inferred ~1903 px screen; non-standard width |
-| SE9i Elliptical | Incline (left) | 57 | 74.5 | −17.5 px | Asymmetric offsets on both sides; possibly different slider margins |
-| SE9i Elliptical | Resistance (right) | 1857 | 1845.5 | +11.5 px | |
-
-If you own one of these devices and can confirm the correct pixel position from a screenshot, a correction PR is welcome.
+All trackX values are now standardised to iFit APK 2.6.90 (`ScreenProfile` constants). Devices that previously had hardware-calibrated trackX values deviating from the APK layout (ProForm Pro 9000, ProForm Studio Bike Pro 2.2, SE9i Elliptical, and others) have been updated. The original calibrated values are preserved in constructor comments in the Java source for reference.

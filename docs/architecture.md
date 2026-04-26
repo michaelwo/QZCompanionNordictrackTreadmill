@@ -162,12 +162,13 @@ org.cagnulein.qzcompanionnordictracktreadmill
 
 **`TreadmillDevice`** (abstract, extends `Device`) — controls speed and incline `Slider` instances. Gates speed commands when `lastSnapshot.speed() <= 0` (treadmill stopped) to avoid swipes on a stationary belt.
 
-**`Slider`** (abstract) — represents one physical slider on the iFit touchscreen. Subclasses supply:
-- `trackX()` — fixed horizontal pixel position of the slider track
+**`Slider`** (abstract) — represents one physical slider on the iFit touchscreen. The horizontal track position is set via the two-arg constructor `Slider(initialThumbY, trackX)` and is typically expressed as a `ScreenProfile` constant (e.g. `ScreenProfile.W1920.leftTrackX`). Subclasses supply:
 - `targetY(double v)` — converts a metric value to a logical pixel Y coordinate
 - `quantize(float v)` — (optional) snaps to physically reachable increments
 - `currentThumbY(MetricSnapshot)` — (optional) derives starting position from live metrics rather than tracking it as internal state; used when the slider can drift if commands are missed
 - `hysteresisPixels()` — (optional) pixels of directional overshoot to compensate for physical stiction; the swipe overshoots `targetY` by this amount while `thumbY` still tracks the logical target so de-dup is unaffected. Default: 0.
+
+**`ScreenProfile`** (enum) — encodes the horizontal pixel coordinates of the left and right slider tracks for each iFit screen width (W1920, W1280, W1024, W800). Constants are derived from iFit APK 2.6.90 (versionCode 4963, `com.ifit.standalone`): `workout_slider_margin=12 dp`, `workout_slider_width=125 dp` → track centre at `12 + 62.5 = 74.5 dp`. Left and right values are stored independently because dp→px rounding can be asymmetric at the pixel boundary. If the iFit app is updated, re-derive these constants from the new APK's `res/values/dimens.xml` before touching any device class.
 
 **`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `CommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
@@ -175,7 +176,7 @@ For per-device pixel formulas, command execution modes, and metric reader assign
 
 ### Coordinate Validation
 
-The pixel constants in each device class can be cross-checked against the iFit APK layout resources without hardware. `tools/validate_swipe_targets.py` reads the decoded APK (`ifit_decoded/res/`) and all device Java files, then checks that each slider's `trackX()` matches the position implied by the APK's `workout_slider_margin` (12 dp) and `workout_slider_width` (125 dp) dimension resources. At the iFit tablet's mdpi density (1 dp = 1 px), this yields an expected left-slider trackX of 74.5 px and a right-slider trackX of `screen_width − 74.5` px. The script also checks formula monotonicity, initial-thumb plausibility, and formula bounds against Sindarin's protocol limits.
+All trackX constants are standardised to **iFit APK 2.6.90** (versionCode 4963) and expressed via the `ScreenProfile` enum — the single source of truth for slider track positions. `tools/validate_swipe_targets.py` reads the decoded APK (`ifit_decoded/res/`) and all device Java files, then checks that each slider's trackX matches the position implied by the APK's `workout_slider_margin` (12 dp) and `workout_slider_width` (125 dp) dimension resources. At the iFit tablet's mdpi density (1 dp = 1 px), this yields an expected left-slider trackX of 74.5 px and a right-slider trackX of `screen_width − 74.5` px. The script also checks formula monotonicity, initial-thumb plausibility, and formula bounds against Sindarin's protocol limits.
 
 Run it before and after editing any device class:
 
