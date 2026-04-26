@@ -55,6 +55,8 @@ public class MetricReaderBroadcastingService extends Service {
         }
 
         writeLog("Service onCreate");
+
+        if (Device.instance != null) applyDeviceInternal(Device.instance);
     }
 
     /**
@@ -69,6 +71,7 @@ public class MetricReaderBroadcastingService extends Service {
     private void applyDeviceInternal(Device device) {
         cachedReader = device.defaultMetricReader();
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
+        MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
         cachedReader.subscribe(this::applyAndBroadcast);
         writeLog("Device " + device.displayName() + ": streaming reader active");
         try { cachedReader.read(null, null); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
@@ -88,15 +91,26 @@ public class MetricReaderBroadcastingService extends Service {
 
     private void sendIfChanged(Float current, Float last, String label, Consumer<Float> save) {
         if (current != null && !current.equals(last)) {
-            sendBroadcast(label + current);
+            String msg = label + current;
+            logMetric(msg);
+            sendBroadcast(msg);
             save.accept(current);
         }
     }
 
     private void sendIfChangedInt(Float current, Float last, String label, Consumer<Float> save) {
         if (current != null && !current.equals(last)) {
-            sendBroadcast(label + current.intValue());
+            String msg = label + current.intValue();
+            logMetric(msg);
+            sendBroadcast(msg);
             save.accept(current);
+        }
+    }
+
+    private static void logMetric(String msg) {
+        if (sharedPreferences.getBoolean("debugLog", false)) {
+            MainActivity.writeLog(msg);
+            Log.i(LOG_TAG, msg);
         }
     }
 

@@ -62,7 +62,7 @@ public abstract class TreadmillDevice extends Device {
         if (parts.length == 2) {
             Float s = parseField(parts[0], decimalSeparator);
             Float i = parseField(parts[1], decimalSeparator);
-            if (s != null && s != -1)   cmd.speedKmh   = roundToOneDecimal(s);
+            if (s != null && s != -100) cmd.speedKmh   = roundToOneDecimal(s);
             if (i != null && i != -100) cmd.inclinePct = roundToOneDecimal(i);
         }
         return cmd;

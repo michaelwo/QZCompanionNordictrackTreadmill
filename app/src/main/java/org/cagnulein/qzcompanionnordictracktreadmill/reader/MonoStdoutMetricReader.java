@@ -28,6 +28,10 @@ public class MonoStdoutMetricReader implements MetricReader {
      *  can run without Android. The service overrides this to log via {@code Log.e()}. */
     public static Consumer<Exception> onError = e -> {};
 
+    /** Called for each raw logcat line that produced a snapshot update. No-op by default;
+     *  the service sets this to a logger when verbose mode is on. */
+    public static Consumer<String> onLine = s -> {};
+
     private volatile MetricSnapshot latest = new MetricSnapshot();
     private volatile Consumer<MetricSnapshot> listener;
     private Thread readerThread;
@@ -93,6 +97,7 @@ public class MonoStdoutMetricReader implements MetricReader {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).heartRate(v).build();
         }
         if (updated != null) {
+            onLine.accept(line);
             latest = updated;
             Consumer<MetricSnapshot> l = listener;
             if (l != null) l.accept(updated);

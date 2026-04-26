@@ -311,6 +311,7 @@ public class MainActivity extends AppCompatActivity {
                     "Open iFit → Settings → Equipment Info → Machine Info  ›",
                     v -> {
                         Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
+                        ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
                         ifitIntent.setPackage("com.ifit.standalone");
                         ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         try { startActivity(ifitIntent); }
