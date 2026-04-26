@@ -3,14 +3,11 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.ShellRuntime;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class X14iDevice extends TreadmillDevice {
-    @Override public boolean requiresAdb() { return false; }
-    private final ShellRuntime shellRuntime = new ShellRuntime();
+    private static final int THUMB_Y_RIGHT = 785;
+    private static final int THUMB_Y_LEFT  = 645;
 
     private static final double[][] INCLINE_TABLE = {
         {-6.0, 856}, {-5.5, 850}, {-5.0, 844}, {-4.5, 838}, {-4.0, 832},
@@ -37,36 +34,23 @@ public class X14iDevice extends TreadmillDevice {
     public X14iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(785, ScreenProfile.W1920.rightTrackX) {
+            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return 807 - (int) ((v - 1.0) * 31); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(645, ScreenProfile.W1920.leftTrackX) {
+            new Slider(THUMB_Y_LEFT, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
         );
-        commandExecutor = cmd -> {
-            try { shellRuntime.exec(cmd); } catch (java.io.IOException e) {
-                android.util.Log.e("QZ:Dispatch", "exec failed: " + e.getMessage());
-            }
-        };
     }
+
 
     @Override
     public String displayName() { return "X14i Treadmill"; }
-
-
-
-
-    @Override public MetricReader defaultMetricReader() { return new CatFileMetricReader(); }
-
-
-
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];
         return (int) table[table.length - 1][1];
     }
-
 }

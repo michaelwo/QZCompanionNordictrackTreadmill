@@ -6,25 +6,23 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class X32iNtl39221Device extends TreadmillDevice {
+    private static final int THUMB_Y_RIGHT = 579;
+    private static final int THUMB_Y_LEFT  = 635;
+
     public X32iNtl39221Device() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(579, ScreenProfile.W1920.rightTrackX) {
+            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return (int) (900.26 - 46.63 * v * 0.621371); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(635, ScreenProfile.W1920.leftTrackX) {
+            new Slider(THUMB_Y_LEFT, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return 750 - (int) (v * 12.05); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
         ); }
 
+
     @Override
     public String displayName() { return "X32i Treadmill (NTL39221)"; }
-
-
-
-
-
-
 }

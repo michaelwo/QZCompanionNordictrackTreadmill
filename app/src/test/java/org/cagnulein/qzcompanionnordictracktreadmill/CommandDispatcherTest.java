@@ -170,11 +170,10 @@ public class CommandDispatcherTest {
 
     @Test
     public void bike_incline_appliesInclineSwipe() {
-        // S22i v>0: targetInclineY(5.0)=(int)(622-18.57*5.0)=529; initialY=622
-        // Going up (toY<fromY): travel=93 ≥ 40 → h=15; dispatch=529-15=514
+        // S22i targetInclineY(5.0)=(int)(622-18.57*5.0)=529; h=0 → dispatch=529
         CommandDispatcher d = dispatcher();
         d.dispatch("5.0;0", '.', dev(new S22iDevice()));
-        assertEquals("input swipe 75 622 75 514 200", lastCommand);
+        assertEquals("input swipe 75 622 75 529 200", lastCommand);
     }
 
     @Test

@@ -8,8 +8,8 @@ import java.util.function.Consumer;
 /**
  * Streams {@code logcat -s mono-stdout} in a daemon thread, updating a cached snapshot
  * as each line arrives. {@link #read} returns the cached snapshot without doing I/O.
- * Used by S22i NoADB — {@code mono-stdout} is the tag emitted by {@code com.ifit.standalone}
- * (Xamarin/Wolf platform) for all FitPro metric changes.
+ * {@code mono-stdout} is the logcat tag emitted by the Xamarin/Mono runtime for all
+ * {@code com.ifit.standalone} (iFit APK) metric changes — present on every supported device.
  *
  * The stream is started lazily on the first {@link #read} call and restarts automatically
  * if the underlying logcat process exits.
@@ -89,6 +89,8 @@ public class MonoStdoutMetricReader implements MetricReader {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).gearLevel(v).build();
         } else if (line.contains("Changed Resistance")) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).resistanceLvl(v).build();
+        } else if (line.contains("HeartRateDataUpdate")) {
+            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).heartRate(v).build();
         }
         if (updated != null) {
             latest = updated;

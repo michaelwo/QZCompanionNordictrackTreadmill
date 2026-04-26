@@ -72,9 +72,7 @@ public class ZwiftRideRobolectricTest {
     }
 
     private static int dispatchY(int fromY, int toY) {
-        if (toY == fromY) return toY;
-        int h = Math.abs(toY - fromY) >= 40 ? 15 : 10;
-        return toY < fromY ? toY - h : toY + h;
+        return toY;
     }
 
     /**

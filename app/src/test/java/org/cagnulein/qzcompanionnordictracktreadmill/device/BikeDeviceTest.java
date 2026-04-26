@@ -8,7 +8,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformCarbonE7
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.ProformStudioBikePro22Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNoAdbDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02117Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iNtex02121Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S27iDevice;
@@ -17,11 +16,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.BikeMetricReader;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,32 +66,32 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atNegativeTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-10.0);
-        // unified formula: toY=(int)(622-18.57*(-10))=(int)(807.7)=807; going down → travel=185 ≥ 40 → h=15; dispatch=822
-        assertEquals("input swipe 75 622 75 822 200", lastCommand);
+        // unified formula: toY=(int)(622-18.57*(-10))=(int)(807.7)=807; h=0 → dispatch=807
+        assertEquals("input swipe 75 622 75 807 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTen_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(10.0);
-        // v>0 branch: toY=(int)(622-18.57*10)=436; going up → travel=186 ≥ 40 → h=15; dispatch=436-15=421
-        assertEquals("input swipe 75 622 75 421 200", lastCommand);
+        // toY=(int)(622-18.57*10)=436; h=0 → dispatch=436
+        assertEquals("input swipe 75 622 75 436 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_atTwenty_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(20.0);
-        // v>0 branch: toY=(int)(622-18.57*20)=250; travel=372 ≥ 40 → h=15; dispatch=250-15=235
-        assertEquals("input swipe 75 622 75 235 200", lastCommand);
+        // toY=(int)(622-18.57*20)=250; h=0 → dispatch=250
+        assertEquals("input swipe 75 622 75 250 200", lastCommand);
     }
 
     @Test
     public void s22i_applyIncline_updatesCurrentY() {
         S22iDevice dev = dev(new S22iDevice());
-        dev.applyIncline(10.0); // toY=436 (up → travel=186 ≥ 40 → h=15 → dispatch=421); thumbY=436
-        dev.applyIncline(5.0);  // toY=529 (down from 436 → travel=93 ≥ 40 → h=15 → dispatch=544); thumbY=529
-        assertEquals("input swipe 75 436 75 544 200", lastCommand);
+        dev.applyIncline(10.0); // toY=436; h=0 → dispatch=436; thumbY=436
+        dev.applyIncline(5.0);  // fromY=436; toY=529; h=0 → dispatch=529; thumbY=529
+        assertEquals("input swipe 75 436 75 529 200", lastCommand);
     }
 
     @Test
@@ -129,20 +126,11 @@ public class BikeDeviceTest {
         assertEquals("input swipe 75 399 75 436 200", lastCommand);
     }
 
-    @Test
-    public void s22iNoAdb_defaultMetricReader_returnsMonoStdoutMetricReader() {
-        assertTrue(new S22iNoAdbDevice().defaultMetricReader() instanceof MonoStdoutMetricReader);
-    }
-
     // ── S22iNtex02117Device ───────────────────────────────────────────────────
-    // Shell execution (overrides execute); same formula as S22i
+    // Same formula as S22i; verify via parent constructor.
 
     @Test
     public void s22iNtex02117_applyIncline_atZero_capturedByExecutor() {
-        // S22iNtex02117Device overrides execute() to use ShellRuntime.
-        // In test mode, ShellRuntime is not available but execute() catches IOException.
-        // The command is still computed correctly; the capture executor won't fire because
-        // ShellRuntime overrides execute().  We test the formula via the parent S22iDevice.
         S22iDevice base = dev(new S22iDevice());
         base.applyIncline(0.0);
         // y2 = (int)(622 - 10*0) = 622; y1 = 622 (initial) — same formula as S22iDevice
@@ -325,13 +313,8 @@ public class BikeDeviceTest {
     // ── BikeDevice.defaultMetricReader ────────────────────────────────────────
 
     @Test
-    public void bikeDevice_defaultMetricReader_returnsBikeMetricReader() {
-        assertTrue(new S22iDevice().defaultMetricReader() instanceof BikeMetricReader);
-    }
-
-    @Test
-    public void bikeDevice_defaultMetricReader_forIfitV2_returnsBikeMetricReader() {
-        assertTrue(new S22iDevice().defaultMetricReader().forIfitV2() instanceof BikeMetricReader);
+    public void bikeDevice_defaultMetricReader_returnsMonoStdoutMetricReader() {
+        assertTrue(new S22iDevice().defaultMetricReader() instanceof MonoStdoutMetricReader);
     }
 
     @Test
@@ -556,8 +539,8 @@ public class BikeDeviceTest {
     public void s22i_applyIncline_atNegativeFive_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.applyIncline(-5.0);
-        // unified formula: toY=(int)(622-18.57*(-5))=(int)(714.85)=714; going down → travel=92 ≥ 40 → h=15; dispatch=729
-        assertEquals("input swipe 75 622 75 729 200", lastCommand);
+        // toY=(int)(622-18.57*(-5))=(int)(714.85)=714; h=0 → dispatch=714
+        assertEquals("input swipe 75 622 75 714 200", lastCommand);
     }
 
     // ── Tdf10InclinationDevice ────────────────────────────────────────────────

@@ -2,7 +2,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.TailGrepMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 
 public abstract class Device {
     /** The currently active device. Set by MainActivity when the user selects one. */
@@ -53,10 +54,10 @@ public abstract class Device {
     public abstract String displayName();
 
     /** Returns true if this device sends commands via the ADB loopback connection. */
-    public boolean requiresAdb() { return true; }
+    public boolean requiresAdb() { return false; }
 
     /** Returns true if this device sends commands via the Android AccessibilityService. */
-    public boolean requiresAccessibility() { return false; }
+    public boolean requiresAccessibility() { return true; }
 
     /**
      * Interprets a raw UDP message (already split on ";") for this device type.
@@ -89,7 +90,7 @@ public abstract class Device {
     }
 
     public MetricReader defaultMetricReader() {
-        return new TailGrepMetricReader();
+        return new MonoStdoutMetricReader();
     }
 
     /**
@@ -101,6 +102,7 @@ public abstract class Device {
     protected void swipe(int x, int y1, int y2) {
         String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200";
         logger.log("QZ:Device", "swipe -> " + cmd);
+        MyAccessibilityService.performSwipe(x, y1, x, y2, 200);
         commandExecutor.send(cmd);
     }
 }

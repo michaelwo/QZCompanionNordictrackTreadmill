@@ -44,11 +44,7 @@ public class MyAccessibilityService extends AccessibilityService {
     // --- Gesture injection (existing) ---
 
     public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
-        if (instance == null) {
-            Log.e("QZ:Device", "swipe DROPPED — AccessibilityService not connected; " +
-                    "enable QZCompanion in Android Settings → Accessibility");
-            return;
-        }
+        if (instance == null) return;
 
         Path path = new Path();
         path.moveTo(startX, startY);

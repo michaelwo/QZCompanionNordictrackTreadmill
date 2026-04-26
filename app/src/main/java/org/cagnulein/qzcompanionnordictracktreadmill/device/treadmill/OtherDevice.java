@@ -4,22 +4,22 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 public class OtherDevice extends TreadmillDevice {
+    private static final int THUMB_Y_RIGHT = 0;
+    private static final int THUMB_Y_LEFT  = 0;
+
     public OtherDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         // Fallback device. initialThumbY=0 for both sliders — no initial position assumed; first swipe starts from Y=0.
         super(
-            new Slider(0, ScreenProfile.W1280.rightTrackX) {
+            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return (int) (631.03 - 19.921 * v); }
             },
-            new Slider(0, ScreenProfile.W1280.leftTrackX) {
+            new Slider(THUMB_Y_LEFT, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return (int) (520.11 - 21.804 * v); }
             }
         ); }
 
+
     @Override
     public String displayName() { return "Other Treadmill"; }
-
-
-
-
 }

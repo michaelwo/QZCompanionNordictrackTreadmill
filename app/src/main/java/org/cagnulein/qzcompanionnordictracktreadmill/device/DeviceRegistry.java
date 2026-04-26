@@ -3,8 +3,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.*;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.*;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.DirectLogcatMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.LogcatDumpMetricReader;
 
 import java.util.Collections;
 import java.util.EnumMap;
@@ -41,7 +39,6 @@ public class DeviceRegistry {
         c1750_2021,
         s22i_NTEX02121_5,
         s22i_NTEX02117_2,
-        s22i_noadb,
         x32i_NTL39221,
         c1750_2020,
         elite1000,
@@ -53,7 +50,6 @@ public class DeviceRegistry {
         proform_carbon_t14,
         x22i_v2,
         s15i,
-        x22i_noadb,
         proform_pro_9000,
         proform_carbon_e7,
         t95s,
@@ -83,8 +79,8 @@ public class DeviceRegistry {
         m.put(DeviceId.c1750,                        new C1750Device());
         m.put(DeviceId.t65s,                         new T65sDevice("T6.5s Treadmill"));
         m.put(DeviceId.nordictrack_2950_maxspeed22,  new Nordictrack2950MaxSpeed22Device());
-        m.put(DeviceId.t75s,                         new T65sDevice("T7.5s Treadmill",          new LogcatDumpMetricReader()));
-        m.put(DeviceId.grand_tour_pro,               new T65sDevice("Grand Tour Pro Treadmill", new DirectLogcatMetricReader()));
+        m.put(DeviceId.t75s,                         new T65sDevice("T7.5s Treadmill"));
+        m.put(DeviceId.grand_tour_pro,               new T65sDevice("Grand Tour Pro Treadmill"));
         m.put(DeviceId.proform_studio_bike_pro22,    new ProformStudioBikePro22Device());
         m.put(DeviceId.x32i_NTL39019,               new X32iNtl39019Device());
         m.put(DeviceId.x22i,                         new X22iDevice());
@@ -92,7 +88,6 @@ public class DeviceRegistry {
         m.put(DeviceId.c1750_2021,                   new C1750_2021Device());
         m.put(DeviceId.s22i_NTEX02121_5,            new S22iNtex02121Device());
         m.put(DeviceId.s22i_NTEX02117_2,            new S22iNtex02117Device());
-        m.put(DeviceId.s22i_noadb,                   new S22iNoAdbDevice());
         m.put(DeviceId.x32i_NTL39221,               new X32iNtl39221Device());
         m.put(DeviceId.c1750_2020,                   new C1750_2020Device());
         m.put(DeviceId.elite1000,                    new Elite1000Device("Elite 1000 Treadmill"));
@@ -104,7 +99,6 @@ public class DeviceRegistry {
         m.put(DeviceId.proform_carbon_t14,           new ProformCarbonT14Device());
         m.put(DeviceId.x22i_v2,                      new X22iV2Device());
         m.put(DeviceId.s15i,                         new S15iDevice());
-        m.put(DeviceId.x22i_noadb,                   new X22iNoAdbDevice());
         m.put(DeviceId.proform_pro_9000,             new ProformPro9000Device());
         m.put(DeviceId.proform_carbon_e7,            new ProformCarbonE7Device());
         m.put(DeviceId.t95s,                         new T95sDevice());

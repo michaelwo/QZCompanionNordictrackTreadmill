@@ -7,15 +7,5 @@
         android:checkable="true"
         android:showAsAction="never" />
 
-    <item
-        android:id="@+id/menu_live_logcat"
-        android:title="Live Logcat (ADB)"
-        android:checkable="true"
-        android:showAsAction="never" />
-
-    <item
-        android:id="@+id/menu_dump_log"
-        android:title="Dump Log"
-        android:showAsAction="never" />
 
 </menu>

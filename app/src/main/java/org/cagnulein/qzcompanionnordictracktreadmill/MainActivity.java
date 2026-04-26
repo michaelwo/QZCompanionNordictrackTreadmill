@@ -3,22 +3,15 @@ package org.cagnulein.qzcompanionnordictracktreadmill;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
-import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.IBinder;
-import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
@@ -28,32 +21,21 @@ import android.view.View;
 import android.widget.TextView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.content.DialogInterface;
-
 import java.net.Inet4Address;
 import java.net.NetworkInterface;
 
-import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.util.TypedValue;
 import android.widget.LinearLayout;
 
 import java.sql.Timestamp;
 import java.util.Date;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.logging.Logger;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
-
-import static android.content.ContentValues.TAG;
 
 import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
 
@@ -64,28 +46,13 @@ import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResu
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 
-import com.cgutman.androidremotedebugger.AdbUtils;
-import com.cgutman.androidremotedebugger.console.ConsoleBuffer;
-import com.cgutman.androidremotedebugger.devconn.DeviceConnection;
-import com.cgutman.androidremotedebugger.devconn.DeviceConnectionListener;
-import com.cgutman.androidremotedebugger.service.ShellService;
-import com.cgutman.adblib.AdbCrypto;
-
 import androidx.appcompat.app.AlertDialog;
 
-public class MainActivity extends AppCompatActivity  implements DeviceConnectionListener {
-    private ShellService.ShellServiceBinder binder;
-    private static DeviceConnection connection;
-    private Intent service;
-    private static final String LOG_TAG = "QZ:ADB";
-    private static String lastCommand = "";
-    private static boolean ADBConnected = false;
+public class MainActivity extends AppCompatActivity {
     private static final int MAX_LOG_LINES = 500;
     private static final java.util.ArrayDeque<String> appLogBuffer = new java.util.ArrayDeque<>();
     private static final long MAX_LOG_FILE_BYTES = 1024 * 1024;
     private static BufferedWriter logFileWriter = null;
-
-	private final ShellRuntime shellRuntime = new ShellRuntime();
 
     private AndroidActivityResultReceiver resultReceiver;
 
@@ -111,117 +78,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         }
     }
 
-    @Override
-    public void notifyConnectionEstablished(DeviceConnection devConn) {
-        ADBConnected = true;
-        Log.i(LOG_TAG, "notifyConnectionEstablished" + lastCommand);
-        runOnUiThread(this::updateRequirementsCard);
-    }
-
-    @Override
-    public void notifyConnectionFailed(DeviceConnection devConn, Exception e) {
-        ADBConnected = false;
-        Log.e(LOG_TAG, "notifyConnectionFailed: " + e.getMessage() + " — scheduling reconnect");
-        scheduleReconnect();
-        runOnUiThread(this::updateRequirementsCard);
-    }
-
-    @Override
-    public void notifyStreamFailed(DeviceConnection devConn, Exception e) {
-        ADBConnected = false;
-        Log.e(LOG_TAG, "notifyStreamFailed: " + e.getMessage() + " — scheduling reconnect");
-        scheduleReconnect();
-        runOnUiThread(this::updateRequirementsCard);
-    }
-
-    @Override
-    public void notifyStreamClosed(DeviceConnection devConn) {
-        ADBConnected = false;
-        Log.e(LOG_TAG, "notifyStreamClosed — scheduling reconnect");
-        scheduleReconnect();
-        runOnUiThread(this::updateRequirementsCard);
-    }
-
-    private void scheduleReconnect() {
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            if (Device.instance == null || !Device.instance.requiresAdb()) return;
-            Log.i(LOG_TAG, "Attempting ADB reconnect to 127.0.0.1:5555");
-            if (binder != null) {
-                connection = startConnection("127.0.0.1", 5555);
-            } else {
-                Log.e(LOG_TAG, "scheduleReconnect: binder is null, cannot reconnect");
-            }
-        }, 3000);
-    }
-
-    @Override
-    public AdbCrypto loadAdbCrypto(DeviceConnection devConn) {
-        return AdbUtils.readCryptoConfig(getFilesDir());
-    }
-
-    @Override
-    public boolean canReceiveData() {
-        return true;
-    }
-
-    @Override
-    public void receivedData(DeviceConnection devConn, byte[] data, int offset, int length) {
-        Log.i(LOG_TAG, data.toString());
-    }
-
-    @Override
-    public boolean isConsole() {
-        return false;
-    }
-
-    @Override
-    public void consoleUpdated(DeviceConnection devConn, ConsoleBuffer console) {
-
-    }
-
-
-    private DeviceConnection startConnection(String host, int port) {
-        /* Create the connection object */
-        DeviceConnection conn = binder.createConnection(host, port);
-
-        /* Add this activity as a connection listener */
-        binder.addListener(conn, this);
-
-        /* Begin the async connection process */
-        conn.startConnect();
-
-        return conn;
-    }
-
-    private DeviceConnection connectOrLookupConnection(String host, int port) {
-        DeviceConnection conn = binder.findConnection(host, port);
-        if (conn == null) {
-            /* No existing connection, so start the connection process */
-            conn = startConnection(host, port);
-        }
-        else {
-            /* Add ourselves as a new listener of this connection */
-            binder.addListener(conn, this);
-        }
-        return conn;
-    }
-
-    private ServiceConnection serviceConn = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName arg0, IBinder arg1) {
-            binder = (ShellService.ShellServiceBinder)arg1;
-            if (connection != null) {
-                binder.removeListener(connection, MainActivity.this);
-            }
-            connection = connectOrLookupConnection("127.0.0.1", 5555);
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName arg0) {
-            binder = null;
-        }
-    };
-
     public static void initLogFile() {
         try {
             File logFile = new File(Environment.getExternalStorageDirectory(), "qzcompanion.log");
@@ -232,7 +88,7 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             }
             logFileWriter = new BufferedWriter(new FileWriter(logFile, true));
         } catch (IOException e) {
-            Log.e(LOG_TAG, "Failed to open log file: " + e.getMessage());
+            Log.e("QZ:Main", "Failed to open log file: " + e.getMessage());
         }
     }
 
@@ -301,12 +157,8 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         RecyclerView deviceList = findViewById(R.id.deviceList);
         deviceList.setLayoutManager(new LinearLayoutManager(this));
         deviceAdapter = new DeviceAdapter(id -> {
-            if (id == DeviceRegistry.DeviceId.x22i_noadb
-                    || id == DeviceRegistry.DeviceId.s22i_noadb
-                    || id == DeviceRegistry.DeviceId.t95s) {
-                if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
-                    startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-                }
+            if (!isAccessibilityServiceEnabled(getApplicationContext(), MyAccessibilityService.class)) {
+                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
             }
             selectDevice(DeviceRegistry.forId(id));
             SharedPreferences.Editor myEdit = sharedPreferences.edit();
@@ -337,48 +189,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         Intent in = new Intent(getApplicationContext(), MetricReaderBroadcastingService.class);
         getApplicationContext().startService(in);
 
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
-                && Device.instance != null && Device.instance.requiresAdb()) {
-            /* If we have old RSA keys, just use them */
-            AdbCrypto crypto = AdbUtils.readCryptoConfig(getFilesDir());
-            if (crypto == null) {
-                /* We need to make a new pair */
-                Log.i(LOG_TAG,
-                        "This will only be done once.");
-
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        AdbCrypto crypto;
-
-                        crypto = AdbUtils.writeNewCryptoConfig(getFilesDir());
-
-                        if (crypto == null) {
-                            Log.e(LOG_TAG,
-                                    "Unable to generate and save RSA key pair");
-                            return;
-                        }
-
-                    }
-                }).start();
-            }
-
-            if (binder == null && Device.instance != null && Device.instance.requiresAdb()) {
-                service = new Intent(this, ShellService.class);
-
-                /* Bind the service if we're not bound already. After binding, the callback will
-                 * perform the initial connection. */
-                Log.i(LOG_TAG, "Binding ShellService for ADB loopback...");
-                getApplicationContext().bindService(service, serviceConn, Service.BIND_AUTO_CREATE);
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(service);
-                } else {
-                    startService(service);
-                }
-            }
-        }
 
     }
 
@@ -418,8 +228,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         getMenuInflater().inflate(R.menu.main_menu, menu);
         menu.findItem(R.id.menu_verbose_logging).setChecked(
                 sharedPreferences.getBoolean("debugLog", false));
-        menu.findItem(R.id.menu_live_logcat).setChecked(
-                sharedPreferences.getBoolean("ADBLog", false));
         return true;
     }
 
@@ -433,26 +241,6 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
             new androidx.appcompat.app.AlertDialog.Builder(this)
                     .setTitle("Settings Saved")
                     .setMessage("Restart the app to apply logging changes.")
-                    .setPositiveButton("OK", (d, w) -> d.dismiss())
-                    .show();
-            return true;
-        } else if (id == R.id.menu_live_logcat) {
-            boolean next = !item.isChecked();
-            item.setChecked(next);
-            sharedPreferences.edit().putBoolean("ADBLog", next).apply();
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Settings Saved")
-                    .setMessage("Restart the app to apply logging changes.")
-                    .setPositiveButton("OK", (d, w) -> d.dismiss())
-                    .show();
-            return true;
-        } else if (id == R.id.menu_dump_log) {
-            String command = "logcat -b all -d > /sdcard/logcat.log";
-            MainActivity.sendCommand(command);
-            Log.i(LOG_TAG, command);
-            new androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setTitle("Log Dumped")
-                    .setMessage("Logcat saved to /sdcard/logcat.log")
                     .setPositiveButton("OK", (d, w) -> d.dismiss())
                     .show();
             return true;
@@ -481,32 +269,12 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
 
         Device device = Device.instance;
 
-        if (device.requiresAccessibility()) {
-            boolean ok = isAccessibilityServiceEnabled(this, MyAccessibilityService.class);
-            addRequirementRow(list, ok,
-                    "Accessibility service",
-                    ok ? "Enabled — app can adjust speed and incline"
-                       : "Tap to enable — required to control the bike",
-                    ok ? null : v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
-
-        } else if (device.requiresAdb()) {
-            addRequirementRow(list, ADBConnected,
-                    "Shell connection",
-                    ADBConnected ? "Connected — commands reach the bike"
-                                 : "Not connected — enable Wireless ADB in Developer Options",
-                    null);
-
-        } else {
-            boolean hasInject = checkSelfPermission("android.permission.INJECT_EVENTS")
-                    == PackageManager.PERMISSION_GRANTED;
-            addRequirementRow(list, hasInject,
-                    "Tap control",
-                    hasInject ? "Permission granted — app can send taps"
-                              : "Permission needed — run via ADB:\n"
-                            + "adb shell pm grant " + getPackageName()
-                            + " android.permission.INJECT_EVENTS",
-                    null);
-        }
+        boolean ok = isAccessibilityServiceEnabled(this, MyAccessibilityService.class);
+        addRequirementRow(list, ok,
+                "Accessibility service",
+                ok ? "Enabled — app can adjust speed and incline"
+                   : "Tap to enable — required to control the bike",
+                ok ? null : v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)));
 
         long lastHb = CommandListenerService.lastQzHeartbeatMs;
         boolean heartbeatActive = lastHb > 0
@@ -624,31 +392,13 @@ public class MainActivity extends AppCompatActivity  implements DeviceConnection
         return "no IP";
     }
 
-    /** Selects {@code device} as the active device and wires up its executor and logger. */
+    /** Selects {@code device} as the active device and wires up its logger. */
     private void selectDevice(Device device) {
-        device.commandExecutor = MainActivity::sendCommand;
         device.logger = (tag, msg) -> Log.i(tag, msg);
         Device.instance = device;
         MetricReaderBroadcastingService.applyDevice(device);
         updateStatusChip();
         updateRequirementsCard();
-    }
-
-    static public void sendCommand(String command) {
-        if(ADBConnected) {
-            Log.d(LOG_TAG, "sendCommand [ADB UP]: " + command);
-            StringBuilder commandBuffer = new StringBuilder();
-
-            commandBuffer.append(command);
-
-            /* Append a newline since it's not included in the command itself */
-            commandBuffer.append('\n');
-
-            /* Send it to the device */
-            connection.queueCommand(commandBuffer.toString());
-        } else {
-            Log.e(LOG_TAG, "sendCommand [ADB DOWN]: " + command);
-        }
     }
 
 }

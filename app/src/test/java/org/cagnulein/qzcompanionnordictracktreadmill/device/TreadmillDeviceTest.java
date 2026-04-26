@@ -23,7 +23,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X14iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X22iNoAdbDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X22iV2Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39019Device;
@@ -1217,8 +1216,7 @@ public class TreadmillDeviceTest {
         assertEquals("input swipe 1205 447 1205 404 200", lastCommand);
     }
 
-    // ── T95sDevice — accessibility service, instanceof only ───────────────────
-    // overrides swipe() → MyAccessibilityService.performSwipe(); commandExecutor not used
+    // ── T95sDevice ────────────────────────────────────────────────────────────
 
     @Test
     public void t95s_isInstanceOfTreadmillDevice() {
@@ -1230,16 +1228,4 @@ public class TreadmillDeviceTest {
         assertEquals("T9.5s Treadmill", new T95sDevice().displayName());
     }
 
-    // ── X22iNoAdbDevice — accessibility service, instanceof only ─────────────
-    // overrides swipe() → MyAccessibilityService.performSwipe(); commandExecutor not used
-
-    @Test
-    public void x22iNoAdb_isInstanceOfTreadmillDevice() {
-        assertTrue(new X22iNoAdbDevice() instanceof TreadmillDevice);
-    }
-
-    @Test
-    public void x22iNoAdb_hasCorrectDisplayName() {
-        assertEquals("X22i Treadmill (No ADB)", new X22iNoAdbDevice().displayName());
-    }
 }

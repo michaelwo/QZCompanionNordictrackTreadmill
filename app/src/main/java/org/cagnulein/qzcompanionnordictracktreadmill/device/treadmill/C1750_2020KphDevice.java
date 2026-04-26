@@ -3,11 +3,12 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.CatFileMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class C1750_2020KphDevice extends TreadmillDevice {
+    private static final int THUMB_Y_RIGHT = 598;
+    private static final int THUMB_Y_LEFT  = 525;
+
     private static final double[][] INCLINE_TABLE = {
         {-3.0, 592}, {-2.5, 584}, {-2.0, 576}, {-1.5, 568}, {-1.0, 560},
         {-0.5, 544}, {0.0, 528}, {0.5, 520}, {1.0, 512}, {1.5, 504},
@@ -22,7 +23,7 @@ public class C1750_2020KphDevice extends TreadmillDevice {
     public C1750_2020KphDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(598, ScreenProfile.W1280.rightTrackX) {
+            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) {
                     if (v <= 11) return (int)(v + 16.0 - 16.0 * 592);
                     else if (v < 12) return (int)(v + 8.0 - 16.0 * 592);
@@ -30,22 +31,15 @@ public class C1750_2020KphDevice extends TreadmillDevice {
                 }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(525, ScreenProfile.W1280.leftTrackX) {
+            new Slider(THUMB_Y_LEFT, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
         ); }
 
+
     @Override
     public String displayName() { return "C1750 Treadmill (2020 KPH)"; }
-
-
-
-
-    @Override public MetricReader defaultMetricReader() { return new CatFileMetricReader(); }
-
-
-
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];

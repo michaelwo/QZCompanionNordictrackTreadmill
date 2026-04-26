@@ -74,14 +74,8 @@ public class ZwiftRideSimulationTest {
                              : (int) (622.0 - 18.57 * grade);
     }
 
-    /**
-     * Y coordinate actually dispatched, after applying S22i incline hysteresis.
-     * Travel ≥ 40px → 15px overshoot (spring-back ~15px); shorter travel → 10px.
-     */
     private static int dispatchY(int fromY, int toY) {
-        if (toY == fromY) return toY;
-        int h = Math.abs(toY - fromY) >= 40 ? 15 : 10;
-        return toY < fromY ? toY - h : toY + h;
+        return toY;
     }
 
     // ── test 1: full Zwift ride — correct swipe chain ─────────────────────────
