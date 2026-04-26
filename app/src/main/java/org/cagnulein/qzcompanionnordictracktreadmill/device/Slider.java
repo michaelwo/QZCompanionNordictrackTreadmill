@@ -8,33 +8,45 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  * A slider has:
  *   - a fixed horizontal track position ({@link #trackX})
  *   - a movable thumb whose current vertical position is tracked in {@link #thumbY}
- *   - a formula mapping a metric value to a target Y coordinate ({@link #targetY})
+ *   - a formula mapping a metric value to a target Y coordinate ({@link #targetThumbY})
  *
- * Subclasses (typically anonymous) supply the screen coordinates and formula.
- * Devices that derive the current thumb position from live observed metrics
- * (rather than tracking it as state) override {@link #currentThumbY}.
+ * The formula can be supplied either as a {@link ThumbYFormula} constructor argument
+ * (preferred for simple sliders) or by overriding {@link #targetThumbY} in a subclass
+ * (required when {@link #currentThumbY}, {@link #quantize}, or {@link #hysteresisPixels}
+ * also need overriding).
  */
-public abstract class Slider {
+public class Slider {
+
+    @FunctionalInterface
+    public interface ThumbYFormula {
+        int apply(double v);
+    }
 
     private final int trackX;
+    private final ThumbYFormula formula;
     private int thumbY;
     private Float lastApplied = null;
 
-    protected Slider(int initialThumbY, int trackX) {
-        this.thumbY  = initialThumbY;
+    public Slider(int trackX, int initialThumbY, ThumbYFormula formula) {
         this.trackX  = trackX;
+        this.thumbY  = initialThumbY;
+        this.formula = formula;
+    }
+
+    protected Slider(int trackX, int initialThumbY) {
+        this(trackX, initialThumbY, null);
     }
 
     /** Single-arg constructor for subclasses that override {@link #trackX()} at runtime. */
     protected Slider(int initialThumbY) {
-        this(initialThumbY, 0);
+        this(initialThumbY, 0, null);
     }
 
     /** Fixed horizontal pixel coordinate of this slider's track on screen. */
     public int trackX() { return trackX; }
 
     /** Pixel Y coordinate the thumb should move to for the given metric {@code value}. */
-    public abstract int targetY(double v);
+    public int targetThumbY(double v) { return formula.apply(v); }
 
     /**
      * Current pixel Y of the slider thumb.
@@ -68,7 +80,7 @@ public abstract class Slider {
      */
     public void moveTo(double value, Device device) {
         int fromY  = currentThumbY(device.lastSnapshot);
-        int toY    = targetY(value);
+        int toY    = targetThumbY(value);
         int h      = hysteresisPixels(fromY, toY);
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
         device.swipe(trackX(), fromY, swipeY);

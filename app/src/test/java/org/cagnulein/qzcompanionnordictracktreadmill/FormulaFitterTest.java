@@ -81,21 +81,21 @@ public class FormulaFitterTest {
         }
     }
 
-    // ── targetY() ─────────────────────────────────────────────────────────────
+    // ── targetThumbY() ─────────────────────────────────────────────────────────────
 
     @Test
-    public void result_targetY_computedFromFittedFormula() {
+    public void result_targetThumbY_computedFromFittedFormula() {
         Result r = FormulaFitter.fit(PERFECT_3, 600);
-        assertEquals(600, r.targetY(0f));
-        assertEquals(500, r.targetY(5f));
-        assertEquals(400, r.targetY(10f));
+        assertEquals(600, r.targetThumbY(0f));
+        assertEquals(500, r.targetThumbY(5f));
+        assertEquals(400, r.targetThumbY(10f));
     }
 
     @Test
-    public void result_targetY_interpolatesForNonDataGrade() {
+    public void result_targetThumbY_interpolatesForNonDataGrade() {
         Result r = FormulaFitter.fit(PERFECT_3, 600);
         // grade=7.5 → 600 - 20*7.5 = 450
-        assertEquals(450, r.targetY(7.5f));
+        assertEquals(450, r.targetThumbY(7.5f));
     }
 
     // ── R² quality below 1.0 for imperfect data ───────────────────────────────

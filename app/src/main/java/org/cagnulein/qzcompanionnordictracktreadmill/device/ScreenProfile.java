@@ -16,8 +16,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
  * because Android's dp→px rounding can produce asymmetric results at the pixel boundary.
  *
  * Usage in device constructors:
- *   new Slider(initialY, ScreenProfile.W1920.leftTrackX)    // incline / grade slider
- *   new Slider(initialY, ScreenProfile.W1920.rightTrackX)   // speed / resistance slider
+ *   new Slider(ScreenProfile.W1920.leftTrackX, initialY)    // incline / grade slider
+ *   new Slider(ScreenProfile.W1920.rightTrackX, initialY)   // speed / resistance slider
  */
 public enum ScreenProfile {
     W1920(75, 1845),

@@ -36,9 +36,9 @@ public class CalibratedBikeDevice extends BikeDevice {
             }
 
             @Override
-            public int targetY(double grade) {
+            public int targetThumbY(double grade) {
                 CalibrationResult c = CalibrationResult.current;
-                return c != null ? c.targetY((float) grade)
+                return c != null ? c.targetThumbY((float) grade)
                                  : (int) (622.0 - 14.8 * grade);
             }
 

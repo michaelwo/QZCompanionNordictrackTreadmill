@@ -62,7 +62,7 @@ public class ZwiftRideRobolectricTest {
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
-    private static int targetY(float grade) {
+    private static int targetThumbY(float grade) {
         return grade <= 0.0f ? (int) (622.0 - 10.0 * grade)
                              : (int) (622.0 - 18.57 * grade);
     }
@@ -124,7 +124,7 @@ public class ZwiftRideRobolectricTest {
 
         int logicalY = 622;
         for (int i = 0; i < grades.length; i++) {
-            int toY = targetY(grades[i]);
+            int toY = targetThumbY(grades[i]);
             assertEquals("swipe " + i + " (grade " + grades[i] + "%)",
                     swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
             logicalY = toY;

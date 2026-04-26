@@ -69,7 +69,7 @@ public class ZwiftRideSimulationTest {
     }
 
     /** S22i target y for a given grade percentage. Piecewise calibrated 2026-04-19. */
-    private static int targetY(float grade) {
+    private static int targetThumbY(float grade) {
         return grade <= 0.0f ? (int) (622.0 - 10.0 * grade)
                              : (int) (622.0 - 18.57 * grade);
     }
@@ -100,7 +100,7 @@ public class ZwiftRideSimulationTest {
         // y1 of each swipe = logical thumbY from previous interval (not the dispatched overshoot Y)
         int logicalY = 622;
         for (int i = 0; i < grades.length; i++) {
-            int toY = targetY(grades[i]);
+            int toY = targetThumbY(grades[i]);
             assertEquals("swipe " + i + " (grade " + grades[i] + "%)",
                     swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
             logicalY = toY;
@@ -126,13 +126,13 @@ public class ZwiftRideSimulationTest {
 
         // First message fires immediately
         assertEquals(1, commands.size());
-        assertEquals(swipe(622, dispatchY(622, targetY(5f))), commands.get(0));
+        assertEquals(swipe(622, dispatchY(622, targetThumbY(5f))), commands.get(0));
 
         // Advance past throttle window and send another message
         send(d, bike, 10f, 600);  // t=1900, window open — fires (10f != 5f)
 
         assertEquals(2, commands.size());
-        assertEquals(swipe(targetY(5f), dispatchY(targetY(5f), targetY(10f))), commands.get(1));
+        assertEquals(swipe(targetThumbY(5f), dispatchY(targetThumbY(5f), targetThumbY(10f))), commands.get(1));
     }
 
     // ── test 3: de-dup — same grade twice produces only one swipe ─────────────
@@ -146,7 +146,7 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 7f, 600);  // de-dup: same as last, skipped
 
         assertEquals(1, commands.size());
-        assertEquals(swipe(622, dispatchY(622, targetY(7f))), commands.get(0));
+        assertEquals(swipe(622, dispatchY(622, targetThumbY(7f))), commands.get(0));
     }
 
     // ── test 4: sentinel flood — no swipes ────────────────────────────────────
@@ -214,16 +214,16 @@ public class ZwiftRideSimulationTest {
 
         int logicalY = 622;
         for (int i = 0; i < profile.length; i++) {
-            int toY = targetY(profile[i]);
+            int toY = targetThumbY(profile[i]);
             assertEquals("step " + i + " (grade " + profile[i] + "%)",
                     swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
             logicalY = toY;
         }
 
         // After the descent, we should be near flat (y = 622, the calibrated zero point)
-        int finalY = targetY(0f);
+        int finalY = targetThumbY(0f);
         assertEquals("final position should be flat", 622, finalY);
-        assertEquals(swipe(targetY(2f), dispatchY(targetY(2f), finalY)), commands.get(commands.size() - 1));
+        assertEquals(swipe(targetThumbY(2f), dispatchY(targetThumbY(2f), finalY)), commands.get(commands.size() - 1));
     }
 
     // ── test 7: sub-grid changes are suppressed via quantization ─────────────
@@ -243,8 +243,8 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 6.5f, 600);  // quantized 6.5 → fires
 
         assertEquals("only snap-grid changes should fire; 6.7→7.0 quantizes to same as last", 2, commands.size());
-        assertEquals(swipe(622,           dispatchY(622,           targetY(7.0f))), commands.get(0));
-        assertEquals(swipe(targetY(7.0f), dispatchY(targetY(7.0f), targetY(6.5f))), commands.get(1));
+        assertEquals(swipe(622,           dispatchY(622,           targetThumbY(7.0f))), commands.get(0));
+        assertEquals(swipe(targetThumbY(7.0f), dispatchY(targetThumbY(7.0f), targetThumbY(6.5f))), commands.get(1));
     }
 
     /**
@@ -260,7 +260,7 @@ public class ZwiftRideSimulationTest {
         send(d, bike, 6.5f, 600);  // quantized 6.5 → different snap point → fires
 
         assertEquals(2, commands.size());
-        assertEquals(swipe(targetY(7.0f), dispatchY(targetY(7.0f), targetY(6.5f))), commands.get(1));
+        assertEquals(swipe(targetThumbY(7.0f), dispatchY(targetThumbY(7.0f), targetThumbY(6.5f))), commands.get(1));
     }
 
     // ── test 8: Mountain Mash regression — slow descent in 0.1% steps ────────
@@ -295,7 +295,7 @@ public class ZwiftRideSimulationTest {
 
         int logicalY = 622;
         for (int i = 0; i < expectedGrades.length; i++) {
-            int toY = targetY(expectedGrades[i]);
+            int toY = targetThumbY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
                     swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
             logicalY = toY;
@@ -326,7 +326,7 @@ public class ZwiftRideSimulationTest {
 
         int logicalY = 622;
         for (int i = 0; i < expectedGrades.length; i++) {
-            int toY = targetY(expectedGrades[i]);
+            int toY = targetThumbY(expectedGrades[i]);
             assertEquals("fire " + i + " (grade " + expectedGrades[i] + "%)",
                     swipe(logicalY, dispatchY(logicalY, toY)), commands.get(i));
             logicalY = toY;

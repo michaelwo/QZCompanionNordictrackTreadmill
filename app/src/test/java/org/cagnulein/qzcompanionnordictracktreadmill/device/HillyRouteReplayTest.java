@@ -15,7 +15,7 @@ import java.util.List;
  * Zwift scales route grades to 50% before sending to QZCompanion.
  *
  * Pipeline per interval:
- *   actualGrade × 0.5  →  roundToOneDecimal  →  quantize (0.5% steps)  →  targetY swipe
+ *   actualGrade × 0.5  →  roundToOneDecimal  →  quantize (0.5% steps)  →  targetThumbY swipe
  *
  * Time is synthetic: each interval advances 'now' by 2000ms, well above
  * SWIPE_THROTTLE_MS (500ms), so no throttling fires and every dispatch
@@ -35,8 +35,8 @@ public class HillyRouteReplayTest {
     };
 
     // Expected swipe command per interval. null = de-duped (no dispatch expected).
-    // Pipeline: actual × 0.5 → roundToOneDecimal → quantize(0.5 steps) → targetY
-    // S22i formula: targetY(v) = (int)(622 - 18.57*v) for all v. Calibrated 2026-04-19/22.
+    // Pipeline: actual × 0.5 → roundToOneDecimal → quantize(0.5 steps) → targetThumbY
+    // S22i formula: targetThumbY(v) = (int)(622 - 18.57*v) for all v. Calibrated 2026-04-19/22.
     // trackX = 75, initial thumbY = 622, h=0 (accessibility gestures have no spring-back)
     private static final String[] EXPECTED = {
         "input swipe 75 622 75 612 200",  //  1: q+0.5 → y612

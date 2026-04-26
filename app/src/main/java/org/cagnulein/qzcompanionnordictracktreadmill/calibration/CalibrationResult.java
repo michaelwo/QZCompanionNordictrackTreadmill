@@ -38,7 +38,7 @@ public class CalibrationResult {
         this.hystLargePx     = hystLargePx;
     }
 
-    public int targetY(float grade) { return (int) (a - b * grade); }
+    public int targetThumbY(float grade) { return (int) (a - b * grade); }
 
     public void save(SharedPreferences prefs) {
         prefs.edit()

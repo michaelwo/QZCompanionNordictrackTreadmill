@@ -306,7 +306,7 @@ public class TreadmillDeviceTest {
     }
 
     // ── C1750Device — formula tests ───────────────────────────────────────────
-    // speed: currentThumbY→targetY(0)=816; incline: no currentThumbY, initial=694
+    // speed: currentThumbY→targetThumbY(0)=816; incline: no currentThumbY, initial=700
     // speedX=1845, targetSpeedY(v)=785-(int)((v-1)*31.42)
     // inclineX=79, targetInclineY(v)=(int)(700-34.9*v)
 
@@ -314,7 +314,7 @@ public class TreadmillDeviceTest {
     public void c1750_applySpeed_atZero_generatesCorrectSwipe() {
         C1750Device dev = dev(new C1750Device());
         dev.applySpeed(0.0);
-        // fromY=targetY(0)=785-(int)(-31.42)=785+31=816; y2=816
+        // fromY=targetThumbY(0)=785-(int)(-31.42)=785+31=816; y2=816
         assertEquals("input swipe 1845 816 1845 816 200", lastCommand);
     }
 
@@ -330,8 +330,8 @@ public class TreadmillDeviceTest {
     public void c1750_applyIncline_atZero_generatesCorrectSwipe() {
         C1750Device dev = dev(new C1750Device());
         dev.applyIncline(0.0);
-        // fromY=694 (initial); y2=(int)(700-0)=700
-        assertEquals("input swipe 75 694 75 700 200", lastCommand);
+        // fromY=700 (initial); y2=(int)(700-0)=700
+        assertEquals("input swipe 75 700 75 700 200", lastCommand);
     }
 
     @Test
@@ -352,7 +352,7 @@ public class TreadmillDeviceTest {
     public void nordictrack2950_applySpeed_atZero_generatesCorrectSwipe() {
         Nordictrack2950Device dev = dev(new Nordictrack2950Device());
         dev.applySpeed(0.0);
-        // fromY=targetY(0)=838; y2=838
+        // fromY=targetThumbY(0)=838; y2=838
         assertEquals("input swipe 1845 838 1845 838 200", lastCommand);
     }
 
@@ -368,7 +368,7 @@ public class TreadmillDeviceTest {
     public void nordictrack2950_applyIncline_atZero_generatesCorrectSwipe() {
         Nordictrack2950Device dev = dev(new Nordictrack2950Device());
         dev.applyIncline(0.0);
-        // fromY=targetY(0)=714; y2=714
+        // fromY=targetThumbY(0)=714; y2=714
         assertEquals("input swipe 75 714 75 714 200", lastCommand);
     }
 
@@ -557,8 +557,8 @@ public class TreadmillDeviceTest {
     public void s40_applySpeed_atZero_generatesCorrectSwipe() {
         S40Device dev = dev(new S40Device());
         dev.applySpeed(0.0);
-        // fromY=482; y2=(int)(507)=507
-        assertEquals("input swipe 950 482 950 507 200", lastCommand);
+        // fromY=507 (initial); y2=(int)(507)=507
+        assertEquals("input swipe 950 507 950 507 200", lastCommand);
     }
 
     @Test
@@ -770,8 +770,8 @@ public class TreadmillDeviceTest {
     public void proformCarbonT14_applySpeed_atZero_generatesCorrectSwipe() {
         ProformCarbonT14Device dev = dev(new ProformCarbonT14Device());
         dev.applySpeed(0.0);
-        // fromY=807; y2=(int)(810)=810
-        assertEquals("input swipe 1845 807 1845 810 200", lastCommand);
+        // fromY=810 (initial); y2=(int)(810)=810
+        assertEquals("input swipe 1845 810 1845 810 200", lastCommand);
     }
 
     @Test
@@ -881,8 +881,8 @@ public class TreadmillDeviceTest {
     public void c1750_2021_applyIncline_atZero_generatesCorrectSwipe() {
         C1750_2021Device dev = dev(new C1750_2021Device());
         dev.applyIncline(0.0);
-        // fromY=547; y2=(int)(553)=553
-        assertEquals("input swipe 75 547 75 553 200", lastCommand);
+        // fromY=553 (initial); y2=(int)(553)=553
+        assertEquals("input swipe 75 553 75 553 200", lastCommand);
     }
 
     @Test
@@ -1012,8 +1012,8 @@ public class TreadmillDeviceTest {
     public void x22iV2_applySpeed_atZero_generatesCorrectSwipe() {
         X22iV2Device dev = dev(new X22iV2Device());
         dev.applySpeed(0.0);
-        // fromY=785; y2=(int)(838)=838
-        assertEquals("input swipe 1845 785 1845 838 200", lastCommand);
+        // fromY=838 (initial); y2=(int)(838)=838
+        assertEquals("input swipe 1845 838 1845 838 200", lastCommand);
     }
 
     @Test
@@ -1029,8 +1029,8 @@ public class TreadmillDeviceTest {
     public void x22iV2_applyIncline_atZero_generatesCorrectSwipe() {
         X22iV2Device dev = dev(new X22iV2Device());
         dev.applyIncline(0.0);
-        // fromY=785; y2=(int)(742-11.9*6)=(int)(742-71.4)=(int)670.6=670
-        assertEquals("input swipe 75 785 75 670 200", lastCommand);
+        // fromY=742 (initial); y2=(int)(742-11.9*6)=(int)(742-71.4)=(int)670.6=670
+        assertEquals("input swipe 75 742 75 670 200", lastCommand);
     }
 
     @Test
@@ -1045,7 +1045,7 @@ public class TreadmillDeviceTest {
     // ── X32iNtl39019Device ────────────────────────────────────────────────────
     // no currentThumbY
     // speedX=1845, targetSpeedY(v)=(int)(817.5-42.5*v*0.621371), initial=779
-    // inclineX=74, targetInclineY(v)=(int)(749-11.8424*v), initial=740
+    // inclineX=74, targetInclineY(v)=(int)(749-11.8424*v), initial=749
 
     @Test
     public void x32iNtl39019_isInstanceOfTreadmillDevice() {
@@ -1078,8 +1078,8 @@ public class TreadmillDeviceTest {
     public void x32iNtl39019_applyIncline_atZero_generatesCorrectSwipe() {
         X32iNtl39019Device dev = dev(new X32iNtl39019Device());
         dev.applyIncline(0.0);
-        // fromY=740; y2=(int)(749)=749
-        assertEquals("input swipe 75 740 75 749 200", lastCommand);
+        // fromY=749 (initial); y2=(int)(749)=749
+        assertEquals("input swipe 75 749 75 749 200", lastCommand);
     }
 
     @Test

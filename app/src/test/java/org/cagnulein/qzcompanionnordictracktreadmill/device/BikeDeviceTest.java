@@ -51,7 +51,7 @@ public class BikeDeviceTest {
     }
 
     // ── S22iDevice ────────────────────────────────────────────────────────────
-    // Single linear fit: targetY(v) = (int)(622 - 18.57*v) for all v. initialY=622.
+    // Single linear fit: targetThumbY(v) = (int)(622 - 18.57*v) for all v. initialY=622.
     // Calibration 2026-04-19 (positive) + 2026-04-22 (negative); intercept=622.
 
     @Test
@@ -105,7 +105,7 @@ public class BikeDeviceTest {
     }
 
     // ── S22iNoAdbDevice ───────────────────────────────────────────────────────
-    // Calls S22iDevice(0, 0) → hystLong=0, hystShort=0 → dispatchY = targetY exactly.
+    // Calls S22iDevice(0, 0) → hystLong=0, hystShort=0 → dispatchY = targetThumbY exactly.
     // S22iNoAdbDevice.swipe() routes to AccessibilityService and cannot be captured in a
     // unit test, so h=0 behaviour is verified via an anonymous S22iDevice(0, 0) subclass
     // that exercises the same Slider code path.
@@ -114,7 +114,7 @@ public class BikeDeviceTest {
     public void s22iNoAdb_applyIncline_atTen_ascending_noHysteresis() {
         S22iDevice dev = dev(new S22iDevice(0, 0) {});
         dev.applyIncline(10.0);
-        // h=0 → dispatchY = targetY(10) = (int)(622 - 18.57*10) = 436 (no overshoot)
+        // h=0 → dispatchY = targetThumbY(10) = (int)(622 - 18.57*10) = 436 (no overshoot)
         assertEquals("input swipe 75 622 75 436 200", lastCommand);
     }
 
@@ -353,22 +353,22 @@ public class BikeDeviceTest {
     }
 
     // ── Ntex71021Device (no MetricReaderBroadcastingService calls, pure formula) ───────────────────
-    // targetInclineY(v) = (int)(493 - 13.57 * v); initialY = 480
+    // targetInclineY(v) = (int)(493 - 13.57 * v); initialY = 493
 
     @Test
     public void ntex71021_applyIncline_atZero_generatesCorrectSwipe() {
         Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(0.0);
-        // targetInclineY(0) = (int)(493 - 0) = 493; initialY = 480
-        assertEquals("input swipe 950 480 950 493 200", lastCommand);
+        // targetInclineY(0) = (int)(493 - 0) = 493; initialY = 493
+        assertEquals("input swipe 950 493 950 493 200", lastCommand);
     }
 
     @Test
     public void ntex71021_applyIncline_atTen_generatesCorrectSwipe() {
         Ntex71021Device dev = dev(new Ntex71021Device());
         dev.applyIncline(10.0);
-        // targetInclineY(10) = (int)(493 - 135.7) = (int)357.3 = 357; initialY = 480
-        assertEquals("input swipe 950 480 950 357 200", lastCommand);
+        // targetInclineY(10) = (int)(493 - 135.7) = (int)357.3 = 357; initialY = 493
+        assertEquals("input swipe 950 493 950 357 200", lastCommand);
     }
 
     @Test
@@ -421,8 +421,8 @@ public class BikeDeviceTest {
     }
 
     // ── ProformCarbonC10Device ────────────────────────────────────────────────
-    // incline slot (no resistance slot); targetY(v)=632-(int)(v*18.45), currentThumbY→resistance()
-    // snapshot.resistance()=0 in tests → fromY=targetY(0)=632
+    // incline slot (no resistance slot); targetThumbY(v)=632-(int)(v*18.45), currentThumbY→resistance()
+    // snapshot.resistance()=0 in tests → fromY=targetThumbY(0)=632
 
     @Test
     public void proformCarbonC10_isInstanceOfBikeDevice() {

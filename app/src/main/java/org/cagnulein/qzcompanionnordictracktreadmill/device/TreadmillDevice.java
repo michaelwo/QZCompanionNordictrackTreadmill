@@ -6,9 +6,9 @@ public abstract class TreadmillDevice extends Device {
     private final Slider incline;
     private final Command cached = new Command();
 
-    protected TreadmillDevice(Slider speed, Slider incline) {
-        this.speed   = speed;
+    protected TreadmillDevice(Slider incline, Slider speed) {
         this.incline = incline;
+        this.speed   = speed;
     }
 
     protected final void applySpeed(double kmh) {

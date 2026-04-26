@@ -45,7 +45,7 @@ public class FormulaFitter {
             this.hystLargePx     = hystLargePx;
         }
 
-        public int targetY(float grade) { return (int) (a - b * grade); }
+        public int targetThumbY(float grade) { return (int) (a - b * grade); }
 
         public String formulaString() {
             return String.format("Y = %.1f − %.2f × grade", a, b);

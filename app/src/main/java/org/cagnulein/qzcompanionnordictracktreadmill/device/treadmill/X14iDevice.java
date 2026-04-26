@@ -2,12 +2,11 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class X14iDevice extends TreadmillDevice {
-    private static final int THUMB_Y_RIGHT = 785;
-    private static final int THUMB_Y_LEFT  = 645;
+    private static final int ORIGIN_INCLINE_THUMBY = 645;
+    private static final int ORIGIN_SPEED_THUMBY   = 807;
 
     private static final double[][] INCLINE_TABLE = {
         {-6.0, 856}, {-5.5, 850}, {-5.0, 844}, {-4.5, 838}, {-4.0, 832},
@@ -34,20 +33,19 @@ public class X14iDevice extends TreadmillDevice {
     public X14iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1920.rightTrackX) {
-                public int targetY(double v) { return 807 - (int) ((v - 1.0) * 31); }
-                protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
+            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, X14iDevice::offsetInclineThumbY) {
+                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.incline()); }
             },
-            new Slider(THUMB_Y_LEFT, ScreenProfile.W1920.leftTrackX) {
-                public int targetY(double v) { return lookupStep(INCLINE_TABLE, v); }
-                protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
+            new Slider(ScreenProfile.W1920.rightTrackX, ORIGIN_SPEED_THUMBY, X14iDevice::offsetSpeedThumbY) {
+                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.speed()); }
             }
         );
     }
 
+    @Override public String displayName() { return "X14i Treadmill"; }
 
-    @Override
-    public String displayName() { return "X14i Treadmill"; }
+    private static int offsetInclineThumbY(double v) { return lookupStep(INCLINE_TABLE, v); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v - 1.0) * 31); }
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];

@@ -5,51 +5,48 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class S22iDevice extends BikeDevice {
-    private static final int THUMB_Y_LEFT  = 622;
-    private static final int THUMB_Y_RIGHT = 724;
+    private static final int ORIGIN_INCLINE_THUMBY    = 622;
+    private static final int ORIGIN_RESISTANCE_THUMBY = 724;
 
     public S22iDevice() { this(0, 0); }
 
     protected S22iDevice(int hystLong, int hystShort) {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(THUMB_Y_LEFT, ScreenProfile.W1920.leftTrackX) {
+            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, S22iDevice::offsetInclineThumbY) {
                 // Calibration 2026-04-19 (positive) + 2026-04-22 (negative):
                 // Single linear fit — 18.57 px/% across the full range.
                 // Intercept 622 = device-reported neutral (0% grade in iFit log).
-                public int targetY(double v) {
-                    return (int) (THUMB_Y_LEFT - 18.57 * v);
-                }
                 public float quantize(float v) {
                     // iFit slider snaps to 0.5% increments.
                     return Math.round(v * 2) / 2.0f;
                 }
                 @Override
                 protected int currentThumbY(MetricSnapshot s) {
-                    return s.inclinePct != null ? targetY(s.inclinePct) : thumbY();
+                    return s.inclinePct != null ? targetThumbY(s.inclinePct) : thumbY();
                 }
                 @Override
                 protected int hysteresisPixels(int fromY, int toY) {
                     return Math.abs(toY - fromY) >= 40 ? hystLong : hystShort;
                 }
             },
-            new Slider(THUMB_Y_RIGHT, ScreenProfile.W1920.rightTrackX) {
+            new Slider(ScreenProfile.W1920.rightTrackX, ORIGIN_RESISTANCE_THUMBY, S22iDevice::offsetResistanceThumbY) {
                 // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
                 // Slope = (323−724) / 23 = −401/23 ≈ −17.43 px per level.
-                public int targetY(double v) { return (int) (THUMB_Y_RIGHT - 401.0 / 23 * (v - 1)); }
                 public float quantize(float v) { return Math.round(v); }
                 @Override
                 protected int currentThumbY(MetricSnapshot s) {
                     // Guard against the "Changed Resistance to: 0" noise readings emitted
                     // during coast/reset — 0 is not a valid level and would swipe off-range.
                     return (s.resistanceLvl != null && s.resistanceLvl >= 1)
-                            ? targetY(s.resistanceLvl) : thumbY();
+                            ? targetThumbY(s.resistanceLvl) : thumbY();
                 }
             }
         );
     }
 
+    @Override public String displayName() { return "S22i Bike"; }
 
-    @Override
-    public String displayName() { return "S22i Bike"; }
+    private static int offsetInclineThumbY(double v)    { return (int) (ORIGIN_INCLINE_THUMBY - 18.57 * v); }
+    private static int offsetResistanceThumbY(double v) { return (int) (ORIGIN_RESISTANCE_THUMBY - 401.0 / 23 * (v - 1)); }
 }
