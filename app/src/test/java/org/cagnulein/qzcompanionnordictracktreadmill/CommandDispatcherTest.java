@@ -54,7 +54,7 @@ public class CommandDispatcherTest {
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", '.', device);
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class CommandDispatcherTest {
 
         // Only one swipe (speed). Incline was cached.
         assertEquals(1, count[0]);
-        assertTrue(lastCommand.contains("1207")); // speedX, not inclineX (75)
+        assertTrue(lastCommand.contains("1205")); // speedX, not inclineX (75)
     }
 
     @Test
@@ -108,7 +108,7 @@ public class CommandDispatcherTest {
         setMoving(device); // device now reports speed > 0
         time[0] += Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1;-100", '.', device); // flush cached 8.0
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     @Test
@@ -138,7 +138,7 @@ public class CommandDispatcherTest {
 
         time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1;-100", '.', device); // flush cached 9.0, y 447→425
-        assertEquals("input swipe 1207 447 1207 425 200", lastCommand);
+        assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
     @Test
@@ -154,7 +154,7 @@ public class CommandDispatcherTest {
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8.0;3.0", ',', device);
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     // ── Bike: basic dispatch ──────────────────────────────────────────────────
@@ -165,7 +165,7 @@ public class CommandDispatcherTest {
         // targetResistanceY(10.0) = 790 - (int)(23.16*10) = 790 - 231 = 559
         CommandDispatcher d = dispatcher();
         d.dispatch("10.0", '.', dev(new S15iDevice()));
-        assertEquals("input swipe 1848 790 1848 559 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 559 200", lastCommand);
     }
 
     @Test
@@ -215,7 +215,7 @@ public class CommandDispatcherTest {
 
         time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1", '.', device); // sentinel: flush cached 12.0
-        assertEquals("input swipe 1848 790 1848 513 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
     @Test
@@ -235,6 +235,6 @@ public class CommandDispatcherTest {
         setMoving(device);
         CommandDispatcher d = dispatcher();
         d.dispatch("8,0;3,0", '.', device);
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 }

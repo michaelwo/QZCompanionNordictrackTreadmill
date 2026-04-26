@@ -9,7 +9,7 @@ public class ProformCarbonE7Device extends BikeDevice {
     public ProformCarbonE7Device() {
         // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(440, 75) {
+            new Slider(440, ScreenProfile.W1024.leftTrackX) {
                 public int targetY(double v) { return 440 - (int) (v * 11); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             },

@@ -1,19 +1,20 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class ProformPro9000Device extends TreadmillDevice {
     public ProformPro9000Device() {
-        // Screen width unconfirmed: right trackX=1825 implies ~1900px — not a standard iFit screen width.
-        // Incline trackX=90 is 15.5px off APK-expected 74.5. Calibrated from hardware; may use non-standard slider margins.
+        // Screen: 1920px wide — updated to iFit APK 2.6.90 standard
+        //   (original hardware calibration: left=90, right=1825).
         super(
-            new Slider(800, 1825) {
+            new Slider(800, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return 800 - (int) ((v * 0.621371 - 1.0) * 41.6666); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(715, 90) {
+            new Slider(715, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return 720 - (int) (v * 34.583); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

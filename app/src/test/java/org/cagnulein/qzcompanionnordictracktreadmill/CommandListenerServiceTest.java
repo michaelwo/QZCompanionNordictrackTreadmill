@@ -81,7 +81,7 @@ public class CommandListenerServiceTest {
     @Test
     public void treadmill_udpMessage_producesExpectedSwipe() throws Exception {
         // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
-        // Expected: input swipe 1207 600 1207 447 200
+        // Expected: input swipe 1205 600 1205 447 200
         X11iDevice x11i = new X11iDevice();
         x11i.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
         CountDownLatch latch = new CountDownLatch(1);
@@ -94,13 +94,13 @@ public class CommandListenerServiceTest {
         sendUdp("8.0;3.0");
 
         assertTrue("swipe command should arrive within 3 s", latch.await(3, TimeUnit.SECONDS));
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     @Test
     public void bike_udpMessage_producesExpectedSwipe() throws Exception {
         // S15i: resistance level 10 from a stopped device
-        // Expected: input swipe 1848 790 1848 559 200
+        // Expected: input swipe 1845 790 1845 559 200
         S15iDevice s15i = new S15iDevice();  // lastSnapshot defaults to empty (stopped)
         CountDownLatch latch = new CountDownLatch(1);
         s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
@@ -112,7 +112,7 @@ public class CommandListenerServiceTest {
         sendUdp("10.0");
 
         assertTrue("swipe command should arrive within 3 s", latch.await(3, TimeUnit.SECONDS));
-        assertEquals("input swipe 1848 790 1848 559 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 559 200", lastCommand);
     }
 
     @Test

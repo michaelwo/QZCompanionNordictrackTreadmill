@@ -13,7 +13,7 @@ public class ProformCarbonT14Device extends TreadmillDevice {
             new Slider(807, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return (int) (810 - 52.8 * v * 0.621371); }
             },
-            new Slider(844, 76) {
+            new Slider(844, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return (int) (844 - 46.833 * v); }
             }
         ); }

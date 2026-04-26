@@ -207,7 +207,7 @@ public class BikeDeviceTest {
         S15iDevice dev = dev(new S15iDevice());
         dev.applyResistance(5.0);
         // fromY=790; y2=790-(int)(5*23.16)=790-(int)115.8=790-115=675
-        assertEquals("input swipe 1848 790 1848 675 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 675 200", lastCommand);
     }
 
     // ── Tdf10Device ───────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ public class BikeDeviceTest {
         ProformStudioBikePro22Device dev = dev(new ProformStudioBikePro22Device());
         dev.applyIncline(0.0);
         // targetInclineY(0) = (int)(826.25 - 0) = 826; initialY = 805 (constructor)
-        assertEquals("input swipe 1828 805 1828 826 200", lastCommand);
+        assertEquals("input swipe 1845 805 1845 826 200", lastCommand);
     }
 
     // ── Se9iEllipticalDevice ──────────────────────────────────────────────────
@@ -426,7 +426,7 @@ public class BikeDeviceTest {
         S27iDevice dev = dev(new S27iDevice());
         dev.applyIncline(5.0);
         // fromY=618; y2=803-(int)(15*18.5)=803-277=526
-        assertEquals("input swipe 76 618 76 526 200", lastCommand);
+        assertEquals("input swipe 75 618 75 526 200", lastCommand);
     }
 
     @Test
@@ -434,7 +434,7 @@ public class BikeDeviceTest {
         S27iDevice dev = dev(new S27iDevice());
         dev.applyResistance(5.0);
         // fromY=827; y2=803-(int)(4*555/23)=803-(int)96.52=803-96=707
-        assertEquals("input swipe 1847 827 1847 707 200", lastCommand);
+        assertEquals("input swipe 1845 827 1845 707 200", lastCommand);
     }
 
     // ── ProformCarbonC10Device ────────────────────────────────────────────────
@@ -478,7 +478,7 @@ public class BikeDeviceTest {
         ProformCarbonE7Device dev = dev(new ProformCarbonE7Device());
         dev.applyIncline(5.0);
         // fromY=440; y2=440-(int)(55)=385
-        assertEquals("input swipe 75 440 75 385 200", lastCommand);
+        assertEquals("input swipe 74 440 74 385 200", lastCommand);
     }
 
     @Test
@@ -503,7 +503,7 @@ public class BikeDeviceTest {
         Se9iEllipticalDevice dev = dev(new Se9iEllipticalDevice());
         dev.applyIncline(5.0);
         // fromY=858; y2=858-(int)(5*32.5)=858-162=696
-        assertEquals("input swipe 57 858 57 696 200", lastCommand);
+        assertEquals("input swipe 75 858 75 696 200", lastCommand);
     }
 
     @Test
@@ -511,7 +511,7 @@ public class BikeDeviceTest {
         Se9iEllipticalDevice dev = dev(new Se9iEllipticalDevice());
         dev.applyResistance(5.0);
         // fromY=886; y2=858-(int)(4*650/23)=858-(int)113.04=858-113=745
-        assertEquals("input swipe 1857 886 1857 745 200", lastCommand);
+        assertEquals("input swipe 1845 886 1845 745 200", lastCommand);
     }
 
     // ── applyCommand edge cases ────────────────────────────────────────────────
@@ -547,7 +547,7 @@ public class BikeDeviceTest {
         t[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
         d.dispatch("-1", '.', device);    // flush → must apply 12.0, not 11.0
-        assertEquals("input swipe 1848 790 1848 513 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
     // ── Negative incline tests ─────────────────────────────────────────────────
@@ -578,7 +578,7 @@ public class BikeDeviceTest {
         Tdf10InclinationDevice dev = dev(new Tdf10InclinationDevice());
         dev.applyIncline(0.0);
         // fromY=482; y2=(int)(482.2)=482
-        assertEquals("input swipe 74 482 74 482 200", lastCommand);
+        assertEquals("input swipe 75 482 75 482 200", lastCommand);
     }
 
     @Test
@@ -587,6 +587,6 @@ public class BikeDeviceTest {
         dev.applyIncline(0.0); // advance currentY to 482
         dev.applyIncline(5.0);
         // fromY=482; y2=(int)(-12.499*5+482.2)=(int)(419.705)=419
-        assertEquals("input swipe 74 482 74 419 200", lastCommand);
+        assertEquals("input swipe 75 482 75 419 200", lastCommand);
     }
 }

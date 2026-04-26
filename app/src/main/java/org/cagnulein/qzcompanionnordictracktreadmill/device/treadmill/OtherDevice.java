@@ -11,7 +11,7 @@ public class OtherDevice extends TreadmillDevice {
             new Slider(0, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return (int) (631.03 - 19.921 * v); }
             },
-            new Slider(0, 79) {
+            new Slider(0, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return (int) (520.11 - 21.804 * v); }
             }
         ); }

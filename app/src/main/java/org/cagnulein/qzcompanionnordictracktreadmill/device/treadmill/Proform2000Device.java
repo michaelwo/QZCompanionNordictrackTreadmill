@@ -13,7 +13,7 @@ public class Proform2000Device extends TreadmillDevice {
             new Slider(598, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return (int) (631.03 - 19.921 * v); }
             },
-            new Slider(522, 79) {
+            new Slider(522, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return 520 - (int) ((v + 3) * 21.804); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

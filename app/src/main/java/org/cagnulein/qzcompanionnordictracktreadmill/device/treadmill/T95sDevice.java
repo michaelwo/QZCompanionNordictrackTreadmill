@@ -14,7 +14,7 @@ public class T95sDevice extends TreadmillDevice {
                 public int targetY(double v) { return 847 - (int) (30.0 * v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(817, 76) {
+            new Slider(817, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return 846 - (int) (46.0 * v); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }

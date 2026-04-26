@@ -17,7 +17,7 @@ public class T65sDevice extends TreadmillDevice {
             new Slider(495, ScreenProfile.W1280.rightTrackX) {
                 public int targetY(double v) { return (int) (578.36 - 35.866 * v * 0.621371); }
             },
-            new Slider(585, 74) {
+            new Slider(585, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return (int) (576.91 - 34.182 * v); }
             }
         );

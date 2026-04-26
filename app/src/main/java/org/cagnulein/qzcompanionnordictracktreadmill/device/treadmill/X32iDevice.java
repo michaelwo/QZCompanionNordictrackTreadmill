@@ -11,7 +11,7 @@ public class X32iDevice extends TreadmillDevice {
             new Slider(927, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return (int) (834.85 - 26.946 * v); }
             },
-            new Slider(881, 76) {
+            new Slider(881, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return (int) (734.07 - 12.297 * v); }
             }
         ); }

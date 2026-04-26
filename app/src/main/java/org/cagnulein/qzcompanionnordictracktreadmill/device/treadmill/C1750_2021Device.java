@@ -16,7 +16,7 @@ public class C1750_2021Device extends TreadmillDevice {
                 public int targetY(double v) { return 620 - (int) ((v - 1.0) * 20.73); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(547, 79) {
+            new Slider(547, ScreenProfile.W1280.leftTrackX) {
                 public int targetY(double v) { return (int) (553 - 22 * v); }
             }
         ); }

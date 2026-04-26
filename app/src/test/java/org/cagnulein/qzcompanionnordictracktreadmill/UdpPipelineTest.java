@@ -100,7 +100,7 @@ public class UdpPipelineTest {
     @Test
     public void treadmill_speedMessage_producesExpectedSwipe() throws Exception {
         // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
-        // Expected: input swipe 1207 600 1207 447 200
+        // Expected: input swipe 1205 600 1205 447 200
         CountDownLatch latch = new CountDownLatch(1);
         MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
         startReceiver(dev(new X11iDevice()), current, latch);
@@ -108,7 +108,7 @@ public class UdpPipelineTest {
         sendUdp("8.0;3.0");
 
         assertTrue("dispatch should complete within 2 s", latch.await(2, TimeUnit.SECONDS));
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     @Test
@@ -154,21 +154,21 @@ public class UdpPipelineTest {
         sendUdp("8.0;3.0");
 
         assertTrue("dispatch should complete within 2 s", latch.await(2, TimeUnit.SECONDS));
-        assertEquals("input swipe 1207 600 1207 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
     // ── bike tests ────────────────────────────────────────────────────────────
 
     @Test
     public void bike_resistanceMessage_producesExpectedSwipe() throws Exception {
-        // S15i: resistance 10 → input swipe 1848 790 1848 559 200
+        // S15i: resistance 10 → input swipe 1845 790 1845 559 200
         CountDownLatch latch = new CountDownLatch(1);
         startReceiver(dev(new S15iDevice()), new MetricSnapshot(), latch);
 
         sendUdp("10.0");
 
         assertTrue("dispatch should complete within 2 s", latch.await(2, TimeUnit.SECONDS));
-        assertEquals("input swipe 1848 790 1848 559 200", lastCommand);
+        assertEquals("input swipe 1845 790 1845 559 200", lastCommand);
     }
 
     @Test

@@ -1,13 +1,14 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 public class ProformStudioBikePro22Device extends BikeDevice {
     public ProformStudioBikePro22Device() {
-        // Screen width unconfirmed: right trackX=1828 implies ~1903px — not a standard iFit screen width.
-        // Calibrated from hardware; may use non-standard slider margins.
+        // Screen: 1920px wide — updated to iFit APK 2.6.90 standard
+        //   (original hardware calibration: right=1828).
         super(
-            new Slider(805, 1828) {
+            new Slider(805, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return (int) (826.25 - 21.25 * v); }
             },
             null

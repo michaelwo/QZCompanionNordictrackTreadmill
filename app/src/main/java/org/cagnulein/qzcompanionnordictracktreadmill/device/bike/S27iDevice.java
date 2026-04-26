@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
@@ -8,11 +9,11 @@ public class S27iDevice extends BikeDevice {
     public S27iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(803, 76) {
+            new Slider(803, ScreenProfile.W1920.leftTrackX) {
                 public int targetY(double v) { return 803 - (int) ((v + 10) * (803.0 - 248.0) / 30.0); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             },
-            new Slider(803, 1847) {
+            new Slider(803, ScreenProfile.W1920.rightTrackX) {
                 public int targetY(double v) { return 803 - (int) ((v - 1) * (803.0 - 248.0) / 23.0); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.resistance()); }
             }

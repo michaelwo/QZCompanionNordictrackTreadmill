@@ -13,7 +13,7 @@ public class Elite900Device extends TreadmillDevice {
                 public int targetY(double v) { return 450 - (int) (v * 14.705); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.speed()); }
             },
-            new Slider(450, 76) {
+            new Slider(450, ScreenProfile.W1024.leftTrackX) {
                 public int targetY(double v) { return 450 - (int) (v * 20.83); }
                 protected int currentThumbY(MetricSnapshot current) { return targetY(current.incline()); }
             }
