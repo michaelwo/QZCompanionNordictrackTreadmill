@@ -100,24 +100,24 @@ There was no enforced structure — pixel constants, formulas, and dispatch logi
 // app/src/main/java/.../device/treadmill/MyNewDevice.java
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 
 public class MyNewDevice extends TreadmillDevice {
+    private static final int ORIGIN_INCLINE_THUMBY = 644;
+    private static final int ORIGIN_SPEED_THUMBY   = 785;
+
     public MyNewDevice() {
         super(
-            new Slider(/* maxSpeed */) {              // speed slider
-                public int trackX()          { return 47; }
-                public int targetY(double v) { return 785 - (int)(37.2 * (v - 2.0)); }
-            },
-            new Slider(/* maxIncline */) {            // incline slider
-                public int trackX()          { return 47; }
-                public int targetY(double v) { return 644 - (int)(30.7 * v); }
-            }
+            new Slider(ScreenProfile.W1280.leftTrackX,  ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
+            new Slider(ScreenProfile.W1280.rightTrackX, ORIGIN_SPEED_THUMBY,   MyNewDevice::offsetSpeedThumbY)
         );
     }
     @Override public String displayName() { return "My New Treadmill (MODEL)"; }
-    @Override public boolean requiresAdb() { return true; }
+
+    private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int)(30.7 * v); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY   - (int)(37.2 * (v - 2.0)); }
 }
 ```
 
@@ -146,9 +146,9 @@ static final List<DeviceId> TREADMILL_DEVICES = Arrays.asList(
 python3 tools/validate_swipe_targets.py
 ```
 
-This cross-checks your `trackX()` values against the iFit APK layout XML and flags formula monotonicity and bounds issues. Exit code 0 means all checks pass. See the validator section in [device-reference.md](device-reference.md) for what each check means.
+This cross-checks your `trackX` values against the iFit APK layout XML and flags formula monotonicity and bounds issues. Exit code 0 means all checks pass. See the validator section in [device-reference.md](device-reference.md) for what each check means.
 
-The CLAUDE.md has the full pattern including bike devices, NoADB/AccessibilityService variants, and naming conventions. For a complete listing of all 45 supported devices with their pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](device-reference.md).
+The CLAUDE.md has the full pattern including bike devices, naming conventions, and the `ThumbYFormula` constructor. For a complete listing of all 44 supported devices with their pixel formulas, see [device-reference.md](device-reference.md).
 
 ---
 
@@ -160,14 +160,14 @@ In 4.x, a `Slider` encapsulates everything about one physical axis:
 
 ```
 Slider
-  trackX()              fixed horizontal pixel of the slider track
-  targetY(v)            formula: metric value → logical pixel Y
+  trackX()              fixed horizontal pixel of the slider track (from ScreenProfile)
+  targetThumbY(v)       formula: metric value → logical pixel Y (via ThumbYFormula)
   quantize(v)           optional: snap to physically reachable increments
   currentThumbY(snap)   optional: re-derive thumb position from live metrics
   hysteresisPixels()    optional: directional overshoot for stiction compensation
 ```
 
-Each device class passes anonymous `Slider` implementations to its superclass constructor. All the pixel math is co-located with the device that owns it, and the `BikeDevice`/`TreadmillDevice` base classes call `Slider.moveTo()` generically — no device-specific branching anywhere in the dispatch path.
+Each device class constructs `Slider` instances with `new Slider(trackX, initialThumbY, Device::offsetXxxThumbY)`, where `offsetXxxThumbY` is a `private static` method in the device class. Anonymous subclasses are used only when `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding. All the pixel math is co-located with the device that owns it, and the `BikeDevice`/`TreadmillDevice` base classes call `Slider.moveTo()` generically — no device-specific branching anywhere in the dispatch path.
 
 ---
 
@@ -184,12 +184,12 @@ CommandDispatcher        parse raw string, call device.applyCommand()
         ↓
 BikeDevice / TreadmillDevice   throttle, cache, de-dup
         ↓
-Slider.moveTo()          quantize → targetY → hysteresis → swipe
+Slider.moveTo()          quantize → targetThumbY → hysteresis → swipe
         ↓
-CommandExecutor          ADB / shell / AccessibilityService
+MyAccessibilityService.performSwipe()   all 44 devices
 ```
 
-`CommandDispatcher` is pure Java with no Android imports. The `Clock` it uses for throttle timing is injectable, so tests control time directly. `Device` has injectable `commandExecutor` and `logger` functional interfaces, so tests capture swipe strings without ADB or Android.
+`CommandDispatcher` is pure Java with no Android imports. The `Clock` it uses for throttle timing is injectable, so tests control time directly. `Device` has an injectable `logger` functional interface, so tests capture swipe strings without Android.
 
 ---
 
@@ -302,9 +302,7 @@ Two new UI elements appear below the device list:
 
 | Device type | Card shows |
 |-------------|-----------|
-| ADB devices | "Shell connection — Connected / Not connected" |
-| Accessibility devices | "Tap control — Enabled / Not enabled" (tapping opens Android Accessibility Settings) |
-| Shell devices | "Tap control — Granted / Not granted" + the `adb pm grant` command to paste |
+| All devices | "Tap control — Enabled / Not enabled" (tapping opens Android Accessibility Settings) |
 | All devices | "QZ App — Broadcasting heartbeat / No heartbeat received yet" (refreshes every 5 s) |
 | All devices | "Zwift via Bluetooth — Advertising / Not advertising / Not supported" (BLE FTMS canary status) |
 
@@ -316,6 +314,5 @@ The card refreshes automatically on `onResume()` so enabling Accessibility in Se
 
 - The **UDP wire format** (`"speedKmh;inclinePct"`, `"resistanceLvl"`, etc.) is identical — the QZ app doesn't need updating.
 - The **iFit log file paths** and metric keyword strings are the same.
-- The **ADB loopback** reconnect and **AccessibilityService** gesture injection work the same way.
-- The **`android-remote-debugger`** library (`ShellService`) is unchanged.
+- All devices use `AccessibilityService` gesture injection via `MyAccessibilityService.performSwipe()`.
 - The **CI pipeline** (`.github/workflows/main.yml`) runs the same steps; tests now run before the release build.

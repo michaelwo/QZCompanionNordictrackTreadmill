@@ -1,12 +1,12 @@
 # QZ Companion NordicTrack Treadmill - Claude Documentation
 
 ## Project Structure
-Android app for controlling NordicTrack and ProForm fitness devices via ADB/shell commands.
+Android app for controlling NordicTrack and ProForm fitness devices via AccessibilityService gesture injection.
 
 ### Main Files
 - `app/src/main/java/.../service/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
-- `app/src/main/java/.../service/MetricReaderBroadcastingService.java` — polls iFit log file and broadcasts metric changes over UDP (port 8002)
-- `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for NoADB devices via the Android Accessibility API
+- `app/src/main/java/.../service/MetricReaderBroadcastingService.java` — streams iFit metrics via MonoStdout and broadcasts changes over UDP (port 8002)
+- `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../service/OcrCalibrationService.java` — calibration-only OCR polling loop
 - `app/src/main/java/.../service/ScreenCaptureService.java` — captures screen frames for OCR during calibration
 - `app/src/main/java/.../MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
@@ -44,44 +44,34 @@ Bike device (`device/bike/MyNewDevice.java`):
 ```java
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 
 public class MyNewDevice extends BikeDevice {
+    private static final int ORIGIN_INCLINE_THUMBY = /* formula intercept */;
+
     public MyNewDevice() {
         super(
-            new Slider(/* maxValue */) {
-                public int trackX()          { return /* px */; }
-                public int targetY(double v) { return /* base */ - (int)(/* scale */ * v); }
-            }
+            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
+            null  // null if no resistance slider
         );
     }
     @Override public String displayName() { return "My New Device"; }
-    @Override public boolean requiresAdb() { return true; }  // or false for shell/accessibility
+
+    private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int)(/* scale */ * v); }
 }
 ```
 
-Treadmill device: extend `TreadmillDevice` and pass two `Slider` instances (speed + incline).
+Treadmill device: extend `TreadmillDevice` and pass two `Slider` instances `(incline, speed)`. All devices use `AccessibilityService` by default — no `requiresAdb()` or `requiresAccessibility()` overrides needed. When `currentThumbY`, `quantize`, or `hysteresisPixels` need overriding, use an anonymous `Slider` subclass combining the formula constructor with the override body.
 
-### 2. AccessibilityService devices (NoADB variants)
-
-Override `swipe()` to call `MyAccessibilityService.performSwipe()` and add:
-```java
-@Override public boolean requiresAdb()          { return false; }
-@Override public boolean requiresAccessibility() { return true; }
-@Override protected void swipe(int x, int y1, int y2) {
-    MyAccessibilityService.performSwipe(x, y1, x, y2, 200);
-}
-```
-Import: `org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService`
-
-### 3. Register the device
+### 2. Register the device
 
 Add a `DeviceId` value to `DeviceRegistry.DeviceId`, then add an entry in `DeviceRegistry.DEVICES`:
 ```java
 .put(DeviceId.my_new_device, new MyNewDevice())
 ```
 
-### 4. Add to the UI
+### 3. Add to the UI
 
 Add the `DeviceId` to the appropriate list in `DeviceAdapter` (`BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`).
 
