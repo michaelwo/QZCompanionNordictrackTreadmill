@@ -36,10 +36,10 @@ The two main service files were renamed to say what they actually do:
 | 3.x name | 4.x name |
 |----------|----------|
 | `UDPListenerService` | `CommandListenerService` |
-| `QZService` | `MetricReaderBroadcastingService` |
+| `QZService` | `MetricReaderUnicastingService` |
 | `MyAccessibilityService` | `MyAccessibilityService` *(unchanged)* |
 
-If you're searching the codebase for something that lived in `QZService` in 3.x, look in `MetricReaderBroadcastingService` first, then `Device` (metric snapshot state moved there).
+If you're searching the codebase for something that lived in `QZService` in 3.x, look in `MetricReaderUnicastingService` first, then `Device` (metric snapshot state moved there).
 
 ---
 
@@ -230,7 +230,7 @@ if (ifit_v2) {
 }
 ```
 
-**4.x:** No flag. `MetricReaderBroadcastingService` calls `reader.forIfitV2()` once when it detects the v2 log path. `TailGrepMetricReader.forIfitV2()` returns a `TailGrepIfitV2MetricReader` that overrides two template methods. Device classes are completely unaware of iFit versions.
+**4.x:** No flag and no detection needed. `MonoStdoutMetricReader` subscribes to `logcat -s mono-stdout`, which is the same across all iFit versions — there is no v1/v2 log path fork. `MetricReaderUnicastingService` creates a `MonoStdoutMetricReader` directly; no reader variants or factory methods exist. Device classes are completely unaware of iFit versions.
 
 ---
 

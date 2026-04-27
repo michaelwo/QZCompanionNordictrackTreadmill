@@ -38,7 +38,7 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `HillyRouteReplayTest` | 1 | Parameterised replay of a recorded Hilly Route (31 intervals) against S22i; verifies de-dup fires correctly on repeated grades |
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `CommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `CommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
-| `MetricReaderBroadcastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
+| `MetricReaderUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
 | **Total** | **379** | |
 
 ---

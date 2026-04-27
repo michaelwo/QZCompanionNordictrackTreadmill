@@ -2,7 +2,7 @@
 
 ## Overview
 
-QZCompanion is an Android app that runs on the NordicTrack/ProForm iFit embedded tablet and acts as the bridge between the Zwift training ecosystem and the physical hardware. It has two concurrent jobs: **accepting control commands** (grade, resistance, speed) forwarded from the QZ app and translating them into touch gestures on the iFit screen, and **reading live metrics** (speed, incline, cadence, watts) from the iFit firmware and broadcasting them back to the QZ app so Zwift stays in sync with what the machine is actually doing.
+QZCompanion is an Android app that runs on the NordicTrack/ProForm iFit embedded tablet and acts as the bridge between the Zwift training ecosystem and the physical hardware. It has two concurrent jobs: **accepting control commands** (grade, resistance, speed) forwarded from the QZ app and translating them into touch gestures on the iFit screen, and **reading live metrics** (speed, incline, cadence, watts) from the iFit firmware and unicasting them back to the QZ app so Zwift stays in sync with what the machine is actually doing.
 
 ---
 
@@ -12,7 +12,7 @@ QZCompanion is an Android app that runs on the NordicTrack/ProForm iFit embedded
 
 Zwift requires **BLE hardware and a full FTMS (Fitness Machine Service) software implementation** on the fitness device — both to receive grade and resistance commands and to report metrics back. The NordicTrack and ProForm machines supported by this project have neither: the iFit 1/2 embedded tablet has no BLE radio dedicated to fitness machine control, and the iFit firmware does not implement the FTMS profile.
 
-The **QZ app** satisfies Zwift's FTMS requirement by running on a separate device that *does* have BLE — a phone, laptop, or computer. Zwift pairs with QZ over BLE as if it were the fitness machine. QZ then forwards Zwift's grade and resistance commands over UDP (Wi-Fi) to QZCompanion, which runs on the iFit tablet itself and drives the hardware by injecting touch gestures on the iFit screen. Metrics travel the reverse path: QZCompanion reads them from the iFit firmware log and broadcasts them back to QZ, which relays them to Zwift over BLE.
+The **QZ app** satisfies Zwift's FTMS requirement by running on a separate device that *does* have BLE — a phone, laptop, or computer. Zwift pairs with QZ over BLE as if it were the fitness machine. QZ then forwards Zwift's grade and resistance commands over UDP (Wi-Fi) to QZCompanion, which runs on the iFit tablet itself and drives the hardware by injecting touch gestures on the iFit screen. Metrics travel the reverse path: QZCompanion reads them from the iFit firmware log and unicasts them back to QZ, which relays them to Zwift over BLE.
 
 ### Why swipe simulation?
 
@@ -51,12 +51,13 @@ QZ App (phone/tablet)
         │       or  "resistanceLvl"       (1-part bike)
         ▼
 CommandListenerService.listenAndWaitAndThrowIntent()
-        │
-        │  splits on ";"
+        │  records qzAddress from -100; heartbeat packets
         ▼
 CommandDispatcher.dispatch()
         │
-        │  device.decodeCommand(parts, decimalSeparator)
+        │  QzPacket.parse(message)      ← splits on ";"
+        │  device.decodeCommand(pkt, decimalSeparator)
+        │    → QzProtocol.decodeBike/decodeTreadmill
         │    → produces Command{speedKmh, inclinePct, resistanceLvl}
         │
         │  device.applyCommand(cmd, now)
@@ -92,7 +93,7 @@ iFit firmware
         │            files/.valinorlogs/log.latest.txt
         │
         ▼
-MetricReaderBroadcastingService
+MetricReaderUnicastingService
         │
         │  reader.subscribe(snapshot →)        ← push path (MonoStdoutMetricReader)
         │    → returns MetricSnapshot{speedKmh, inclinePct,
@@ -102,9 +103,10 @@ MetricReaderBroadcastingService
         │    → feeds speed gate and currentThumbY tracking
         │    → emits QZ:Snapshot log line when incline changes
         │
-        │  delta check: only changed fields are broadcast
+        │  delta check: only changed fields are sent
+        │  sendUnicast(): drops packet if no heartbeat in last 30 s
         ▼
-UDP datagram, port 8002
+UDP unicast → qzAddress:8002   (qzAddress = source IP of last -100; heartbeat)
         │  "Changed KPH <value>"
         │  "Changed Grade <value>"
         │  "Changed RPM <value>"
@@ -117,7 +119,7 @@ QZ App (phone/tablet)
 Zwift (PC/console)
 ```
 
-`MonoStdoutMetricReader` pushes metric updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. Only fields that changed since the last broadcast are sent — unchanged metrics produce no UDP traffic. The `updateSnapshot()` call also closes the feedback loop for the inbound path: the speed gate blocks treadmill speed swipes while `lastSnapshot.speed <= 0`, and slider subclasses that implement `currentThumbY()` re-derive their starting position from live observed metrics rather than tracking it as internal state.
+`MonoStdoutMetricReader` pushes metric updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. Only fields that changed since the last unicast are sent — unchanged metrics produce no UDP traffic. Metric packets are addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. The `updateSnapshot()` call also closes the feedback loop for the inbound path: the speed gate blocks treadmill speed swipes while `lastSnapshot.speed <= 0`, and slider subclasses that implement `currentThumbY()` re-derive their starting position from live observed metrics rather than tracking it as internal state.
 
 ---
 
@@ -127,14 +129,14 @@ Zwift (PC/console)
 
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
-├── service/          CommandListenerService, MetricReaderBroadcastingService,
+├── service/          CommandListenerService, MetricReaderUnicastingService,
 │                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
 │   ├── bike/         One class per bike device
 │   └── treadmill/    One class per treadmill device
-├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult
-├── dispatch/         CommandDispatcher, Command
-└── reader/           MetricReader hierarchy, MetricSnapshot, Shell
+├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult, ShellRuntime
+├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
+└── reader/           MetricReader hierarchy, MetricSnapshot
 ```
 
 ### Device Model
@@ -174,13 +176,17 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 ### Command Dispatch
 
-**`CommandListenerService`** — Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Handles locale-aware decimal separators (`,` vs `.`).
+**`CommandListenerService`** — Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Records `qzAddress` and `lastQzHeartbeatMs` from `-100;N` heartbeat packets so `MetricReaderUnicastingService` knows where to send metric updates. Handles locale-aware decimal separators (`,` vs `.`).
 
-**`CommandDispatcher`** — stateless parser/router. Splits the raw UDP string on `;`, calls `device.decodeCommand()` to get a `Command`, then `device.applyCommand(cmd, now)`. Has an injectable `Clock` interface so tests can drive time without sleeping.
+**`CommandDispatcher`** — stateless parser/router. Calls `QzPacket.parse(message)` to split the raw string, then `device.decodeCommand(pkt, decimalSeparator)` to get a `Command`, then `device.applyCommand(cmd, now)`. Has an injectable `Clock` interface so tests can drive time without sleeping.
+
+**`QzPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, and named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`). The `;` split is not exposed outside this class.
+
+**`QzProtocol`** — semantic decoder. `decodeBike(pkt, sep)` and `decodeTreadmill(pkt, sep)` translate a `QzPacket` into a `Command`, applying all sentinel filtering. `BikeDevice.decodeCommand()` and `TreadmillDevice.decodeCommand()` are one-line delegates to these methods.
 
 ### Metric Reading
 
-**`MetricReaderBroadcastingService`** — background service that drives either a 250 ms poll loop (polling readers) or a push subscription (streaming readers). Calls `Device.instance.updateSnapshot()` on every new reading and broadcasts changed metrics over UDP on port 8002.
+**`MetricReaderUnicastingService`** — background service that subscribes to `MonoStdoutMetricReader`'s push path. Calls `Device.instance.updateSnapshot()` on every new reading and unicasts changed metrics to `qzAddress:8002`. Silently drops sends until `CommandListenerService` has seen a QZ heartbeat within the last 30 s.
 
 The `MetricReader` interface and its implementations are described in the [Design Decisions](#design-decisions) and [Reference](#reference) sections below.
 
@@ -192,7 +198,7 @@ All 44 devices use `MyAccessibilityService.performSwipe()`. `Device.requiresAcce
 
 `OcrCalibrationService` runs in the background after the user grants screen-capture permission. It captures frames via `ScreenCaptureService`, passes them to `Ocr.extractMetrics()`, and logs each recognised metric under the `QZ:OcrCalibration` tag. Recognised labels: `"speed"`, `"incline"`, `"cadence"`, `"resistance"`, `"watt"`, `"strokes per min"`, `"500 split"`.
 
-OCR output is **not** broadcast to the QZ app — it is used exclusively by `CalibrationActivity`, which reads `OcrCalibrationService.latestReading` during a swipe sweep to build a commanded-Y → observed-incline mapping table. The production metric path (`MetricReaderBroadcastingService`) reads from the iFit log file only; it has no OCR dependency.
+OCR output is **not** unicast to the QZ app — it is used exclusively by `CalibrationActivity`, which reads `OcrCalibrationService.latestReading` during a swipe sweep to build a commanded-Y → observed-incline mapping table. The production metric path (`MetricReaderUnicastingService`) reads from the iFit log file only; it has no OCR dependency.
 
 ---
 
@@ -210,15 +216,15 @@ Subscribing to `mono-stdout` via a persistent `logcat -s mono-stdout` process is
 
 ### MetricReader Interface
 
-All 44 devices use `MonoStdoutMetricReader`. The `MetricReader` interface has a `subscribe(Consumer<MetricSnapshot>)` method that `MonoStdoutMetricReader` implements by starting a background thread; `MetricReaderBroadcastingService` calls `subscribe()` once on startup rather than polling.
+All 44 devices use `MonoStdoutMetricReader`. The `MetricReader` interface has a `subscribe(Consumer<MetricSnapshot>)` method that `MonoStdoutMetricReader` implements by starting a background thread; `MetricReaderUnicastingService` calls `subscribe()` once on startup rather than polling.
 
 ### MonoStdoutMetricReader
 
 The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) app. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`, one value per line. `MonoStdoutMetricReader` opens `logcat -s mono-stdout` as a persistent child process in a daemon thread and parses each line as it arrives. Latency from firmware change to cached snapshot update is under 10 ms. The thread restarts automatically if the logcat process exits.
 
-`read(file, shell)` returns the cached snapshot immediately with no I/O. The `file` and `shell` arguments are ignored — the reader has its own process and does not use the `Shell` abstraction.
+`read()` starts the logcat background thread; it returns immediately. There are no file or shell arguments.
 
-`MetricReaderBroadcastingService` calls `subscribe(snapshot →)` once when a device is selected. `MonoStdoutMetricReader` stores the listener and invokes it on every parsed update; the service then broadcasts only the changed fields over UDP.
+`MetricReaderUnicastingService` calls `subscribe(snapshot →)` once when a device is selected. `MonoStdoutMetricReader` stores the listener and invokes it on every parsed update; the service then unicasts only the changed fields to `qzAddress:8002`.
 
 **Parsed line keywords** (last whitespace-delimited token on each line is the value):
 
@@ -234,7 +240,7 @@ The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform
 
 ### MetricSnapshot Fields
 
-`MetricSnapshot` holds all observable metrics as nullable `Float` fields. `null` means "not observed this cycle" — `MetricReaderBroadcastingService` re-broadcasts the last known value rather than emitting zero. The `speed()`, `incline()`, `resistance()`, and `gear()` accessors return `0f` when the field is null, which is safe for arithmetic but should not be confused with a confirmed zero reading.
+`MetricSnapshot` holds all observable metrics as nullable `Float` fields. `null` means "not observed this cycle" — `MetricReaderUnicastingService` re-unicasts the last known value rather than emitting zero. The `speed()`, `incline()`, `resistance()`, and `gear()` accessors return `0f` when the field is null, which is safe for arithmetic but should not be confused with a confirmed zero reading.
 
 | Field | Unit |
 |-------|------|

@@ -27,9 +27,9 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
-├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult
-├── dispatch/         CommandDispatcher, Command
-└── reader/           MetricReader hierarchy, MetricSnapshot, ShellRuntime
+├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult, ShellRuntime
+├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
+└── reader/           MetricReader hierarchy, MetricSnapshot
 ```
 
 ---

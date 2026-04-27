@@ -105,7 +105,7 @@ Two-zone hysteresis is applied automatically:
 - **Travel ≥ 40 px:** `hystLargePx` overshoot
 - **Travel < 40 px:** `hystSmallPx` overshoot
 
-The `currentThumbY()` override reads live incline from `MetricReaderBroadcastingService` (via `Device.instance.lastSnapshot`), so any drift is self-corrected on the next command.
+The `currentThumbY()` override reads live incline from `MetricReaderUnicastingService` (via `Device.instance.lastSnapshot`), so any drift is self-corrected on the next command.
 
 ---
 

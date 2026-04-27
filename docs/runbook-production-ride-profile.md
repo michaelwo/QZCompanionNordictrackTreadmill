@@ -134,7 +134,7 @@ This writes `report.txt` into the ride directory and prints the same content to 
 | `ADB DOWN events` > 0 | ADB connection dropped and reconnected during ride | Check USB/WiFi stability; review reconnect log lines |
 | `INJECT_EVENTS fail` > 0 | Accessibility permission revoked or not granted | Re-enable QZCompanion in Android Accessibility Settings |
 | CPU% > 20% sustained | Unexpected — check if another process on device is contending | Run `adb shell top` during next ride to identify |
-| iFit log growing > 50 MB/hour | Log truncation not firing | Verify `TailGrepMetricReader.truncateCounter` threshold (currently 1200 cycles) |
+| iFit log growing > 50 MB/hour | iFit firmware is unusually chatty; log is not read by QZCompanion but will consume disk space | Monitor device storage; consider clearing the log file manually between rides |
 
 ---
 
@@ -160,4 +160,4 @@ diff profiles/baseline-*/report.txt
 - **FD count shows 0:** `/proc/<pid>/fd` requires root or a debuggable build. The report will display "n/a" — this is expected on production builds.
 - **CPU% may show 0:** `dumpsys cpuinfo` output format varies by Android version. If the column is consistently 0, verify manually with `adb shell top -n1 | grep qzcompanion`.
 - **Logcat is all-process:** The `*:I` filter captures everything at INFO level, not just QZCompanion. The `logcat.txt` file will be large on a busy device. `analyze-ride.sh` filters by keyword so this does not affect the report.
-- **iFit log truncation resets the size counter:** The `ifit_log_kb` column may show a dip mid-ride when `TailGrepMetricReader` truncates the file. This is expected and healthy.
+- **`ifit_log_kb` reflects file growth, not reads:** QZCompanion no longer reads the iFit log file — metrics come from `logcat -s mono-stdout`. The `ifit_log_kb` column monitors disk usage only; a steadily growing value is expected and does not indicate a problem unless it approaches device storage limits.
