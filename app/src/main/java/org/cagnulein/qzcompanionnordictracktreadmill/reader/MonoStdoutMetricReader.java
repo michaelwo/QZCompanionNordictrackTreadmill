@@ -71,7 +71,10 @@ public class MonoStdoutMetricReader implements MetricReader {
             try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 String line;
                 while ((line = br.readLine()) != null) {
-                    if (!line.contains(OWN_LOG_TAG)) parseLine(line);
+                    if (!line.contains(OWN_LOG_TAG)) {
+                        try { parseLine(line); }
+                        catch (Exception e) { onError.accept(e); }
+                    }
                 }
             }
         } catch (IOException e) { onError.accept(e); }

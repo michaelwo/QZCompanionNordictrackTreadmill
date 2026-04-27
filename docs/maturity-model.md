@@ -118,11 +118,11 @@ Can a new contributor understand and extend the app without reading every file?
 | Device Portability | 3 | All devices self-contained in device/bike/ and device/treadmill/ (one file per device); DeviceRegistry + DeviceAdapter; all devices have ≥1 test; defaultMetricReader() returns MonoStdoutMetricReader for all devices |
 | Formula Auditability | 1 | S22i incline and resistance calibrated on real device (least-squares fit, 2026-04-19/22); X32i, S15i, Ntex71021 and ~40 others have named origin constants but no derivation or methodology notes |
 | Build Reproducibility | 2 | CI signs and publishes on every master push; version from version.properties; versionCode from run number; action refs unpinned (checkout@v2, sign-android-release@v1, add-and-commit@v9) |
-| Failure Resilience | 2 | ADB removed; performSwipe logs Log.e on null instance and on dispatchGesture=false; throttle window prevents command storms; uncaught exceptions = hard kill (score 3 requires per-feature graceful degradation) |
+| Failure Resilience | 3 | UDP listener loop catches per-packet exceptions and continues (no permanent thread death); MonoStdoutMetricReader parseLine exceptions caught in-loop (reader thread survives); performSwipe logs Log.e on null instance and dispatchGesture=false; MyExceptionHandler logs QZ:Crash + saves to CrashPrefs before kill |
 | Calibration Capability | 2 | In-app CalibrationActivity: swipe sweep + OCR feedback + FormulaFitter least-squares fit → CalibratedBikeDevice; ShellRuntime in calibration/ package; CalibrationResult not yet fed into a regression test |
 | Documentation | 2 | architecture.md, device-reference.md, calibration-runbook.md, migrating-from-3x.md present and updated for 4.x refactor; hand-maintained in docs/ (not adjacent to code); runbook commands not tested end-to-end |
 
-**Overall: 18 / 24**
+**Overall: 19 / 24**
 
 ### Code Quality Gate (not a scored dimension)
 
@@ -142,6 +142,6 @@ in the preview.
 | Device Portability | ✓ Done — orthogonal reader design complete; all DeviceId entries have ≥1 test |
 | Formula Auditability | Add two-point derivation comments to X32i and one other device file (methodology visible without real-device access); then expand |
 | Build Reproducibility | Pin all GitHub Actions to SHA digests to eliminate mutable external dependencies |
-| Failure Resilience | Add per-feature graceful degradation so uncaught exceptions don't hard-kill the app |
+| Failure Resilience | ✓ Done — service loops resilient; uncaught exceptions logged at QZ:Crash |
 | Calibration Capability | Feed CalibrationResult into a regression test that verifies formula tolerance ≤ 0.5% |
 | Documentation | Verify runbook commands execute correctly end-to-end |

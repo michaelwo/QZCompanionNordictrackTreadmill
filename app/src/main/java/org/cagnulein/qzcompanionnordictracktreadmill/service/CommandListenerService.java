@@ -108,20 +108,15 @@ public class CommandListenerService extends Service {
     }
 
     void startListenForUDPBroadcast() {
-        UDPBroadcastThread = new Thread(new Runnable() {
-            public void run() {
-				{					
-					try {
-						InetAddress broadcastIP = getBroadcastAddress();
-						Integer port = 8003;
-						while (shouldRestartSocketListen) {
-							listenAndWaitAndThrowIntent(broadcastIP, port);
-						}
-						//if (!shouldListenForUDPBroadcast) throw new ThreadDeath();
-					} catch (Exception e) {
-                        writeLog("no longer listening for UDP broadcasts cause of error " + e.getMessage());
-					}
-				}
+        UDPBroadcastThread = new Thread(() -> {
+            InetAddress broadcastIP = getBroadcastAddress();
+            int port = 8003;
+            while (shouldRestartSocketListen) {
+                try {
+                    listenAndWaitAndThrowIntent(broadcastIP, port);
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "UDP receive error, continuing: " + e.getMessage());
+                }
             }
         });
         UDPBroadcastThread.start();

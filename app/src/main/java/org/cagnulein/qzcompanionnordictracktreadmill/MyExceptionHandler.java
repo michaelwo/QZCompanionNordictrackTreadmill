@@ -21,13 +21,11 @@ public class MyExceptionHandler implements Thread.UncaughtExceptionHandler {
         throwable.printStackTrace(pw);
         String stackTraceString = sw.toString();
 
-        // Salva l'errore nelle SharedPreferences
-        SharedPreferences prefs = context.getSharedPreferences("CrashPrefs", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = prefs.edit();
-        editor.putString("last_crash", stackTraceString);
-        editor.apply();
+        Log.e("QZ:Crash", "Uncaught exception on thread " + thread.getName() + ": " + stackTraceString);
 
-        // Termina l'app
+        SharedPreferences prefs = context.getSharedPreferences("CrashPrefs", Context.MODE_PRIVATE);
+        prefs.edit().putString("last_crash", stackTraceString).apply();
+
         android.os.Process.killProcess(android.os.Process.myPid());
         System.exit(1);
     }
