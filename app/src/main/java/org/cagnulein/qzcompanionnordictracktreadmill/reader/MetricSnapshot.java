@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.reader;
 
 /**
  * Typed snapshot of all device metrics for one parse cycle.
- * null means "not observed this cycle" — consumers re-broadcast the last known value.
+ * null means "not observed this cycle" — the service unicasts the last known value.
  * Used by both the log-file readers (MetricReader) and the OCR path (Ocr).
  */
 public class MetricSnapshot {

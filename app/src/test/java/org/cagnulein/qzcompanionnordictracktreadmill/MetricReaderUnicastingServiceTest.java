@@ -12,14 +12,14 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderBroadcastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import static org.junit.Assert.*;
 
 /**
- * Robolectric tests for MetricReaderBroadcastingService.
+ * Robolectric tests for MetricReaderUnicastingService.
  *
- * Primary goal: force Gradle to compile the real MetricReaderBroadcastingService.java so that
+ * Primary goal: force Gradle to compile the real MetricReaderUnicastingService.java so that
  * compilation errors (missing fields, bad imports, etc.) surface here
  * rather than only on the upstream CI.
  *
@@ -29,9 +29,9 @@ import static org.junit.Assert.*;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
-public class MetricReaderBroadcastingServiceTest {
+public class MetricReaderUnicastingServiceTest {
 
-    private ServiceController<MetricReaderBroadcastingService> controller;
+    private ServiceController<MetricReaderUnicastingService> controller;
 
     @Before
     public void setUp() {
@@ -50,19 +50,19 @@ public class MetricReaderBroadcastingServiceTest {
 
     @Test
     public void serviceCreates_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(MetricReaderBroadcastingService.class);
+        controller = Robolectric.buildService(MetricReaderUnicastingService.class);
         assertNotNull(controller.create().get());
     }
 
     @Test
     public void serviceStarts_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(MetricReaderBroadcastingService.class);
+        controller = Robolectric.buildService(MetricReaderUnicastingService.class);
         assertNotNull(controller.create().startCommand(0, 1).get());
     }
 
     @Test
     public void serviceDestroysCleanly() {
-        controller = Robolectric.buildService(MetricReaderBroadcastingService.class);
+        controller = Robolectric.buildService(MetricReaderUnicastingService.class);
         controller.create().startCommand(0, 1).destroy();
         // No exception = pass
     }
@@ -76,8 +76,8 @@ public class MetricReaderBroadcastingServiceTest {
      */
     @Test
     public void onBind_doesNotThrow() {
-        controller = Robolectric.buildService(MetricReaderBroadcastingService.class);
-        MetricReaderBroadcastingService svc = controller.create().get();
+        controller = Robolectric.buildService(MetricReaderUnicastingService.class);
+        MetricReaderUnicastingService svc = controller.create().get();
         // IBinder may be null (service doesn't support binding) but must not throw
         IBinder result = svc.onBind(new Intent());
         // No assertion needed — compile + no exception is the contract
@@ -88,8 +88,8 @@ public class MetricReaderBroadcastingServiceTest {
      */
     @Test
     public void onUnbind_doesNotThrow() {
-        controller = Robolectric.buildService(MetricReaderBroadcastingService.class);
-        MetricReaderBroadcastingService svc = controller.create().get();
+        controller = Robolectric.buildService(MetricReaderUnicastingService.class);
+        MetricReaderUnicastingService svc = controller.create().get();
         svc.onUnbind(new Intent());
         // No exception = pass
     }

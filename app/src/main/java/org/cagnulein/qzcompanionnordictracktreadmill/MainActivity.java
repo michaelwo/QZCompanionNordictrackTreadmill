@@ -40,7 +40,7 @@ import java.io.IOException;
 import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderBroadcastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -186,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
         Intent inServer = new Intent(getApplicationContext(), CommandListenerService.class);
         getApplicationContext().startService(inServer);
-        Intent in = new Intent(getApplicationContext(), MetricReaderBroadcastingService.class);
+        Intent in = new Intent(getApplicationContext(), MetricReaderUnicastingService.class);
         getApplicationContext().startService(in);
 
 
@@ -399,7 +399,7 @@ public class MainActivity extends AppCompatActivity {
     private void selectDevice(Device device) {
         device.logger = (tag, msg) -> Log.i(tag, msg);
         Device.instance = device;
-        MetricReaderBroadcastingService.applyDevice(device);
+        MetricReaderUnicastingService.applyDevice(device);
         updateStatusChip();
         updateRequirementsCard();
     }

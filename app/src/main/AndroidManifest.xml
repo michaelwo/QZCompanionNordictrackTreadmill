@@ -31,7 +31,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
         <service android:name=".BleCanaryService" android:enabled="true" />
-        <service android:name=".service.MetricReaderBroadcastingService"/>
+        <service android:name=".service.MetricReaderUnicastingService"/>
         <service android:name=".service.CommandListenerService"/>
         <service android:name=".service.OcrCalibrationService"/>
         <activity android:name=".CalibrationActivity" android:exported="false"/>

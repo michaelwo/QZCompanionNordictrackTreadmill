@@ -20,23 +20,23 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.function.Consumer;
 
-public class MetricReaderBroadcastingService extends Service {
+public class MetricReaderUnicastingService extends Service {
     private static final String LOG_TAG = "QZ:MetricReaderService";
     IBinder binder;
     boolean allowRebind;
-    /** UDP port on the QZ host that receives broadcasted metric updates. */
-    static final int BROADCAST_PORT = 8002;
+    /** UDP port on the QZ host that receives unicast metric updates. */
+    static final int UNICAST_PORT = 8002;
 
     static SharedPreferences sharedPreferences;
 
-    /** Tracks the last value sent for each metric — only changed values are broadcast. */
-    private final MetricSnapshot broadcastedSoFar = new MetricSnapshot();
+    /** Tracks the last value sent for each metric — only changed values are unicast. */
+    private final MetricSnapshot unicastedSoFar = new MetricSnapshot();
 
     /** Current reader; replaced on every device switch via {@link #applyDevice(Device)}. */
     private MetricReader cachedReader = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
-    private static MetricReaderBroadcastingService instance;
+    private static MetricReaderUnicastingService instance;
 
     @Override
     public void onCreate() {
@@ -59,28 +59,28 @@ public class MetricReaderBroadcastingService extends Service {
         cachedReader = device.defaultMetricReader();
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
-        cachedReader.subscribe(this::applyAndBroadcast);
+        cachedReader.subscribe(this::applyAndUnicast);
         writeLog("Device " + device.displayName() + ": streaming reader active");
         try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
     }
 
-    private void broadcastLastKnown() {
+    private void unicastLastKnown() {
         if (Device.instance == null) return;
         MetricSnapshot s = Device.instance.lastSnapshot;
-        sendIfChanged(s.speedKmh,      broadcastedSoFar.speedKmh,      "Changed KPH ",         v -> broadcastedSoFar.speedKmh      = v);
-        sendIfChanged(s.inclinePct,    broadcastedSoFar.inclinePct,    "Changed Grade ",       v -> broadcastedSoFar.inclinePct    = v);
-        sendIfChanged(s.cadenceRpm,    broadcastedSoFar.cadenceRpm,    "Changed RPM ",         v -> broadcastedSoFar.cadenceRpm    = v);
-        sendIfChanged(s.gearLevel,     broadcastedSoFar.gearLevel,     "Changed CurrentGear ", v -> broadcastedSoFar.gearLevel     = v);
-        sendIfChanged(s.resistanceLvl, broadcastedSoFar.resistanceLvl, "Changed Resistance ",  v -> broadcastedSoFar.resistanceLvl = v);
-        sendIfChangedInt(s.watts,      broadcastedSoFar.watts,         "Changed Watts ",       v -> broadcastedSoFar.watts         = v);
-        sendIfChangedInt(s.heartRate,  broadcastedSoFar.heartRate,     "HeartRateDataUpdate ", v -> broadcastedSoFar.heartRate     = v);
+        sendIfChanged(s.speedKmh,      unicastedSoFar.speedKmh,      "Changed KPH ",         v -> unicastedSoFar.speedKmh      = v);
+        sendIfChanged(s.inclinePct,    unicastedSoFar.inclinePct,    "Changed Grade ",       v -> unicastedSoFar.inclinePct    = v);
+        sendIfChanged(s.cadenceRpm,    unicastedSoFar.cadenceRpm,    "Changed RPM ",         v -> unicastedSoFar.cadenceRpm    = v);
+        sendIfChanged(s.gearLevel,     unicastedSoFar.gearLevel,     "Changed CurrentGear ", v -> unicastedSoFar.gearLevel     = v);
+        sendIfChanged(s.resistanceLvl, unicastedSoFar.resistanceLvl, "Changed Resistance ",  v -> unicastedSoFar.resistanceLvl = v);
+        sendIfChangedInt(s.watts,      unicastedSoFar.watts,         "Changed Watts ",       v -> unicastedSoFar.watts         = v);
+        sendIfChangedInt(s.heartRate,  unicastedSoFar.heartRate,     "HeartRateDataUpdate ", v -> unicastedSoFar.heartRate     = v);
     }
 
     private void sendIfChanged(Float current, Float last, String label, Consumer<Float> save) {
         if (current != null && !current.equals(last)) {
             String msg = label + current;
             logMetric(msg);
-            sendBroadcast(msg);
+            sendUnicast(msg);
             save.accept(current);
         }
     }
@@ -89,7 +89,7 @@ public class MetricReaderBroadcastingService extends Service {
         if (current != null && !current.equals(last)) {
             String msg = label + current.intValue();
             logMetric(msg);
-            sendBroadcast(msg);
+            sendUnicast(msg);
             save.accept(current);
         }
     }
@@ -101,12 +101,12 @@ public class MetricReaderBroadcastingService extends Service {
         }
     }
 
-    private void applyAndBroadcast(MetricSnapshot m) {
+    private void applyAndUnicast(MetricSnapshot m) {
         if (Device.instance != null) Device.instance.updateSnapshot(m);
-        broadcastLastKnown();
+        unicastLastKnown();
     }
 
-    public static void sendBroadcast(String messageStr) {
+    public static void sendUnicast(String messageStr) {
         InetAddress target = CommandListenerService.qzAddress;
         long lastHb = CommandListenerService.lastQzHeartbeatMs;
         if (target == null || lastHb == 0
@@ -118,7 +118,7 @@ public class MetricReaderBroadcastingService extends Service {
 
         try (DatagramSocket s = new DatagramSocket()) {
             byte[] sendData = messageStr.getBytes();
-            s.send(new DatagramPacket(sendData, sendData.length, target, BROADCAST_PORT));
+            s.send(new DatagramPacket(sendData, sendData.length, target, UNICAST_PORT));
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
         }
@@ -154,7 +154,7 @@ public class MetricReaderBroadcastingService extends Service {
         if (sharedPreferences.getBoolean("debugLog", false)) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
-            sendBroadcast(command);
+            sendUnicast(command);
         }
     }
 }

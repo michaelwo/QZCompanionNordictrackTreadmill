@@ -5,7 +5,7 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 
 ### Main Files
 - `app/src/main/java/.../service/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
-- `app/src/main/java/.../service/MetricReaderBroadcastingService.java` — streams iFit metrics via MonoStdout and broadcasts changes over UDP (port 8002)
+- `app/src/main/java/.../service/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout and unicasts changes over UDP (port 8002)
 - `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../service/OcrCalibrationService.java` — calibration-only OCR polling loop
 - `app/src/main/java/.../service/ScreenCaptureService.java` — captures screen frames for OCR during calibration
@@ -22,7 +22,7 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
-├── service/          CommandListenerService, MetricReaderBroadcastingService,
+├── service/          CommandListenerService, MetricReaderUnicastingService,
 │                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)

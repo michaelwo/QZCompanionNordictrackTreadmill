@@ -57,18 +57,18 @@ public class CommandListenerService extends Service {
         if (sharedPreferences.getBoolean("debugLog", false)) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
-            MetricReaderBroadcastingService.sendBroadcast(command);
+            MetricReaderUnicastingService.sendUnicast(command);
         }
     }
 
-    private void listenAndWaitAndThrowIntent(InetAddress broadcastIP, Integer port) throws Exception {
+    private void listenAndWaitAndThrowIntent(Integer port) throws Exception {
         if (socket == null || socket.isClosed()) {
             decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
             socket = new DatagramSocket(port);
             socket.setBroadcast(true);
         }
 
-        writeLog("Waiting for UDP broadcast");
+        writeLog("Waiting for UDP packet");
 
         wakeLock.acquire(10_000L); // 10-second timeout — auto-releases if receive hangs
         try {
@@ -102,7 +102,7 @@ public class CommandListenerService extends Service {
         sendBroadcast(intent);
     }
 
-    Thread UDPBroadcastThread;
+    Thread UDPListenerThread;
 
     InetAddress getBroadcastAddress() throws IOException {
         WifiManager wifi = (WifiManager)    getApplicationContext().getSystemService(Context.WIFI_SERVICE);
@@ -121,19 +121,18 @@ public class CommandListenerService extends Service {
         return InetAddress.getByAddress(quads);
     }
 
-    void startListenForUDPBroadcast() {
-        UDPBroadcastThread = new Thread(() -> {
-            InetAddress broadcastIP = getBroadcastAddress();
+    void startListenForUDP() {
+        UDPListenerThread = new Thread(() -> {
             int port = LISTEN_PORT;
             while (shouldRestartSocketListen) {
                 try {
-                    listenAndWaitAndThrowIntent(broadcastIP, port);
+                    listenAndWaitAndThrowIntent(port);
                 } catch (Exception e) {
                     Log.e(LOG_TAG, "UDP receive error, continuing: " + e.getMessage());
                 }
             }
         });
-        UDPBroadcastThread.start();
+        UDPListenerThread.start();
     }
 
     private volatile boolean shouldRestartSocketListen = true;
@@ -164,7 +163,7 @@ public class CommandListenerService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         shouldRestartSocketListen = true;
-        startListenForUDPBroadcast();
+        startListenForUDP();
         Log.i(LOG_TAG, "UDP listener started on port " + LISTEN_PORT);
         writeLog("Service started");
         return START_STICKY;

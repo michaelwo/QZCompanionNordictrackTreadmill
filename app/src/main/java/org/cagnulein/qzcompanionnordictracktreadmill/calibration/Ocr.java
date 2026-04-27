@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 /**
- * Pure OCR text parsing logic extracted from MetricReaderBroadcastingService.getOCR().
+ * Pure OCR text parsing logic extracted from MetricReaderUnicastingService.getOCR().
  * Has no Android dependencies — uses no android.* imports.
  *
  * Input format produced by ScreenCaptureService:

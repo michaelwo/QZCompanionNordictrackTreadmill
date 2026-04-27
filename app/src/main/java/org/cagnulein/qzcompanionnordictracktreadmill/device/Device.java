@@ -10,7 +10,7 @@ public abstract class Device {
     /** The currently active device. Set by MainActivity when the user selects one. */
     public static Device instance = null;
 
-    /** Latest observed metrics from the fitness device. Written by MetricReaderBroadcastingService. */
+    /** Latest observed metrics from the fitness device. Written by MetricReaderUnicastingService. */
     public MetricSnapshot lastSnapshot = new MetricSnapshot();
 
     /** Throttle window — commands within this window of the last apply are cached, not sent. */

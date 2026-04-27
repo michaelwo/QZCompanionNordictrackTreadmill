@@ -8,7 +8,7 @@ import android.content.Intent;
 import android.os.Build;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderBroadcastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
 
 public class AlarmReceiver extends BroadcastReceiver
 {
@@ -17,7 +17,7 @@ public class AlarmReceiver extends BroadcastReceiver
     {
         Intent inServer = new Intent(context, CommandListenerService.class);
         context.startService(inServer);
-        Intent in = new Intent(context, MetricReaderBroadcastingService.class);
+        Intent in = new Intent(context, MetricReaderUnicastingService.class);
         context.startService(in);
         setAlarm(context);
     }
