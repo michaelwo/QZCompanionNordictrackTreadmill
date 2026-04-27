@@ -56,23 +56,27 @@ public class OcrCalibrationService extends Service {
     public IBinder onBind(Intent intent) { return null; }
 
     private void poll() {
-        String textExtended = ScreenCaptureService.getLastTextExtended();
-        if (textExtended == null || textExtended.isEmpty()) return;
+        try {
+            String textExtended = ScreenCaptureService.getLastTextExtended();
+            if (textExtended == null || textExtended.isEmpty()) return;
 
-        OcrBlock[] blocks = Ocr.blocks(textExtended);
-        MetricSnapshot ocr = Ocr.extractMetrics(blocks);
-        latestReading = ocr;
+            OcrBlock[] blocks = Ocr.blocks(textExtended);
+            MetricSnapshot ocr = Ocr.extractMetrics(blocks);
+            latestReading = ocr;
 
-        if (ocr.speedKmh      != null) Log.i(LOG_TAG, "speed="      + ocr.speedKmh);
-        if (ocr.inclinePct    != null) Log.i(LOG_TAG, "incline="    + ocr.inclinePct);
-        if (ocr.resistanceLvl != null) Log.i(LOG_TAG, "resistance=" + ocr.resistanceLvl);
-        if (ocr.cadenceRpm    != null) Log.i(LOG_TAG, "cadence="    + ocr.cadenceRpm);
-        if (ocr.watts         != null) Log.i(LOG_TAG, "watts="      + ocr.watts);
+            if (ocr.speedKmh      != null) Log.i(LOG_TAG, "speed="      + ocr.speedKmh);
+            if (ocr.inclinePct    != null) Log.i(LOG_TAG, "incline="    + ocr.inclinePct);
+            if (ocr.resistanceLvl != null) Log.i(LOG_TAG, "resistance=" + ocr.resistanceLvl);
+            if (ocr.cadenceRpm    != null) Log.i(LOG_TAG, "cadence="    + ocr.cadenceRpm);
+            if (ocr.watts         != null) Log.i(LOG_TAG, "watts="      + ocr.watts);
 
-        wattFallback.update(blocks, ocr.watts);
-        if (ocr.watts == null) {
-            Float recovered = wattFallback.tryRecover(blocks);
-            if (recovered != null) Log.i(LOG_TAG, "watts(rect)=" + recovered);
+            wattFallback.update(blocks, ocr.watts);
+            if (ocr.watts == null) {
+                Float recovered = wattFallback.tryRecover(blocks);
+                if (recovered != null) Log.i(LOG_TAG, "watts(rect)=" + recovered);
+            }
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "poll error: " + e.getMessage(), e);
         }
     }
 

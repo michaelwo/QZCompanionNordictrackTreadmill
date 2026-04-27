@@ -165,11 +165,12 @@ public class ScreenCaptureService extends Service {
                                     String blockText = block.getText();
                                     Log.i("OCR",blockText);
                                     Rect blockFrame = block.getBoundingBox();
-                                    // Adjust the Y coordinate of the bounding box
                                     if (blockFrame != null) {
                                         blockFrame.offset(0, roiY);
+                                        lastTextExtended += blockText + "$$" + blockFrame.toString() + "§§";
+                                    } else {
+                                        lastTextExtended += blockText + "§§";
                                     }
-                                    lastTextExtended += blockText + "$$" + blockFrame.toString() + "§§";
                                 }
                                 roiBitmap.recycle();
                                 isRunning = false;
