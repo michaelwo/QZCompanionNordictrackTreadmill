@@ -37,9 +37,8 @@ public class MonoStdoutMetricReader implements MetricReader {
     private Thread readerThread;
 
     @Override
-    public MetricSnapshot read(String file, Shell shell) {
+    public void read() {
         ensureRunning();
-        return latest;
     }
 
     @Override

@@ -1,6 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
-
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.Shell;
+package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 
 import android.util.Log;
 
@@ -11,7 +9,7 @@ import java.io.InputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class ShellRuntime implements Shell {
+public class ShellRuntime {
     private static final String LOG_TAG = "QZ:Shell";
 
     /**

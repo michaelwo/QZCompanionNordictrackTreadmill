@@ -74,7 +74,7 @@ public class MetricReaderBroadcastingService extends Service {
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
         cachedReader.subscribe(this::applyAndBroadcast);
         writeLog("Device " + device.displayName() + ": streaming reader active");
-        try { cachedReader.read(null, null); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
+        try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
     }
 
     private void broadcastLastKnown() {

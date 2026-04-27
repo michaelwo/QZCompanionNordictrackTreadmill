@@ -57,7 +57,7 @@ public class MetricReaderTest {
             "V/mono-stdout(2174): [Trace:FitPro] Changed RPM to: 43\n"
         );
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
-        reader.read("any.log", null);
+        reader.read();
         MetricSnapshot m = reader.awaitCurrentStream();
         assertEquals(12.11f, m.speedKmh,      DELTA);
         assertEquals(5f,     m.inclinePct,    DELTA);
@@ -72,7 +72,7 @@ public class MetricReaderTest {
             "V/mono-stdout(2174): [Trace:FitPro] HeartRateDataUpdate 72\n"
         );
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
-        reader.read("any.log", null);
+        reader.read();
         MetricSnapshot m = reader.awaitCurrentStream();
         assertEquals(72f, m.heartRate, DELTA);
     }
@@ -84,7 +84,7 @@ public class MetricReaderTest {
             "V/mono-stdout(2174): [Trace:FitPro] Changed KPH to: 12.11\n"
         );
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
-        reader.read("any.log", null);
+        reader.read();
         MetricSnapshot m = reader.awaitCurrentStream();
         assertEquals(12.11f, m.speedKmh, DELTA);
     }

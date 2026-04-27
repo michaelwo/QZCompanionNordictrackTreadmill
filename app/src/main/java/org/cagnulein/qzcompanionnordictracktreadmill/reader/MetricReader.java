@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.util.function.Consumer;
 
 public interface MetricReader {
-    MetricSnapshot read(String file, Shell shell) throws IOException;
+    void read() throws IOException;
+
 
     /**
      * Push hook for streaming readers. The reader calls {@code listener} immediately whenever a
