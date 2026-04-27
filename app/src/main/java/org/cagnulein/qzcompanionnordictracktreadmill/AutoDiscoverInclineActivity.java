@@ -37,7 +37,7 @@ public class AutoDiscoverInclineActivity extends Activity {
 
     // Fine sweep (same constants as deleted CalibrationActivity)
     private static final int FINE_STEP     = 25;
-    private static final int SETTLE_MS     = 300;
+    private static final int SETTLE_MS     = 2_000;  // motor takes ~1.8s to complete a grade change
     private static final int POLL_INTERVAL = 400;
     private static final int TIMEOUT_MS    = 6_000;
     private static final float STABLE_TOL  = 0.3f;
@@ -45,8 +45,8 @@ public class AutoDiscoverInclineActivity extends Activity {
 
     // Coarse sweep
     private static final int COARSE_STEP    = 50;
-    private static final int COARSE_SETTLE  = 500;
-    private static final int COARSE_TIMEOUT = 2_000;
+    private static final int COARSE_SETTLE  = 2_500;  // motor takes ~1.8s; extra margin
+    private static final int COARSE_TIMEOUT = 4_000;  // wait up to 4s for hardware to report
     private static final int COARSE_MARGIN  = 200;
 
     private final Handler handler = new Handler();
@@ -70,6 +70,8 @@ public class AutoDiscoverInclineActivity extends Activity {
     // Grade readings from iFit's mono-stdout logcat stream
     private MonoStdoutMetricReader monoReader;
     private volatile MetricSnapshot latestMonoSnapshot;
+    /** Timestamp of the most recent grade event from mono-stdout. Used to detect fresh readings. */
+    private volatile long gradeEventMs = 0;
 
     private FormulaFitter.Result pendingResult;
     private int pendingTrackX;
@@ -154,7 +156,10 @@ public class AutoDiscoverInclineActivity extends Activity {
 
         // Start reading grade from iFit's logcat stream
         monoReader = new MonoStdoutMetricReader();
-        monoReader.subscribe(snap -> latestMonoSnapshot = snap);
+        monoReader.subscribe(snap -> {
+            latestMonoSnapshot = snap;
+            if (snap.inclinePct != null) gradeEventMs = System.currentTimeMillis();
+        });
         monoReader.read();
 
         discoveryThread = new Thread(() -> {
@@ -255,7 +260,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         if (cancelled) return;
         Log.i(TAG, "phase2: coarse sweep complete, readings=" + coarse.size());
 
-        int[] range = findActiveRange(coarse);
+        int[] range = findActiveRange(coarse, screenHeight);
         if (range == null) {
             post(() -> {
                 phaseLabel.setText("Could not determine active range — too few grade readings.");
@@ -347,49 +352,41 @@ public class AutoDiscoverInclineActivity extends Activity {
 
         for (int y = COARSE_MARGIN; y <= screenHeight - COARSE_MARGIN; y += COARSE_STEP) {
             if (cancelled) return readings;
+            long swipeMs = System.currentTimeMillis();
             swipe(trackX, prevY, y);
             prevY = y;
             sleep(COARSE_SETTLE);
             if (cancelled) return readings;
 
-            Float grade = waitForStable(COARSE_TIMEOUT, 2);
+            // Only record a grade if iFit logged a NEW hardware-confirmed event after this swipe.
+            // Stale readings (no grade change in logcat) indicate the slider is capped at min/max.
+            Float grade = waitForFreshGrade(swipeMs, COARSE_TIMEOUT);
             if (grade != null) {
                 readings.add(new CoarseReading(y, grade));
+                Log.i(TAG, "coarse y=" + y + " grade=" + grade);
                 int yCapture = y;
                 float g = grade;
                 post(() -> gradeReading.setText(
                         String.format("Scanning Y=%d → %.1f%%", yCapture, g)));
+            } else {
+                Log.i(TAG, "coarse y=" + y + " no fresh grade (capped or motor delay)");
             }
         }
         return readings;
     }
 
     /**
-     * Identifies the Y positions where the incline slider actively responds.
-     * Strips leading and trailing runs of equal grade (physical stop regions).
+     * Returns [yTop, yBottom] for the fine sweep, derived from the coarse readings.
+     * Each coarse reading represents a Y position where iFit confirmed a FRESH grade change,
+     * so there are no stale duplicates to strip. We expand one COARSE_STEP outward to capture
+     * the actual slider endpoints just outside the observed change region.
      */
-    private int[] findActiveRange(List<CoarseReading> readings) {
-        int n = readings.size();
-        if (n < 3) return null;
-
-        int first = 0;
-        for (int i = 0; i < n - 1; i++) {
-            if (Math.abs(readings.get(i).grade - readings.get(i + 1).grade) > STABLE_TOL) {
-                first = (i == 0) ? 0 : i + 1;
-                break;
-            }
-        }
-
-        int last = n - 1;
-        for (int i = n - 1; i > 0; i--) {
-            if (Math.abs(readings.get(i).grade - readings.get(i - 1).grade) > STABLE_TOL) {
-                last = i - 1;
-                break;
-            }
-        }
-
-        if (last <= first + 1) return null;
-        return new int[]{ readings.get(first).y, readings.get(last).y };
+    private int[] findActiveRange(List<CoarseReading> readings, int screenHeight) {
+        if (readings.size() < 3) return null;
+        int yTop    = Math.max(COARSE_MARGIN,              readings.get(0).y                    - COARSE_STEP);
+        int yBottom = Math.min(screenHeight - COARSE_MARGIN, readings.get(readings.size()-1).y + COARSE_STEP);
+        if (yBottom - yTop < FINE_STEP * 3) return null;
+        return new int[]{ yTop, yBottom };
     }
 
     // ── fine sweep ────────────────────────────────────────────────────────────
@@ -453,6 +450,34 @@ public class AutoDiscoverInclineActivity extends Activity {
     }
 
     // ── grade polling (mono-stdout) ───────────────────────────────────────────
+
+    /**
+     * Waits for a grade event that arrived strictly AFTER {@code afterMs}. Returns the grade
+     * once stable (two consecutive polls within STABLE_TOL), or null on timeout. This avoids
+     * returning a stale grade from a previous slider position.
+     */
+    private Float waitForFreshGrade(long afterMs, long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        float last  = Float.NaN;
+        int streak  = 0;
+        while (System.currentTimeMillis() < deadline) {
+            if (cancelled) return null;
+            if (gradeEventMs > afterMs) {
+                MetricSnapshot snap = latestMonoSnapshot;
+                if (snap != null && snap.inclinePct != null) {
+                    float v = snap.inclinePct;
+                    if (!Float.isNaN(last) && Math.abs(v - last) <= STABLE_TOL) {
+                        if (++streak >= 2) return v;
+                    } else {
+                        streak = 1;
+                        last   = v;
+                    }
+                }
+            }
+            sleep(200);
+        }
+        return null;
+    }
 
     /** Waits for the first "Changed Grade" event from iFit's logcat stream. */
     private boolean waitForGradeReading(long timeoutMs) {
