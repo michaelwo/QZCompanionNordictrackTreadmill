@@ -72,6 +72,11 @@ public class AutoDiscoverInclineActivity extends Activity {
     private volatile boolean cancelled = false;
     private Thread discoveryThread;
 
+    // Saved from onActivityResult so services are not started until the user taps Start Scan
+    private int captureResultCode;
+    private Intent captureData;
+    private boolean servicesStarted = false;
+
     private FormulaFitter.Result pendingResult;
     private int pendingTrackX;
     private int pendingNeutralY;
@@ -98,6 +103,20 @@ public class AutoDiscoverInclineActivity extends Activity {
         btnRetry.setOnClickListener(v -> restart());
         findViewById(R.id.btnCancel).setOnClickListener(v -> finish());
         btnStart.setOnClickListener(v -> {
+            if (!servicesStarted) {
+                try {
+                    Log.i(TAG, "btnStart: starting MediaProjection + OCR services");
+                    MediaProjection.startService(this, captureResultCode, captureData);
+                    startService(new Intent(this, OcrCalibrationService.class));
+                    servicesStarted = true;
+                    Log.i(TAG, "btnStart: services started");
+                } catch (Throwable t) {
+                    Log.e(TAG, "btnStart: failed to start services", t);
+                    phaseLabel.setText("Failed to start capture services: " + t.getMessage());
+                    btnRetry.setVisibility(View.VISIBLE);
+                    return;
+                }
+            }
             btnStart.setVisibility(View.GONE);
             moveTaskToBack(true);
             startDiscovery();
@@ -106,6 +125,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         Log.i(TAG, "onCreate: latestReading=" + OcrCalibrationService.latestReading);
         if (OcrCalibrationService.latestReading != null) {
             Log.i(TAG, "onCreate: OCR already running, showing instruction step");
+            servicesStarted = true;
             showInstructionStep();
         } else {
             Log.i(TAG, "onCreate: requesting screen-capture permission");
@@ -122,18 +142,11 @@ public class AutoDiscoverInclineActivity extends Activity {
         Log.i(TAG, "onActivityResult: requestCode=" + requestCode + " resultCode=" + resultCode);
         if (requestCode != OCR_REQUEST_CODE) return;
         if (resultCode != RESULT_OK) { finish(); return; }
-        try {
-            Log.i(TAG, "onActivityResult: starting MediaProjection + OCR services");
-            MediaProjection.startService(this, resultCode, data);
-            Log.i(TAG, "onActivityResult: MediaProjection.startService done");
-            startService(new Intent(this, OcrCalibrationService.class));
-            Log.i(TAG, "onActivityResult: OcrCalibrationService started — showing instruction step");
-            showInstructionStep();
-        } catch (Throwable t) {
-            Log.e(TAG, "onActivityResult: crash starting services", t);
-            phaseLabel.setText("Failed to start capture services: " + t.getMessage());
-            btnRetry.setVisibility(View.VISIBLE);
-        }
+        // Save credentials — services start only when the user taps Start Scan
+        captureResultCode = resultCode;
+        captureData = data;
+        Log.i(TAG, "onActivityResult: permission granted — showing instruction step");
+        showInstructionStep();
     }
 
     @Override

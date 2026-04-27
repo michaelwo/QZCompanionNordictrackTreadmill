@@ -179,6 +179,7 @@ public class ScreenCaptureService extends Service {
                         .addOnFailureListener(new OnFailureListener() {
                             @Override
                             public void onFailure(Exception e) {
+                                roiBitmap.recycle();
                                 isRunning = false;
                             }
                         });
