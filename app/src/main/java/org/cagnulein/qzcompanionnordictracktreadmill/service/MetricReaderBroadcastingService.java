@@ -3,11 +3,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.service;
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.DhcpInfo;
-import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
@@ -29,10 +26,6 @@ public class MetricReaderBroadcastingService extends Service {
     boolean allowRebind;
     static int clientPort = 8002;
 
-    byte[] lmessage = new byte[1024];
-    DatagramPacket packet = new DatagramPacket(lmessage, lmessage.length);
-    static InetAddress broadcastAddress = null;
-
     static SharedPreferences sharedPreferences;
 
     /** Tracks the last value sent for each metric — only changed values are broadcast. */
@@ -48,14 +41,7 @@ public class MetricReaderBroadcastingService extends Service {
     public void onCreate() {
         instance = this;
         sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
-        try {
-            broadcastAddress = getBroadcastAddress();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, e.getMessage());
-        }
-
         writeLog("Service onCreate");
-
         if (Device.instance != null) applyDeviceInternal(Device.instance);
     }
 
@@ -120,39 +106,21 @@ public class MetricReaderBroadcastingService extends Service {
     }
 
     public static void sendBroadcast(String messageStr) {
-        if (broadcastAddress == null) {
-            Log.e(LOG_TAG, "Broadcast address is null, cannot send packet");
+        InetAddress target = CommandListenerService.qzAddress;
+        long lastHb = CommandListenerService.lastQzHeartbeatMs;
+        if (target == null || lastHb == 0
+                || (System.currentTimeMillis() - lastHb) > CommandListenerService.QZ_HEARTBEAT_TIMEOUT_MS)
             return;
-        }
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
         try (DatagramSocket s = new DatagramSocket()) {
-            s.setBroadcast(true);
             byte[] sendData = messageStr.getBytes();
-            DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, broadcastAddress, clientPort);
-            s.send(sendPacket);
+            s.send(new DatagramPacket(sendData, sendData.length, target, clientPort));
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
         }
-    }
-
-    InetAddress getBroadcastAddress() throws IOException {
-        WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        DhcpInfo dhcp = null;
-        try {
-            dhcp = wifi.getDhcpInfo();
-            int broadcast = (dhcp.ipAddress & dhcp.netmask) | ~dhcp.netmask;
-            byte[] quads = new byte[4];
-            for (int k = 0; k < 4; k++)
-                quads[k] = (byte) ((broadcast >> k * 8) & 0xFF);
-            return InetAddress.getByAddress(quads);
-        } catch (Exception e) {
-            writeLog("IOException: " + e.getMessage());
-        }
-        byte[] quads = new byte[4];
-        return InetAddress.getByAddress(quads);
     }
 
     @Override

@@ -278,11 +278,13 @@ public class MainActivity extends AppCompatActivity {
 
         long lastHb = CommandListenerService.lastQzHeartbeatMs;
         boolean heartbeatActive = lastHb > 0
-                && (System.currentTimeMillis() - lastHb) < 30_000;
+                && (System.currentTimeMillis() - lastHb) < CommandListenerService.QZ_HEARTBEAT_TIMEOUT_MS;
+        java.net.InetAddress qzAddr = CommandListenerService.qzAddress;
         addRequirementRow(list, heartbeatActive,
-                "QZ App",
-                heartbeatActive ? "Connected — receiving workout commands"
-                                : "Not detected — open QZ App and start a workout",
+                "QZ",
+                heartbeatActive
+                        ? "QZ heartbeat received from " + qzAddr.getHostAddress() + " on port " + CommandListenerService.LISTEN_PORT + ". Device telemetry unicast active."
+                        : "Waiting for QZ heartbeat commands on port " + CommandListenerService.LISTEN_PORT + ". Device telemetry unicast paused.",
                 null);
 
         BluetoothManager btMgr = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
@@ -375,7 +377,7 @@ public class MainActivity extends AppCompatActivity {
                 ? Device.instance.displayName()
                 : "No device selected";
         String ip = getLocalIpAddress();
-        chip.setText("UDP 8003  ·  " + deviceName + "  ·  " + ip);
+        chip.setText("UDP " + CommandListenerService.LISTEN_PORT + "  ·  " + deviceName + "  ·  " + ip);
     }
 
     private String getLocalIpAddress() {

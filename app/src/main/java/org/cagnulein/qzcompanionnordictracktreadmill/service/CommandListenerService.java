@@ -34,6 +34,15 @@ public class CommandListenerService extends Service {
     /** Wall-clock ms of the last -100;N heartbeat packet from QZ. 0 = never received. */
     public static volatile long lastQzHeartbeatMs = 0;
 
+    /** Source IP of the last QZ heartbeat; null until first heartbeat received. */
+    public static volatile java.net.InetAddress qzAddress = null;
+
+    /** Staleness threshold: QZ is considered disconnected after this many ms without a heartbeat. */
+    public static final long QZ_HEARTBEAT_TIMEOUT_MS = 30_000;
+
+    /** UDP port this service listens on for incoming QZ commands. */
+    public static final int LISTEN_PORT = 8003;
+
     static DatagramSocket socket;
 
     static SharedPreferences sharedPreferences;
@@ -68,7 +77,10 @@ public class CommandListenerService extends Service {
                 socket.receive(pkt);
                 String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 Log.i(LOG_TAG, "rx: " + msg);
-                if (msg.startsWith("-100;")) lastQzHeartbeatMs = System.currentTimeMillis();
+                if (msg.startsWith("-100;")) {
+                    lastQzHeartbeatMs = System.currentTimeMillis();
+                    qzAddress = pkt.getAddress();
+                }
                 dispatcher.dispatch(msg, decimalSeparator, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
@@ -110,7 +122,7 @@ public class CommandListenerService extends Service {
     void startListenForUDPBroadcast() {
         UDPBroadcastThread = new Thread(() -> {
             InetAddress broadcastIP = getBroadcastAddress();
-            int port = 8003;
+            int port = LISTEN_PORT;
             while (shouldRestartSocketListen) {
                 try {
                     listenAndWaitAndThrowIntent(broadcastIP, port);
@@ -137,7 +149,7 @@ public class CommandListenerService extends Service {
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
         Log.i(LOG_TAG, "QZCompanion v" + BuildConfig.VERSION_NAME
                 + " (" + BuildConfig.VERSION_CODE + ") starting");
-        Log.i(LOG_TAG, "Listening on UDP port 8003");
+        Log.i(LOG_TAG, "Listening on UDP port " + LISTEN_PORT);
         Log.i(LOG_TAG, "Device: " + (Device.instance != null ? Device.instance.displayName() : "none selected"));
     }
 
@@ -151,7 +163,7 @@ public class CommandListenerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         shouldRestartSocketListen = true;
         startListenForUDPBroadcast();
-        Log.i(LOG_TAG, "UDP listener started on port 8003");
+        Log.i(LOG_TAG, "UDP listener started on port " + LISTEN_PORT);
         writeLog("Service started");
         return START_STICKY;
     }
