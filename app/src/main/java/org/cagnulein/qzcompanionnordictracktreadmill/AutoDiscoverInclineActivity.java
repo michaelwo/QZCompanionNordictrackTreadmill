@@ -218,19 +218,25 @@ public class AutoDiscoverInclineActivity extends Activity {
         Log.i(TAG, "profile=" + profile.name() + " trackX=" + trackX);
 
         // Wait for iFit to reach the foreground before injecting gestures
-        sleep(2_000);
+        sleep(3_000);
         if (cancelled) return;
 
-        // Phase 1 — confirm iFit is responding by issuing a test swipe and waiting
-        //           for the first "Changed Grade" event on mono-stdout
-        Log.i(TAG, "phase1: test swipe to confirm iFit is active");
+        // Phase 1 — confirm iFit is responding by sweeping the full slider range in both
+        //           directions, then waiting for a "Changed Grade" event on mono-stdout
+        Log.i(TAG, "phase1: test sweeps to confirm iFit is active");
         post(() -> phaseLabel.setText("Confirming iFit is active…"));
-        int midY = screenHeight / 2;
-        swipe(trackX, midY - 50, midY + 50);
+        int topY    = (int)(screenHeight * 0.25);  // near top of slider range
+        int bottomY = (int)(screenHeight * 0.75);  // near bottom of slider range
+        swipe(trackX, bottomY, topY);              // upward → higher incline
+        sleep(1_000);
+        if (cancelled) return;
+        swipe(trackX, topY, bottomY);              // downward → lower incline
         sleep(COARSE_SETTLE);
         boolean gradeReceived = waitForGradeReading(10_000);
+        MetricSnapshot dbgSnap = latestMonoSnapshot;
         Log.i(TAG, "phase1: gradeReceived=" + gradeReceived
-                + " latestSnap=" + latestMonoSnapshot);
+                + " inclinePct=" + (dbgSnap != null ? dbgSnap.inclinePct : "null")
+                + " speedKmh="  + (dbgSnap != null ? dbgSnap.speedKmh  : "null"));
         if (!gradeReceived) {
             post(() -> {
                 phaseLabel.setText("No grade response from iFit after test swipe.\n"
