@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.service;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.accessibilityservice.AccessibilityService.GestureResultCallback;
 import android.content.SharedPreferences;
 import android.graphics.Path;
 import android.os.Build;
@@ -55,8 +56,17 @@ public class MyAccessibilityService extends AccessibilityService {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             GestureDescription.Builder builder = new GestureDescription.Builder();
             builder.addStroke(new GestureDescription.StrokeDescription(path, 0, duration));
-            boolean result = instance.dispatchGesture(builder.build(), null, null);
-            if (!result) Log.e(TAG, "performSwipe: dispatchGesture failed");
+            boolean accepted = instance.dispatchGesture(builder.build(), new GestureResultCallback() {
+                @Override public void onCompleted(GestureDescription g) {
+                    Log.i(TAG, "gesture completed x=" + (int)startX + " y=" + (int)startY
+                            + "→" + (int)endY);
+                }
+                @Override public void onCancelled(GestureDescription g) {
+                    Log.e(TAG, "gesture CANCELLED x=" + (int)startX + " y=" + (int)startY
+                            + "→" + (int)endY);
+                }
+            }, null);
+            if (!accepted) Log.e(TAG, "performSwipe: dispatchGesture rejected");
         }
     }
 
