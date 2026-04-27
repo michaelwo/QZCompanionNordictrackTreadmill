@@ -134,9 +134,12 @@ public class AutoDiscoverInclineActivity extends Activity {
     // ── instruction step ──────────────────────────────────────────────────────
 
     private void showInstructionStep() {
-        phaseLabel.setText("Open iFit and start a Manual Ride, then tap Start Scan.\n\n"
-                + "QZCompanion moves to the background and sweeps the incline slider "
-                + "automatically. Watch the incline change on iFit's screen as the scan runs.");
+        phaseLabel.setText("Before tapping Start Scan:\n\n"
+                + "1. Open iFit → Manual Ride\n"
+                + "2. Press GO / Start to begin an active workout\n"
+                + "3. Come back here and tap Start Scan\n\n"
+                + "The scan only works while a workout is running — "
+                + "iFit does not log grade changes until the workout is active.");
         btnStart.setVisibility(View.VISIBLE);
     }
 
@@ -235,22 +238,21 @@ public class AutoDiscoverInclineActivity extends Activity {
         swipe(trackX, bottomY, topY);              // upward → higher incline
         sleep(1_000);
         if (cancelled) return;
+        long phase1SwipeMs = System.currentTimeMillis();
         swipe(trackX, topY, bottomY);              // downward → lower incline
         sleep(COARSE_SETTLE);
-        boolean gradeReceived = waitForGradeReading(10_000);
-        MetricSnapshot dbgSnap = latestMonoSnapshot;
-        Log.i(TAG, "phase1: gradeReceived=" + gradeReceived
-                + " inclinePct=" + (dbgSnap != null ? dbgSnap.inclinePct : "null")
-                + " speedKmh="  + (dbgSnap != null ? dbgSnap.speedKmh  : "null"));
-        if (!gradeReceived) {
+        Float confirmedGrade = waitForFreshGrade(phase1SwipeMs, 10_000);
+        Log.i(TAG, "phase1: confirmedGrade=" + confirmedGrade);
+        if (confirmedGrade == null) {
             post(() -> {
-                phaseLabel.setText("No grade response from iFit after test swipe.\n"
-                        + "Make sure iFit is open in a Manual Ride, then tap Retry.");
+                phaseLabel.setText("No grade response from iFit after test swipe.\n\n"
+                        + "Make sure iFit is in an ACTIVE Manual Ride workout (press GO "
+                        + "first), then tap Retry.");
                 btnRetry.setVisibility(View.VISIBLE);
             });
             return;
         }
-        Log.i(TAG, "phase1: grade confirmed");
+        Log.i(TAG, "phase1: grade confirmed at " + confirmedGrade);
         if (cancelled) return;
 
         // Phase 2 — coarse sweep to find active Y range
