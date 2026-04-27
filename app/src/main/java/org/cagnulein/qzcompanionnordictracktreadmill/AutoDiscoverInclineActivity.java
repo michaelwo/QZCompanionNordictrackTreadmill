@@ -228,7 +228,10 @@ public class AutoDiscoverInclineActivity extends Activity {
         int midY = screenHeight / 2;
         swipe(trackX, midY - 50, midY + 50);
         sleep(COARSE_SETTLE);
-        if (!waitForGradeReading(5_000)) {
+        boolean gradeReceived = waitForGradeReading(10_000);
+        Log.i(TAG, "phase1: gradeReceived=" + gradeReceived
+                + " latestSnap=" + latestMonoSnapshot);
+        if (!gradeReceived) {
             post(() -> {
                 phaseLabel.setText("No grade response from iFit after test swipe.\n"
                         + "Make sure iFit is open in a Manual Ride, then tap Retry.");
@@ -521,7 +524,9 @@ public class AutoDiscoverInclineActivity extends Activity {
     }
 
     private void swipe(int x, int fromY, int toY) {
-        if (!MyAccessibilityService.isConnected()) {
+        boolean connected = MyAccessibilityService.isConnected();
+        Log.i(TAG, "swipe: x=" + x + " fromY=" + fromY + " toY=" + toY + " connected=" + connected);
+        if (!connected) {
             post(() -> gradeReading.setText("Accessibility service not connected"));
             return;
         }
