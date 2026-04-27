@@ -23,5 +23,5 @@ public class C1750_2020Device extends TreadmillDevice {
     @Override public String displayName() { return "C1750 Treadmill (2020)"; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) (v * 20); }
-    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * 0.621371 - 1.0) * 28.91); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * KMH_TO_MPH - 1.0) * 28.91); }
 }

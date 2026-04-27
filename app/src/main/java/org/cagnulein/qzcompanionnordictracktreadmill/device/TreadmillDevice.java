@@ -5,6 +5,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzProtocol;
 
 public abstract class TreadmillDevice extends Device {
 
+    protected static final double KMH_TO_MPH = 0.621371;
+
     private final Slider speed;
     private final Slider incline;
     private final Command cached = new Command();

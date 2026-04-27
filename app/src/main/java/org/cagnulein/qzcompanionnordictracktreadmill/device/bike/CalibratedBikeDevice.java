@@ -17,6 +17,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
  */
 public class CalibratedBikeDevice extends BikeDevice {
 
+    private static final int S22I_DEFAULT_NEUTRAL_Y = 622;
+
     public CalibratedBikeDevice() {
         super(buildSlider(), null);
     }
@@ -26,7 +28,7 @@ public class CalibratedBikeDevice extends BikeDevice {
 
     private static Slider buildSlider() {
         CalibrationResult cal = CalibrationResult.current;
-        int initial = cal != null ? cal.neutralY : 622;
+        int initial = cal != null ? cal.neutralY : S22I_DEFAULT_NEUTRAL_Y;
         return new Slider(initial) {
 
             @Override
@@ -39,7 +41,7 @@ public class CalibratedBikeDevice extends BikeDevice {
             public int targetThumbY(double grade) {
                 CalibrationResult c = CalibrationResult.current;
                 return c != null ? c.targetThumbY((float) grade)
-                                 : (int) (622.0 - 14.8 * grade);
+                                 : (int) (S22I_DEFAULT_NEUTRAL_Y - 14.8 * grade);
             }
 
             @Override

@@ -24,5 +24,5 @@ public class ProformPro9000Device extends TreadmillDevice {
     @Override public String displayName() { return "ProForm Pro 9000 Treadmill"; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) (v * 34.583); }
-    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * 0.621371 - 1.0) * 41.6666); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * KMH_TO_MPH - 1.0) * 41.6666); }
 }

@@ -43,6 +43,8 @@ public class CommandListenerService extends Service {
     /** UDP port this service listens on for incoming QZ commands. */
     public static final int LISTEN_PORT = 8003;
 
+    private static final int UDP_BUFFER_SIZE = 15_000;
+
     static DatagramSocket socket;
 
     static SharedPreferences sharedPreferences;
@@ -72,7 +74,7 @@ public class CommandListenerService extends Service {
         try {
             Device currentDevice = Device.instance;
             if (currentDevice != null) {
-                byte[] buf = new byte[15000];
+                byte[] buf = new byte[UDP_BUFFER_SIZE];
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 socket.receive(pkt);
                 String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
@@ -84,7 +86,7 @@ public class CommandListenerService extends Service {
                 dispatcher.dispatch(msg, decimalSeparator, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
-                byte[] buf = new byte[15000];
+                byte[] buf = new byte[UDP_BUFFER_SIZE];
                 socket.receive(new DatagramPacket(buf, buf.length));
                 writeLog("Packet discarded: no device selected");
             }

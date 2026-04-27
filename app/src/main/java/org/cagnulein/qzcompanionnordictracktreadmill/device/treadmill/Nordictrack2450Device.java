@@ -23,5 +23,5 @@ public class Nordictrack2450Device extends TreadmillDevice {
     @Override public String displayName() { return "NordicTrack 2450 Treadmill"; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) ((v + 3) * 29.26); }
-    private static int offsetSpeedThumbY(double v)   { return (int) (-26.33 * (v * 0.621371) + 831.39); }
+    private static int offsetSpeedThumbY(double v)   { return (int) (-26.33 * (v * KMH_TO_MPH) + 831.39); }
 }

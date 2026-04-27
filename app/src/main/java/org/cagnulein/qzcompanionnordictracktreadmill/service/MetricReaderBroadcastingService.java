@@ -24,7 +24,8 @@ public class MetricReaderBroadcastingService extends Service {
     private static final String LOG_TAG = "QZ:MetricReaderService";
     IBinder binder;
     boolean allowRebind;
-    static int clientPort = 8002;
+    /** UDP port on the QZ host that receives broadcasted metric updates. */
+    static final int BROADCAST_PORT = 8002;
 
     static SharedPreferences sharedPreferences;
 
@@ -117,7 +118,7 @@ public class MetricReaderBroadcastingService extends Service {
 
         try (DatagramSocket s = new DatagramSocket()) {
             byte[] sendData = messageStr.getBytes();
-            s.send(new DatagramPacket(sendData, sendData.length, target, clientPort));
+            s.send(new DatagramPacket(sendData, sendData.length, target, BROADCAST_PORT));
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
         }

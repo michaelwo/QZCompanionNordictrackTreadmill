@@ -26,5 +26,5 @@ public class Elite1000Device extends TreadmillDevice {
     @Override public String displayName() { return name; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) (v * 32.8); }
-    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) (v * 0.621371 * 31.33); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) (v * KMH_TO_MPH * 31.33); }
 }

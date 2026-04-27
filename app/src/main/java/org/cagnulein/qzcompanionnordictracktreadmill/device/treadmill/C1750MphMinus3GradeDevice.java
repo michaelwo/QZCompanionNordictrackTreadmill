@@ -24,7 +24,7 @@ public class C1750MphMinus3GradeDevice extends TreadmillDevice {
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) ((v + 3.0) * 21.7222222); }
     private static int offsetSpeedThumbY(double v) {
-        double mph = Math.max(0.5, Math.min(12.0, v * 0.621371));
+        double mph = Math.max(0.5, Math.min(12.0, v * KMH_TO_MPH));
         return ORIGIN_SPEED_THUMBY - (int) ((mph - 0.5) * 34.0);
     }
 }

@@ -16,6 +16,9 @@ public abstract class Device {
     /** Throttle window — commands within this window of the last apply are cached, not sent. */
     public static final int SWIPE_THROTTLE_MS = 500;
 
+    /** Duration of each AccessibilityService swipe gesture, in ms. */
+    public static final int SWIPE_DURATION_MS = 200;
+
     /**
      * Applies a parsed command to this device, honouring the throttle window and
      * any device-specific de-dup or gating rules.
@@ -74,9 +77,9 @@ public abstract class Device {
     public long lastCommandMs = 0;
 
     protected void swipe(int x, int y1, int y2) {
-        String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " 200";
+        String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " " + SWIPE_DURATION_MS;
         logger.log("QZ:Device", "swipe -> " + cmd);
-        MyAccessibilityService.performSwipe(x, y1, x, y2, 200);
+        MyAccessibilityService.performSwipe(x, y1, x, y2, SWIPE_DURATION_MS);
         commandExecutor.send(cmd);
     }
 }

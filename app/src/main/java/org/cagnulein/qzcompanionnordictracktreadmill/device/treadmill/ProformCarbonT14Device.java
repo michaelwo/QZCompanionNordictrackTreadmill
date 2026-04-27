@@ -18,5 +18,5 @@ public class ProformCarbonT14Device extends TreadmillDevice {
     @Override public String displayName() { return "ProForm Carbon T14 Treadmill"; }
 
     private static int offsetInclineThumbY(double v) { return (int) (ORIGIN_INCLINE_THUMBY - 46.833 * v); }
-    private static int offsetSpeedThumbY(double v)   { return (int) (ORIGIN_SPEED_THUMBY - 52.8 * v * 0.621371); }
+    private static int offsetSpeedThumbY(double v)   { return (int) (ORIGIN_SPEED_THUMBY - 52.8 * v * KMH_TO_MPH); }
 }

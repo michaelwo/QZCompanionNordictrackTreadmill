@@ -23,5 +23,5 @@ public class X32iNtl39221Device extends TreadmillDevice {
     @Override public String displayName() { return "X32i Treadmill (NTL39221)"; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) (v * 12.05); }
-    private static int offsetSpeedThumbY(double v)   { return (int) (900.26 - 46.63 * v * 0.621371); }
+    private static int offsetSpeedThumbY(double v)   { return (int) (900.26 - 46.63 * v * KMH_TO_MPH); }
 }

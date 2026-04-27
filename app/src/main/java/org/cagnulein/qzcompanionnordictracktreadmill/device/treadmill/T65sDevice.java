@@ -21,5 +21,5 @@ public class T65sDevice extends TreadmillDevice {
     @Override public String displayName() { return name; }
 
     private static int offsetInclineThumbY(double v) { return (int) (576.91 - 34.182 * v); }
-    private static int offsetSpeedThumbY(double v)   { return (int) (578.36 - 35.866 * v * 0.621371); }
+    private static int offsetSpeedThumbY(double v)   { return (int) (578.36 - 35.866 * v * KMH_TO_MPH); }
 }

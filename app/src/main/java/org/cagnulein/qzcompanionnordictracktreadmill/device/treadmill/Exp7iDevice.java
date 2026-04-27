@@ -23,5 +23,5 @@ public class Exp7iDevice extends TreadmillDevice {
     @Override public String displayName() { return "EXP 7i Treadmill"; }
 
     private static int offsetInclineThumbY(double v) { return ORIGIN_INCLINE_THUMBY - (int) (v * 21.802); }
-    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * 0.621371 - 1.0) * 22.702); }
+    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v * KMH_TO_MPH - 1.0) * 22.702); }
 }
