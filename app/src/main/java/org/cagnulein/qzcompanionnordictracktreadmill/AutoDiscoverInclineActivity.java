@@ -5,10 +5,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.projection.MediaProjectionManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -36,6 +36,7 @@ import java.util.List;
  */
 public class AutoDiscoverInclineActivity extends Activity {
 
+    private static final String TAG = "QZ:AutoDiscover";
     private static final int OCR_REQUEST_CODE = 1;
 
     // Fine sweep (same constants as deleted CalibrationActivity)
@@ -64,6 +65,7 @@ public class AutoDiscoverInclineActivity extends Activity {
     private TextView resultR2;
     private TextView resultHyst;
     private TextView validationText;
+    private Button btnStart;
     private Button btnSave;
     private Button btnRetry;
 
@@ -88,16 +90,25 @@ public class AutoDiscoverInclineActivity extends Activity {
         resultR2       = findViewById(R.id.resultR2);
         resultHyst     = findViewById(R.id.resultHyst);
         validationText = findViewById(R.id.validationText);
+        btnStart       = findViewById(R.id.btnStart);
         btnSave        = findViewById(R.id.btnSave);
         btnRetry       = findViewById(R.id.btnRetry);
 
         btnSave.setOnClickListener(v -> saveAndFinish());
         btnRetry.setOnClickListener(v -> restart());
         findViewById(R.id.btnCancel).setOnClickListener(v -> finish());
-
-        if (OcrCalibrationService.latestReading != null) {
+        btnStart.setOnClickListener(v -> {
+            btnStart.setVisibility(View.GONE);
+            moveTaskToBack(true);
             startDiscovery();
+        });
+
+        Log.i(TAG, "onCreate: latestReading=" + OcrCalibrationService.latestReading);
+        if (OcrCalibrationService.latestReading != null) {
+            Log.i(TAG, "onCreate: OCR already running, showing instruction step");
+            showInstructionStep();
         } else {
+            Log.i(TAG, "onCreate: requesting screen-capture permission");
             phaseLabel.setText("Waiting for screen-capture permission…");
             MediaProjectionManager mpm = (MediaProjectionManager)
                     getSystemService(Context.MEDIA_PROJECTION_SERVICE);
@@ -108,16 +119,21 @@ public class AutoDiscoverInclineActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        Log.i(TAG, "onActivityResult: requestCode=" + requestCode + " resultCode=" + resultCode);
         if (requestCode != OCR_REQUEST_CODE) return;
         if (resultCode != RESULT_OK) { finish(); return; }
-        MediaProjection.startService(this, resultCode, data);
-        Intent svc = new Intent(this, OcrCalibrationService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(svc);
-        } else {
-            startService(svc);
+        try {
+            Log.i(TAG, "onActivityResult: starting MediaProjection + OCR services");
+            MediaProjection.startService(this, resultCode, data);
+            Log.i(TAG, "onActivityResult: MediaProjection.startService done");
+            startService(new Intent(this, OcrCalibrationService.class));
+            Log.i(TAG, "onActivityResult: OcrCalibrationService started — showing instruction step");
+            showInstructionStep();
+        } catch (Throwable t) {
+            Log.e(TAG, "onActivityResult: crash starting services", t);
+            phaseLabel.setText("Failed to start capture services: " + t.getMessage());
+            btnRetry.setVisibility(View.VISIBLE);
         }
-        startDiscovery();
     }
 
     @Override
@@ -126,11 +142,20 @@ public class AutoDiscoverInclineActivity extends Activity {
         cancelled = true;
     }
 
+    // ── instruction step ──────────────────────────────────────────────────────
+
+    private void showInstructionStep() {
+        phaseLabel.setText("Open iFit and start a Manual Ride, then tap Start Scan.\n\n"
+                + "QZCompanion will move to the background and sweep the incline slider automatically.");
+        btnStart.setVisibility(View.VISIBLE);
+    }
+
     // ── start / restart ───────────────────────────────────────────────────────
 
     private void startDiscovery() {
         cancelled  = false;
         pendingResult = null;
+        btnStart.setVisibility(View.GONE);
         resultsSection.setVisibility(View.GONE);
         validationText.setVisibility(View.GONE);
         btnSave.setVisibility(View.GONE);
@@ -139,7 +164,18 @@ public class AutoDiscoverInclineActivity extends Activity {
         progressBar.setMax(1);
         progressBar.setProgress(0);
 
-        discoveryThread = new Thread(this::runDiscovery);
+        discoveryThread = new Thread(() -> {
+            try {
+                runDiscovery();
+            } catch (Throwable t) {
+                Log.e(TAG, "Discovery crashed", t);
+                post(() -> {
+                    phaseLabel.setText("Unexpected error: " + t.getClass().getSimpleName()
+                            + ": " + t.getMessage());
+                    btnRetry.setVisibility(View.VISIBLE);
+                });
+            }
+        });
         discoveryThread.setDaemon(true);
         discoveryThread.start();
     }
@@ -149,21 +185,32 @@ public class AutoDiscoverInclineActivity extends Activity {
         if (discoveryThread != null) {
             try { discoveryThread.join(500); } catch (InterruptedException ignored) {}
         }
-        startDiscovery();
+        pendingResult = null;
+        resultsSection.setVisibility(View.GONE);
+        validationText.setVisibility(View.GONE);
+        btnSave.setVisibility(View.GONE);
+        btnRetry.setVisibility(View.GONE);
+        dataPoints.setText("");
+        progressBar.setProgress(0);
+        showInstructionStep();
     }
 
     // ── discovery pipeline ────────────────────────────────────────────────────
 
     private void runDiscovery() {
+        Log.i(TAG, "runDiscovery: start");
+
         // Determine trackX from physical screen width (gesture coords are in screen space)
         DisplayMetrics dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(dm);
         int screenWidth  = dm.widthPixels;
         int screenHeight = dm.heightPixels;
+        Log.i(TAG, "screen: widthPx=" + screenWidth + " heightPx=" + screenHeight);
 
         // Prefer the width from the captured frame — same coordinate space as OCR/gestures
         int captureWidth = ScreenCaptureService.getImageWidth();
         if (captureWidth > 0) screenWidth = captureWidth;
+        Log.i(TAG, "captureWidth=" + captureWidth + " effectiveScreenWidth=" + screenWidth);
 
         ScreenProfile profile;
         if      (screenWidth >= 1920) profile = ScreenProfile.W1920;
@@ -172,22 +219,27 @@ public class AutoDiscoverInclineActivity extends Activity {
         else                          profile = ScreenProfile.W800;
 
         int trackX = profile.leftTrackX;
+        Log.i(TAG, "profile=" + profile.name() + " trackX=" + trackX);
 
-        // Phase 1 — confirm OCR can read incline (iFit workout screen is visible)
-        post(() -> phaseLabel.setText("Confirming incline track (X=" + trackX + ")…"));
-        if (!waitForOcrReading(5_000)) {
+        // Phase 1 — wait for iFit workout screen to be visible (user navigated away from QZCompanion)
+        Log.i(TAG, "phase1: waiting for OCR incline reading");
+        post(() -> phaseLabel.setText("Waiting for iFit workout screen…\n(Navigate to a Manual Ride on iFit)"));
+        if (!waitForOcrReading(60_000)) {
             post(() -> {
-                phaseLabel.setText("No OCR incline data — is iFit running with the workout screen visible?");
+                phaseLabel.setText("No OCR incline data after 60 s — is iFit running with the workout screen visible?");
                 btnRetry.setVisibility(View.VISIBLE);
             });
             return;
         }
+        Log.i(TAG, "phase1: OCR confirmed");
         if (cancelled) return;
 
         // Phase 2 — coarse sweep to find active Y range
+        Log.i(TAG, "phase2: starting coarse sweep trackX=" + trackX + " screenHeight=" + screenHeight);
         post(() -> phaseLabel.setText("Scanning incline range…"));
         List<CoarseReading> coarse = runCoarseSweep(trackX, screenHeight);
         if (cancelled) return;
+        Log.i(TAG, "phase2: coarse sweep complete, readings=" + coarse.size());
 
         int[] range = findActiveRange(coarse);
         if (range == null) {
@@ -200,12 +252,15 @@ public class AutoDiscoverInclineActivity extends Activity {
 
         int yTop    = range[0];
         int yBottom = range[1];
+        Log.i(TAG, "phase2: active range yTop=" + yTop + " yBottom=" + yBottom);
         post(() -> phaseLabel.setText(
                 String.format("Collecting data (Y %d–%d)…", yTop, yBottom)));
 
         // Phase 3 — fine sweep to collect (Y, grade) data points
+        Log.i(TAG, "phase3: starting fine sweep");
         List<FormulaFitter.DataPoint> points = runFineSweep(trackX, yTop, yBottom, screenHeight);
         if (cancelled) return;
+        Log.i(TAG, "phase3: fine sweep complete, points=" + points.size());
 
         if (points.size() < 3) {
             post(() -> {
@@ -217,6 +272,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         }
 
         // Phase 4 — fit
+        Log.i(TAG, "phase4: fitting formula");
         post(() -> phaseLabel.setText("Fitting formula…"));
         FormulaFitter.Result result;
         try {
@@ -229,6 +285,7 @@ public class AutoDiscoverInclineActivity extends Activity {
             return;
         }
 
+        Log.i(TAG, "phase4: fit result: " + result.formulaString() + " " + result.r2String());
         FormulaFitter.Result r = result;
         post(() -> {
             resultFormula.setText(r.formulaString());
@@ -242,6 +299,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         if (cancelled) return;
 
         // Phase 5 — validate at 5%
+        Log.i(TAG, "phase5: validating at 5%");
         post(() -> phaseLabel.setText("Validating at 5%…"));
         String validation = validate(trackX, result);
         post(() -> {
