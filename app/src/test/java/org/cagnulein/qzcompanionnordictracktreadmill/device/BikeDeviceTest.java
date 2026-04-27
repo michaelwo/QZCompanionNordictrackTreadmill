@@ -17,7 +17,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Inclinatio
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.junit.After;
 import org.junit.Before;
@@ -235,93 +234,11 @@ public class BikeDeviceTest {
         assertTrue(new Se9iEllipticalDevice() instanceof BikeDevice);
     }
 
-    // ── BikeDevice.decodeCommand ───────────────────────────────────────────────
-
-    @Test
-    public void decodeCommand_onePart_setsResistanceLvl() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.0"}, '.');
-        assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_twoParts_setsInclinePct() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"5.0", "unused"}, '.');
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
-        assertNull(cmd.resistanceLvl);
-    }
-
-    @Test
-    public void decodeCommand_roundsToOneDecimal() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.25"}, '.');
-        assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_sentinelMinusOne_resistance_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1"}, '.');
-        assertNull(cmd.resistanceLvl);
-    }
-
-    @Test
-    public void decodeCommand_sentinelMinusOneHundred_resistance_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100"}, '.');
-        assertNull(cmd.resistanceLvl);
-    }
-
-    @Test
-    public void decodeCommand_sentinel_incline_returnsNull() {
-        // The exact QZ sentinel packet "-1;-100" must not produce a command.
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_negativeOnePercent_incline_parsesCorrectly() {
-        // "-1.0;0" is a legitimate Zwift grade, not the sentinel; it must not be swallowed.
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-1.0", "0"}, '.');
-        assertEquals(-1.0f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_heartbeat_incline_returnsNull() {
-        // "-100;N" is QZ's "no grade" heartbeat (Zwift paused/loading); incline must be ignored.
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"-100", "16"}, '.');
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"8.5"}, ',');
-        assertEquals(8.5f, cmd.resistanceLvl, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_unparseable_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"abc"}, '.');
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_zeroParts_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{}, '.');
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
-    }
-
     // ── BikeDevice.defaultMetricReader ────────────────────────────────────────
 
     @Test
     public void bikeDevice_defaultMetricReader_returnsMonoStdoutMetricReader() {
         assertTrue(new S22iDevice().defaultMetricReader() instanceof MonoStdoutMetricReader);
-    }
-
-    @Test
-    public void decodeCommand_threeParts_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
     }
 
     // ── S22iDevice resistance slider (x=1845, calibrated) ────────────────────

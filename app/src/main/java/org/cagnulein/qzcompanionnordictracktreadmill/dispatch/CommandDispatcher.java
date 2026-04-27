@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.dispatch;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
 
 /**
  * Parses a raw UDP message and dispatches the resulting command to the active device.
@@ -38,9 +39,9 @@ public class CommandDispatcher {
      * @param device           the currently active device
      */
     public void dispatch(String message, char decimalSeparator, Device device) {
-        String[] parts = message.split(";");
+        QzPacket pkt = QzPacket.parse(message);
         long now = clock.now();
-        Command cmd = device.decodeCommand(parts, decimalSeparator);
+        Command cmd = device.decodeCommand(pkt, decimalSeparator);
         device.applyCommand(cmd, now);
     }
 }

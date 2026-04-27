@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
@@ -59,35 +60,8 @@ public abstract class Device {
     /** Returns true if this device sends commands via the Android AccessibilityService. */
     public boolean requiresAccessibility() { return true; }
 
-    /**
-     * Interprets a raw UDP message (already split on ";") for this device type.
-     * Returns a MetricSnapshot whose non-null fields represent the requested values.
-     * Fields not relevant to this device type (or absent from the message) are null.
-     */
-    public abstract Command decodeCommand(String[] parts, char decimalSeparator);
-
-    /** Rounds to one decimal place (e.g. 5.25 → 5.3). */
-    public static float roundToOneDecimal(float value) {
-        return Math.round(value * 10) / 10.0f;
-    }
-
-    /**
-     * Parses one message part into a Float, handling locale decimal separators and
-     * the common fallback of replacing ',' with '.'.  Returns null on parse failure.
-     */
-    public static Float parseField(String part, char decimalSeparator) {
-        String s = part.trim();
-        if (decimalSeparator != '.') s = s.replace('.', decimalSeparator);
-        try {
-            return Float.parseFloat(s);
-        } catch (NumberFormatException e) {
-            try {
-                return Float.parseFloat(s.replace(',', '.'));
-            } catch (NumberFormatException e2) {
-                return null;
-            }
-        }
-    }
+    /** Interprets a parsed QZ UDP packet for this device type. */
+    public abstract Command decodeCommand(QzPacket pkt, char decimalSeparator);
 
     public MetricReader defaultMetricReader() {
         return new MonoStdoutMetricReader();

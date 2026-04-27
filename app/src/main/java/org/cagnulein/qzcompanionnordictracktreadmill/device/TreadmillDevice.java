@@ -1,5 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzProtocol;
+
 public abstract class TreadmillDevice extends Device {
 
     private final Slider speed;
@@ -25,17 +28,16 @@ public abstract class TreadmillDevice extends Device {
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
             logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastSnapshot.speed() + " cachedSpeed=" + cached.speedKmh);
-            if (lastCommandMs + SWIPE_THROTTLE_MS < now && lastSnapshot.speed() > 0) {
+            if (lastSnapshot.speed() <= 0) {
+                logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
+                cached.speedKmh = speedVal;
+            } else if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
                 applySpeed(speedVal);
                 logger.log("QZ:Dispatch", "applySpeed: " + speedVal);
                 lastCommandMs = now;
                 cached.speedKmh = null;
             } else {
-                if (lastSnapshot.speed() <= 0) {
-                    logger.log("QZ:Dispatch", "speed gate: cached " + speedVal + " (treadmill stopped, speed=" + lastSnapshot.speed() + ")");
-                } else {
-                    logger.log("QZ:Dispatch", "throttle: cached speed " + speedVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                }
+                logger.log("QZ:Dispatch", "throttle: cached speed " + speedVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
                 cached.speedKmh = speedVal;
             }
         }
@@ -57,14 +59,7 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public Command decodeCommand(String[] parts, char decimalSeparator) {
-        Command cmd = new Command();
-        if (parts.length == 2) {
-            Float s = parseField(parts[0], decimalSeparator);
-            Float i = parseField(parts[1], decimalSeparator);
-            if (s != null && s != -100) cmd.speedKmh   = roundToOneDecimal(s);
-            if (i != null && i != -100) cmd.inclinePct = roundToOneDecimal(i);
-        }
-        return cmd;
+    public Command decodeCommand(QzPacket pkt, char decimalSeparator) {
+        return QzProtocol.decodeTreadmill(pkt, decimalSeparator);
     }
 }

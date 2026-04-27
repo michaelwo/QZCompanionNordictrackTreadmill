@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzProtocol;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -82,7 +83,7 @@ public class HillyRouteReplayTest {
         for (int i = 0; i < ACTUAL_GRADES.length; i++) {
             int sizeBefore = dispatched.size();
             Command cmd = new Command();
-            cmd.inclinePct = Device.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f);
+            cmd.inclinePct = QzProtocol.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f);
             dev.applyCommand(cmd, now);
             now += 2000L;
 

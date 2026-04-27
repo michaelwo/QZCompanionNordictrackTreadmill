@@ -30,7 +30,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl392
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
 import org.junit.After;
 import org.junit.Before;
@@ -173,71 +172,6 @@ public class TreadmillDeviceTest {
     @Test
     public void elite1000_hasCorrectDisplayName() {
         assertEquals("Elite 1000 Treadmill", new Elite1000Device("Elite 1000 Treadmill").displayName());
-    }
-
-    // ── TreadmillDevice.decodeCommand ─────────────────────────────────────────
-
-    @Test
-    public void decodeCommand_twoParts_setsBothFields() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "5.0"}, '.');
-        assertEquals(8.0f, cmd.speedKmh,   0.001f);
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_roundsToOneDecimal() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.25", "5.14"}, '.');
-        assertEquals(8.3f, cmd.speedKmh,   0.001f);
-        assertEquals(5.1f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_sentinelMinusOne_speed_returnsNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"-1", "5.0"}, '.');
-        assertNull(cmd.speedKmh);
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0", "-100"}, '.');
-        assertEquals(8.0f, cmd.speedKmh, 0.001f);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_bothSentinels_returnsAllNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"-1", "-100"}, '.');
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_commaDecimalSeparator_parsesCorrectly() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.5", "3.0"}, ',');
-        assertEquals(8.5f, cmd.speedKmh,   0.001f);
-        assertEquals(3.0f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
-    public void decodeCommand_onePart_returnsAllNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"8.0"}, '.');
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_zeroParts_returnsAllNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{}, '.');
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
-    }
-
-    @Test
-    public void decodeCommand_threeParts_returnsAllNull() {
-        Command cmd = new X11iDevice().decodeCommand(new String[]{"1.0", "2.0", "3.0"}, '.');
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
     }
 
     // ── Speed monotonicity ────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzProtocol;
 
 public abstract class BikeDevice extends Device {
 
@@ -67,21 +68,7 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public Command decodeCommand(String[] parts, char decimalSeparator) {
-        Command cmd = new Command();
-        if (parts.length == 2) {
-            // "-1;-100" is the QZ end-of-ride sentinel; skip it by raw string so that a
-            // legitimate Zwift grade of -1.0% (sent as "-1.0;0") is not swallowed.
-            if ("-1".equals(parts[0]) && "-100".equals(parts[1])) return cmd;
-            Float v = parseField(parts[0], decimalSeparator);
-            // -100 in the incline slot is QZ's "no grade" heartbeat ("-100;N" while paused).
-            // A real Zwift grade of -1% arrives as "-1.0", so this check is safe.
-            if (v != null && v != -100) cmd.inclinePct = roundToOneDecimal(v);
-        }
-        if (parts.length == 1) {
-            Float v = parseField(parts[0], decimalSeparator);
-            if (v != null && v != -1 && v != -100) cmd.resistanceLvl = roundToOneDecimal(v);
-        }
-        return cmd;
+    public Command decodeCommand(QzPacket pkt, char decimalSeparator) {
+        return QzProtocol.decodeBike(pkt, decimalSeparator);
     }
 }
