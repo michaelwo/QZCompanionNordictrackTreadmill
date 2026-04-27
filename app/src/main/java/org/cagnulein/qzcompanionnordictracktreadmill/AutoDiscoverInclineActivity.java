@@ -98,7 +98,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         findViewById(R.id.btnCancel).setOnClickListener(v -> finish());
         btnStart.setOnClickListener(v -> {
             btnStart.setVisibility(View.GONE);
-            moveTaskToBack(true);
+            launchIfit();
             startDiscovery();
         });
 
@@ -110,6 +110,19 @@ public class AutoDiscoverInclineActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         cancelled = true;
+    }
+
+    private void launchIfit() {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        intent.setPackage("com.ifit.standalone");
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.w(TAG, "iFit not found, falling back to moveTaskToBack: " + e.getMessage());
+            moveTaskToBack(true);
+        }
     }
 
     // ── instruction step ──────────────────────────────────────────────────────
@@ -199,6 +212,10 @@ public class AutoDiscoverInclineActivity extends Activity {
 
         int trackX = profile.leftTrackX;
         Log.i(TAG, "profile=" + profile.name() + " trackX=" + trackX);
+
+        // Wait for iFit to reach the foreground before injecting gestures
+        sleep(2_000);
+        if (cancelled) return;
 
         // Phase 1 — confirm iFit is responding by issuing a test swipe and waiting
         //           for the first "Changed Grade" event on mono-stdout
