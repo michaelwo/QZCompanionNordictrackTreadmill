@@ -1,11 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.projection.MediaProjectionManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
@@ -21,24 +18,23 @@ import org.cagnulein.qzcompanionnordictracktreadmill.calibration.ShellRuntime;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.OcrCalibrationService;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.ScreenCaptureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Replaces CalibrationActivity with a fully automated incline discovery flow.
+ * Fully automated incline discovery: moves to background so iFit is in the
+ * foreground, sweeps the slider via ADB input-swipe, reads grade from the
+ * mono-stdout logcat stream (same source as MetricReaderUnicastingService),
+ * fits Y = a − b×grade via FormulaFitter, validates at 5%, then saves.
  *
- * Performs a two-phase sweep (coarse to find the active Y range, fine to collect
- * formula data), fits Y = a − b×grade via FormulaFitter, validates at 5%, then
- * saves as CalibrationResult. No user input required.
+ * No screen capture, no ML Kit — works on all Android versions.
  */
 public class AutoDiscoverInclineActivity extends Activity {
 
     private static final String TAG = "QZ:AutoDiscover";
-    private static final int OCR_REQUEST_CODE = 1;
 
     // Fine sweep (same constants as deleted CalibrationActivity)
     private static final int FINE_STEP     = 25;
@@ -59,7 +55,7 @@ public class AutoDiscoverInclineActivity extends Activity {
 
     private TextView phaseLabel;
     private ProgressBar progressBar;
-    private TextView ocrReading;
+    private TextView gradeReading;
     private TextView dataPoints;
     private View resultsSection;
     private TextView resultFormula;
@@ -73,10 +69,9 @@ public class AutoDiscoverInclineActivity extends Activity {
     private volatile boolean cancelled = false;
     private Thread discoveryThread;
 
-    // Saved from onActivityResult so services are not started until the user taps Start Scan
-    private int captureResultCode;
-    private Intent captureData;
-    private boolean servicesStarted = false;
+    // Grade readings from iFit's mono-stdout logcat stream
+    private MonoStdoutMetricReader monoReader;
+    private volatile MetricSnapshot latestMonoSnapshot;
 
     private FormulaFitter.Result pendingResult;
     private int pendingTrackX;
@@ -87,66 +82,29 @@ public class AutoDiscoverInclineActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auto_discover_incline);
 
-        phaseLabel     = findViewById(R.id.phaseLabel);
-        progressBar    = findViewById(R.id.progressBar);
-        ocrReading     = findViewById(R.id.ocrReading);
-        dataPoints     = findViewById(R.id.dataPoints);
+        phaseLabel    = findViewById(R.id.phaseLabel);
+        progressBar   = findViewById(R.id.progressBar);
+        gradeReading  = findViewById(R.id.ocrReading);
+        dataPoints    = findViewById(R.id.dataPoints);
         resultsSection = findViewById(R.id.resultsSection);
-        resultFormula  = findViewById(R.id.resultFormula);
-        resultR2       = findViewById(R.id.resultR2);
-        resultHyst     = findViewById(R.id.resultHyst);
+        resultFormula = findViewById(R.id.resultFormula);
+        resultR2      = findViewById(R.id.resultR2);
+        resultHyst    = findViewById(R.id.resultHyst);
         validationText = findViewById(R.id.validationText);
-        btnStart       = findViewById(R.id.btnStart);
-        btnSave        = findViewById(R.id.btnSave);
-        btnRetry       = findViewById(R.id.btnRetry);
+        btnStart      = findViewById(R.id.btnStart);
+        btnSave       = findViewById(R.id.btnSave);
+        btnRetry      = findViewById(R.id.btnRetry);
 
         btnSave.setOnClickListener(v -> saveAndFinish());
         btnRetry.setOnClickListener(v -> restart());
         findViewById(R.id.btnCancel).setOnClickListener(v -> finish());
         btnStart.setOnClickListener(v -> {
-            if (!servicesStarted) {
-                try {
-                    Log.i(TAG, "btnStart: starting MediaProjection + OCR services");
-                    MediaProjection.startService(this, captureResultCode, captureData);
-                    startService(new Intent(this, OcrCalibrationService.class));
-                    servicesStarted = true;
-                    Log.i(TAG, "btnStart: services started");
-                } catch (Throwable t) {
-                    Log.e(TAG, "btnStart: failed to start services", t);
-                    phaseLabel.setText("Failed to start capture services: " + t.getMessage());
-                    btnRetry.setVisibility(View.VISIBLE);
-                    return;
-                }
-            }
             btnStart.setVisibility(View.GONE);
             moveTaskToBack(true);
             startDiscovery();
         });
 
-        Log.i(TAG, "onCreate: latestReading=" + OcrCalibrationService.latestReading);
-        if (OcrCalibrationService.latestReading != null) {
-            Log.i(TAG, "onCreate: OCR already running, showing instruction step");
-            servicesStarted = true;
-            showInstructionStep();
-        } else {
-            Log.i(TAG, "onCreate: requesting screen-capture permission");
-            phaseLabel.setText("Waiting for screen-capture permission…");
-            MediaProjectionManager mpm = (MediaProjectionManager)
-                    getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-            startActivityForResult(mpm.createScreenCaptureIntent(), OCR_REQUEST_CODE);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        Log.i(TAG, "onActivityResult: requestCode=" + requestCode + " resultCode=" + resultCode);
-        if (requestCode != OCR_REQUEST_CODE) return;
-        if (resultCode != RESULT_OK) { finish(); return; }
-        // Save credentials — services start only when the user taps Start Scan
-        captureResultCode = resultCode;
-        captureData = data;
-        Log.i(TAG, "onActivityResult: permission granted — showing instruction step");
+        Log.i(TAG, "onCreate: showing instruction step");
         showInstructionStep();
     }
 
@@ -159,26 +117,16 @@ public class AutoDiscoverInclineActivity extends Activity {
     // ── instruction step ──────────────────────────────────────────────────────
 
     private void showInstructionStep() {
-        // ML Kit's TFLite runtime uses ARMv8.2 instructions that SIGILLs on Android 7.x SoCs.
-        // Gate here before ScreenCaptureService is ever constructed.
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            phaseLabel.setText(
-                    "Auto-Detect Incline is not compatible with Android "
-                    + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ").\n\n"
-                    + "The on-device OCR engine requires Android 8.0 or later. "
-                    + "To calibrate a new device on this hardware, run calibrate-device.sh "
-                    + "from a connected computer, or select a pre-configured device from the main screen.");
-            return;
-        }
         phaseLabel.setText("Open iFit and start a Manual Ride, then tap Start Scan.\n\n"
-                + "QZCompanion will move to the background and sweep the incline slider automatically.");
+                + "QZCompanion moves to the background and sweeps the incline slider "
+                + "automatically. Watch the incline change on iFit's screen as the scan runs.");
         btnStart.setVisibility(View.VISIBLE);
     }
 
     // ── start / restart ───────────────────────────────────────────────────────
 
     private void startDiscovery() {
-        cancelled  = false;
+        cancelled     = false;
         pendingResult = null;
         btnStart.setVisibility(View.GONE);
         resultsSection.setVisibility(View.GONE);
@@ -188,6 +136,11 @@ public class AutoDiscoverInclineActivity extends Activity {
         dataPoints.setText("");
         progressBar.setMax(1);
         progressBar.setProgress(0);
+
+        // Start reading grade from iFit's logcat stream
+        monoReader = new MonoStdoutMetricReader();
+        monoReader.subscribe(snap -> latestMonoSnapshot = snap);
+        monoReader.read();
 
         discoveryThread = new Thread(() -> {
             try {
@@ -225,17 +178,11 @@ public class AutoDiscoverInclineActivity extends Activity {
     private void runDiscovery() {
         Log.i(TAG, "runDiscovery: start");
 
-        // Determine trackX from physical screen width (gesture coords are in screen space)
         DisplayMetrics dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(dm);
         int screenWidth  = dm.widthPixels;
         int screenHeight = dm.heightPixels;
         Log.i(TAG, "screen: widthPx=" + screenWidth + " heightPx=" + screenHeight);
-
-        // Prefer the width from the captured frame — same coordinate space as OCR/gestures
-        int captureWidth = ScreenCaptureService.getImageWidth();
-        if (captureWidth > 0) screenWidth = captureWidth;
-        Log.i(TAG, "captureWidth=" + captureWidth + " effectiveScreenWidth=" + screenWidth);
 
         ScreenProfile profile;
         if      (screenWidth >= 1920) profile = ScreenProfile.W1920;
@@ -246,17 +193,22 @@ public class AutoDiscoverInclineActivity extends Activity {
         int trackX = profile.leftTrackX;
         Log.i(TAG, "profile=" + profile.name() + " trackX=" + trackX);
 
-        // Phase 1 — wait for iFit workout screen to be visible (user navigated away from QZCompanion)
-        Log.i(TAG, "phase1: waiting for OCR incline reading");
-        post(() -> phaseLabel.setText("Waiting for iFit workout screen…\n(Navigate to a Manual Ride on iFit)"));
-        if (!waitForOcrReading(60_000)) {
+        // Phase 1 — confirm iFit is responding by issuing a test swipe and waiting
+        //           for the first "Changed Grade" event on mono-stdout
+        Log.i(TAG, "phase1: test swipe to confirm iFit is active");
+        post(() -> phaseLabel.setText("Confirming iFit is active…"));
+        int midY = screenHeight / 2;
+        swipe(trackX, midY - 50, midY + 50);
+        sleep(COARSE_SETTLE);
+        if (!waitForGradeReading(5_000)) {
             post(() -> {
-                phaseLabel.setText("No OCR incline data after 60 s — is iFit running with the workout screen visible?");
+                phaseLabel.setText("No grade response from iFit after test swipe.\n"
+                        + "Make sure iFit is open in a Manual Ride, then tap Retry.");
                 btnRetry.setVisibility(View.VISIBLE);
             });
             return;
         }
-        Log.i(TAG, "phase1: OCR confirmed");
+        Log.i(TAG, "phase1: grade confirmed");
         if (cancelled) return;
 
         // Phase 2 — coarse sweep to find active Y range
@@ -269,7 +221,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         int[] range = findActiveRange(coarse);
         if (range == null) {
             post(() -> {
-                phaseLabel.setText("Could not determine active range — check iFit screen visibility.");
+                phaseLabel.setText("Could not determine active range — too few grade readings.");
                 btnRetry.setVisibility(View.VISIBLE);
             });
             return;
@@ -315,7 +267,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         post(() -> {
             resultFormula.setText(r.formulaString());
             String r2text = r.r2 < 0.90
-                    ? r.r2String() + "\n⚠ Poor fit — retry or check iFit screen layout."
+                    ? r.r2String() + "\n⚠ Poor fit — retry or check iFit is in Manual Ride."
                     : r.r2String();
             resultR2.setText(r2text);
             resultHyst.setText(r.hysteresisString());
@@ -338,7 +290,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         pendingNeutralY = (int) result.a;
 
         post(() -> {
-            phaseLabel.setText("Discovery complete.");
+            phaseLabel.setText("Discovery complete. Switch back to QZCompanion to save.");
             btnSave.setVisibility(View.VISIBLE);
             btnRetry.setVisibility(View.VISIBLE);
         });
@@ -368,7 +320,7 @@ public class AutoDiscoverInclineActivity extends Activity {
                 readings.add(new CoarseReading(y, grade));
                 int yCapture = y;
                 float g = grade;
-                post(() -> ocrReading.setText(
+                post(() -> gradeReading.setText(
                         String.format("Scanning Y=%d → %.1f%%", yCapture, g)));
             }
         }
@@ -383,7 +335,6 @@ public class AutoDiscoverInclineActivity extends Activity {
         int n = readings.size();
         if (n < 3) return null;
 
-        // First index where grade starts changing (after any top-cap run)
         int first = 0;
         for (int i = 0; i < n - 1; i++) {
             if (Math.abs(readings.get(i).grade - readings.get(i + 1).grade) > STABLE_TOL) {
@@ -392,7 +343,6 @@ public class AutoDiscoverInclineActivity extends Activity {
             }
         }
 
-        // Last index before grade stops changing (before any bottom-cap run)
         int last = n - 1;
         for (int i = n - 1; i > 0; i--) {
             if (Math.abs(readings.get(i).grade - readings.get(i - 1).grade) > STABLE_TOL) {
@@ -420,7 +370,6 @@ public class AutoDiscoverInclineActivity extends Activity {
             progressBar.setProgress(0);
         });
 
-        // Position slider at active top before starting
         swipe(trackX, screenHeight - COARSE_MARGIN, yTop);
         sleep(SETTLE_MS * 2);
 
@@ -444,7 +393,7 @@ public class AutoDiscoverInclineActivity extends Activity {
                     progressBar.setProgress(step);
                 });
             } else {
-                post(() -> ocrReading.setText("OCR: timed out at Y=" + y + " — skipping"));
+                post(() -> gradeReading.setText("Timed out at Y=" + y + " — skipping"));
             }
         }
         return points;
@@ -459,26 +408,33 @@ public class AutoDiscoverInclineActivity extends Activity {
         sleep(SETTLE_MS);
 
         Float grade = waitForStable(TIMEOUT_MS, STABLE_COUNT);
-        if (grade == null) return "Validation: OCR timed out";
+        if (grade == null) return "Validation: grade reading timed out";
         if (Math.abs(grade - 5.0f) <= 0.5f) {
-            return String.format("✓ Validated: commanded 5.0%%, OCR read %.1f%%", grade);
+            return String.format("✓ Validated: commanded 5.0%%, iFit reported %.1f%%", grade);
         }
-        return String.format("⚠ Validation gap: commanded 5.0%%, OCR read %.1f%%", grade);
+        return String.format("⚠ Validation gap: commanded 5.0%%, iFit reported %.1f%%", grade);
     }
 
-    // ── OCR polling ───────────────────────────────────────────────────────────
+    // ── grade polling (mono-stdout) ───────────────────────────────────────────
 
-    private boolean waitForOcrReading(long timeoutMs) {
+    /** Waits for the first "Changed Grade" event from iFit's logcat stream. */
+    private boolean waitForGradeReading(long timeoutMs) {
         long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
             if (cancelled) return false;
-            MetricSnapshot snap = OcrCalibrationService.latestReading;
+            MetricSnapshot snap = latestMonoSnapshot;
             if (snap != null && snap.inclinePct != null) return true;
             sleep(200);
         }
         return false;
     }
 
+    /**
+     * Polls latestMonoSnapshot until requiredStreak consecutive reads agree within
+     * STABLE_TOL, or timeoutMs elapses. MonoStdout updates the snapshot whenever
+     * iFit logs a grade change; a stable settled value will read identically across
+     * multiple poll cycles.
+     */
     private Float waitForStable(long timeoutMs, int requiredStreak) {
         float last  = Float.NaN;
         int streak  = 0;
@@ -486,10 +442,10 @@ public class AutoDiscoverInclineActivity extends Activity {
 
         while (System.currentTimeMillis() < deadline) {
             if (cancelled) return null;
-            MetricSnapshot snap = OcrCalibrationService.latestReading;
+            MetricSnapshot snap = latestMonoSnapshot;
             if (snap != null && snap.inclinePct != null) {
                 float v = snap.inclinePct;
-                post(() -> ocrReading.setText(String.format("OCR: %.1f%%", v)));
+                post(() -> gradeReading.setText(String.format("Grade: %.1f%%", v)));
                 if (!Float.isNaN(last) && Math.abs(v - last) <= STABLE_TOL) {
                     if (++streak >= requiredStreak) return v;
                 } else {
@@ -540,7 +496,7 @@ public class AutoDiscoverInclineActivity extends Activity {
         try {
             shellRuntime.exec("input swipe " + x + " " + fromY + " " + x + " " + toY + " 200");
         } catch (IOException e) {
-            post(() -> ocrReading.setText("Swipe failed: " + e.getMessage()));
+            post(() -> gradeReading.setText("Swipe failed: " + e.getMessage()));
         }
     }
 
