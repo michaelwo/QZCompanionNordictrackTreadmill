@@ -113,16 +113,20 @@ public class AutoDiscoverInclineActivity extends Activity {
     }
 
     private void launchIfit() {
-        Intent intent = new Intent(Intent.ACTION_MAIN);
-        intent.addCategory(Intent.CATEGORY_LAUNCHER);
-        intent.setPackage("com.ifit.standalone");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        try {
-            startActivity(intent);
-        } catch (Exception e) {
-            Log.w(TAG, "iFit not found, falling back to moveTaskToBack: " + e.getMessage());
-            moveTaskToBack(true);
+        android.content.pm.PackageManager pm = getPackageManager();
+        Intent intent = pm.getLaunchIntentForPackage("com.ifit.standalone");
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            try {
+                startActivity(intent);
+                return;
+            } catch (Exception e) {
+                Log.w(TAG, "iFit launch failed: " + e.getMessage());
+            }
+        } else {
+            Log.w(TAG, "iFit not found via PackageManager");
         }
+        moveTaskToBack(true);
     }
 
     // ── instruction step ──────────────────────────────────────────────────────
