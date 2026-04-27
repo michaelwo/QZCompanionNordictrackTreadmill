@@ -43,12 +43,11 @@ public class MyAccessibilityService extends AccessibilityService {
 
     // --- Gesture injection (existing) ---
 
-    public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
-        if (instance == null) {
-            Log.e(TAG, "performSwipe: AccessibilityService not connected — swipe dropped");
-            return;
-        }
+    public static boolean isConnected() {
+        return instance != null;
+    }
 
+    public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
         Path path = new Path();
         path.moveTo(startX, startY);
         path.lineTo(endX, endY);

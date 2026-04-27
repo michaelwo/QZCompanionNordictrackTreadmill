@@ -1,7 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzProtocol;
 
 public abstract class BikeDevice extends Device {
 
@@ -69,6 +68,17 @@ public abstract class BikeDevice extends Device {
 
     @Override
     public Command decodeCommand(QzPacket pkt) {
-        return QzProtocol.decodeBike(pkt);
+        Command cmd = new Command();
+        if (pkt.fieldCount() == 2) {
+            if (QzPacket.END_OF_RIDE.equals(pkt.raw())) return cmd;
+            Float v = QzPacket.parseField(pkt.rawField(0));
+            if (v != null && v != QzPacket.NO_COMMAND) cmd.inclinePct = QzPacket.roundToOneDecimal(v);
+        }
+        if (pkt.fieldCount() == 1) {
+            Float v = QzPacket.parseField(pkt.rawField(0));
+            if (v != null && v != QzPacket.NO_RESISTANCE && v != QzPacket.NO_COMMAND)
+                cmd.resistanceLvl = QzPacket.roundToOneDecimal(v);
+        }
+        return cmd;
     }
 }

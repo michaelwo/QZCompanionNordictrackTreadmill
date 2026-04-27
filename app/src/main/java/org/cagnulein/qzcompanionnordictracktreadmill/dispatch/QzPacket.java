@@ -23,4 +23,18 @@ public class QzPacket {
     public String raw() {
         return String.join(String.valueOf(DELIMITER), fields);
     }
+
+    public static Float parseField(String part) {
+        String s = part.trim();
+        try {
+            return Float.parseFloat(s);
+        } catch (NumberFormatException e) {
+            try { return Float.parseFloat(s.replace(',', '.')); }
+            catch (NumberFormatException e2) { return null; }
+        }
+    }
+
+    public static float roundToOneDecimal(float value) {
+        return Math.round(value * 10) / 10.0f;
+    }
 }

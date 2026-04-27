@@ -79,7 +79,11 @@ public abstract class Device {
     protected void swipe(int x, int y1, int y2) {
         String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " " + SWIPE_DURATION_MS;
         logger.log("QZ:Device", "swipe -> " + cmd);
-        MyAccessibilityService.performSwipe(x, y1, x, y2, SWIPE_DURATION_MS);
+        if (MyAccessibilityService.isConnected()) {
+            MyAccessibilityService.performSwipe(x, y1, x, y2, SWIPE_DURATION_MS);
+        } else {
+            logger.log("QZ:Device", "swipe dropped: AccessibilityService not connected");
+        }
         commandExecutor.send(cmd);
     }
 }

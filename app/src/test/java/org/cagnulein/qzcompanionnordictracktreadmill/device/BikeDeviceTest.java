@@ -18,6 +18,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -488,5 +489,81 @@ public class BikeDeviceTest {
         dev.applyIncline(5.0);
         // fromY=482; y2=(int)(-12.499*5+482.2)=(int)(419.705)=419
         assertEquals("input swipe 75 482 75 419 200", lastCommand);
+    }
+
+    // ── BikeDevice.decodeCommand ──────────────────────────────────────────────
+
+    @Test
+    public void decodeCommand_onePart_setsResistanceLvl() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("8.0"));
+        assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
+        assertNull(cmd.inclinePct);
+    }
+
+    @Test
+    public void decodeCommand_twoParts_setsInclinePct() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("5.0;unused"));
+        assertEquals(5.0f, cmd.inclinePct, 0.001f);
+        assertNull(cmd.resistanceLvl);
+    }
+
+    @Test
+    public void decodeCommand_roundsToOneDecimal() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("8.25"));
+        assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
+    }
+
+    @Test
+    public void decodeCommand_sentinelMinusOne_resistance_returnsNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("-1"));
+        assertNull(cmd.resistanceLvl);
+    }
+
+    @Test
+    public void decodeCommand_sentinelMinusOneHundred_resistance_returnsNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("-100"));
+        assertNull(cmd.resistanceLvl);
+    }
+
+    @Test
+    public void decodeCommand_endOfRideSentinel_returnsAllNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("-1;-100"));
+        assertNull(cmd.inclinePct);
+        assertNull(cmd.resistanceLvl);
+    }
+
+    @Test
+    public void decodeCommand_negativeOnePercent_incline_parsesCorrectly() {
+        // "-1.0;0" is a legitimate Zwift grade, not the sentinel; must not be swallowed.
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("-1.0;0"));
+        assertEquals(-1.0f, cmd.inclinePct, 0.001f);
+    }
+
+    @Test
+    public void decodeCommand_heartbeat_incline_returnsNull() {
+        // "-100;N" is QZ's "no grade" heartbeat (Zwift paused/loading).
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("-100;16"));
+        assertNull(cmd.inclinePct);
+    }
+
+    @Test
+    public void decodeCommand_unparseable_returnsAllNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("abc"));
+        assertNull(cmd.resistanceLvl);
+        assertNull(cmd.inclinePct);
+    }
+
+    @Test
+    public void decodeCommand_zeroParts_returnsAllNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse(""));
+        assertNull(cmd.resistanceLvl);
+        assertNull(cmd.inclinePct);
+    }
+
+    @Test
+    public void decodeCommand_threeParts_returnsAllNull() {
+        Command cmd = new S22iDevice().decodeCommand(QzPacket.parse("1.0;2.0;3.0"));
+        assertNull(cmd.resistanceLvl);
+        assertNull(cmd.inclinePct);
     }
 }
