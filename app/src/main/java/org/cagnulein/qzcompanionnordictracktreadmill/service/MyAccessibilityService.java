@@ -44,7 +44,10 @@ public class MyAccessibilityService extends AccessibilityService {
     // --- Gesture injection (existing) ---
 
     public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
-        if (instance == null) return;
+        if (instance == null) {
+            Log.e(TAG, "performSwipe: AccessibilityService not connected — swipe dropped");
+            return;
+        }
 
         Path path = new Path();
         path.moveTo(startX, startY);
@@ -54,7 +57,7 @@ public class MyAccessibilityService extends AccessibilityService {
             GestureDescription.Builder builder = new GestureDescription.Builder();
             builder.addStroke(new GestureDescription.StrokeDescription(path, 0, duration));
             boolean result = instance.dispatchGesture(builder.build(), null, null);
-            Log.d("MyAccesibilityService", "result: " + result);
+            if (!result) Log.e(TAG, "performSwipe: dispatchGesture failed");
         }
     }
 
