@@ -14,13 +14,12 @@ import android.widget.TextView;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.FormulaFitter;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.ShellRuntime;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,7 +50,6 @@ public class AutoDiscoverInclineActivity extends Activity {
     private static final int COARSE_MARGIN  = 200;
 
     private final Handler handler = new Handler();
-    private final ShellRuntime shellRuntime = new ShellRuntime();
 
     private TextView phaseLabel;
     private ProgressBar progressBar;
@@ -177,6 +175,15 @@ public class AutoDiscoverInclineActivity extends Activity {
 
     private void runDiscovery() {
         Log.i(TAG, "runDiscovery: start");
+
+        if (!MyAccessibilityService.isConnected()) {
+            post(() -> {
+                phaseLabel.setText("Accessibility service not enabled.\n"
+                        + "Enable it in Settings → Accessibility → QZCompanion, then tap Retry.");
+                btnRetry.setVisibility(View.VISIBLE);
+            });
+            return;
+        }
 
         DisplayMetrics dm = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getRealMetrics(dm);
@@ -493,11 +500,11 @@ public class AutoDiscoverInclineActivity extends Activity {
     }
 
     private void swipe(int x, int fromY, int toY) {
-        try {
-            shellRuntime.exec("input swipe " + x + " " + fromY + " " + x + " " + toY + " 200");
-        } catch (IOException e) {
-            post(() -> gradeReading.setText("Swipe failed: " + e.getMessage()));
+        if (!MyAccessibilityService.isConnected()) {
+            post(() -> gradeReading.setText("Accessibility service not connected"));
+            return;
         }
+        MyAccessibilityService.performSwipe(x, fromY, x, toY, 200);
     }
 
     private void sleep(long ms) {
