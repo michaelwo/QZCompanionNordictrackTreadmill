@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.media.projection.MediaProjectionManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.DisplayMetrics;
@@ -158,6 +159,17 @@ public class AutoDiscoverInclineActivity extends Activity {
     // ── instruction step ──────────────────────────────────────────────────────
 
     private void showInstructionStep() {
+        // ML Kit's TFLite runtime uses ARMv8.2 instructions that SIGILLs on Android 7.x SoCs.
+        // Gate here before ScreenCaptureService is ever constructed.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            phaseLabel.setText(
+                    "Auto-Detect Incline is not compatible with Android "
+                    + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ").\n\n"
+                    + "The on-device OCR engine requires Android 8.0 or later. "
+                    + "To calibrate a new device on this hardware, run calibrate-device.sh "
+                    + "from a connected computer, or select a pre-configured device from the main screen.");
+            return;
+        }
         phaseLabel.setText("Open iFit and start a Manual Ride, then tap Start Scan.\n\n"
                 + "QZCompanion will move to the background and sweep the incline slider automatically.");
         btnStart.setVisibility(View.VISIBLE);
