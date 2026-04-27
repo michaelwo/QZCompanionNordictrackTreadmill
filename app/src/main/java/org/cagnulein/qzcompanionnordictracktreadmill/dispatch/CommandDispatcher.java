@@ -34,14 +34,13 @@ public class CommandDispatcher {
     /**
      * Parses {@code message} and dispatches to {@code device.applyCommand()}.
      *
-     * @param message          raw semicolon-delimited UDP string
-     * @param decimalSeparator locale decimal separator for numeric parsing
-     * @param device           the currently active device
+     * @param message raw semicolon-delimited UDP string
+     * @param device  the currently active device
      */
-    public void dispatch(String message, char decimalSeparator, Device device) {
+    public void dispatch(String message, Device device) {
         QzPacket pkt = QzPacket.parse(message);
         long now = clock.now();
-        Command cmd = device.decodeCommand(pkt, decimalSeparator);
+        Command cmd = device.decodeCommand(pkt);
         device.applyCommand(cmd, now);
     }
 }

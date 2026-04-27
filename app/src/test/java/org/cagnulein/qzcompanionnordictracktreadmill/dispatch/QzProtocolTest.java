@@ -65,48 +65,43 @@ public class QzProtocolTest {
     // ── QzProtocol.parseField ─────────────────────────────────────────────────
 
     @Test
-    public void parseField_dotValue_dotSeparator_parsesCorrectly() {
-        assertEquals(8.5f, QzProtocol.parseField("8.5", '.'), 0.001f);
+    public void parseField_dotDecimal_parsesCorrectly() {
+        assertEquals(8.5f, QzProtocol.parseField("8.5"), 0.001f);
     }
 
     @Test
-    public void parseField_negativeValue_dotSeparator_parsesCorrectly() {
-        assertEquals(-3.0f, QzProtocol.parseField("-3.0", '.'), 0.001f);
+    public void parseField_negativeValue_parsesCorrectly() {
+        assertEquals(-3.0f, QzProtocol.parseField("-3.0"), 0.001f);
     }
 
     @Test
     public void parseField_leadingTrailingWhitespace_trimmedAndParsed() {
-        assertEquals(8.5f, QzProtocol.parseField("  8.5  ", '.'), 0.001f);
+        assertEquals(8.5f, QzProtocol.parseField("  8.5  "), 0.001f);
     }
 
     @Test
-    public void parseField_commaInValue_dotSeparator_fallbackReplacesCommaAndParses() {
-        assertEquals(8.5f, QzProtocol.parseField("8,5", '.'), 0.001f);
-    }
-
-    @Test
-    public void parseField_dotInValue_commaSeparator_replacedThenFallbackParses() {
-        assertEquals(8.5f, QzProtocol.parseField("8.5", ','), 0.001f);
+    public void parseField_commaDecimal_fallbackReplacesCommaAndParses() {
+        assertEquals(8.5f, QzProtocol.parseField("8,5"), 0.001f);
     }
 
     @Test
     public void parseField_nonNumericInput_returnsNull() {
-        assertNull(QzProtocol.parseField("abc", '.'));
+        assertNull(QzProtocol.parseField("abc"));
     }
 
     @Test
     public void parseField_emptyString_returnsNull() {
-        assertNull(QzProtocol.parseField("", '.'));
+        assertNull(QzProtocol.parseField(""));
     }
 
     @Test
     public void parseField_whitespaceOnly_returnsNull() {
-        assertNull(QzProtocol.parseField("   ", '.'));
+        assertNull(QzProtocol.parseField("   "));
     }
 
     @Test
     public void parseField_sentinelMinusOne_parsesAsMinusOne() {
-        assertEquals(-1.0f, QzProtocol.parseField("-1", '.'), 0.001f);
+        assertEquals(-1.0f, QzProtocol.parseField("-1"), 0.001f);
     }
 
     // ── QzProtocol.roundToOneDecimal ──────────────────────────────────────────
@@ -145,39 +140,39 @@ public class QzProtocolTest {
 
     @Test
     public void decodeBike_onePart_setsResistanceLvl() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("8.0"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("8.0"));
         assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeBike_twoParts_setsInclinePct() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("5.0;unused"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("5.0;unused"));
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeBike_roundsToOneDecimal() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("8.25"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("8.25"));
         assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
     }
 
     @Test
     public void decodeBike_sentinelMinusOne_resistance_returnsNull() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1"));
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeBike_sentinelMinusOneHundred_resistance_returnsNull() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-100"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-100"));
         assertNull(cmd.resistanceLvl);
     }
 
     @Test
     public void decodeBike_endOfRideSentinel_returnsAllNull() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1;-100"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1;-100"));
         assertNull(cmd.inclinePct);
         assertNull(cmd.resistanceLvl);
     }
@@ -185,26 +180,20 @@ public class QzProtocolTest {
     @Test
     public void decodeBike_negativeOnePercent_incline_parsesCorrectly() {
         // "-1.0;0" is a legitimate Zwift grade, not the sentinel; must not be swallowed.
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1.0;0"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-1.0;0"));
         assertEquals(-1.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeBike_heartbeat_incline_returnsNull() {
         // "-100;N" is QZ's "no grade" heartbeat (Zwift paused/loading).
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-100;16"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("-100;16"));
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void decodeBike_commaDecimalSeparator_parsesCorrectly() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("8.5"), ',');
-        assertEquals(8.5f, cmd.resistanceLvl, 0.001f);
-    }
-
-    @Test
     public void decodeBike_unparseable_returnsAllNull() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("abc"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("abc"));
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
@@ -212,14 +201,14 @@ public class QzProtocolTest {
     @Test
     public void decodeBike_zeroParts_returnsAllNull() {
         // split("") returns [""] which has fieldCount=1, but parseField("") is null
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse(""), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse(""));
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeBike_threeParts_returnsAllNull() {
-        Command cmd = QzProtocol.decodeBike(QzPacket.parse("1.0;2.0;3.0"), '.');
+        Command cmd = QzProtocol.decodeBike(QzPacket.parse("1.0;2.0;3.0"));
         assertNull(cmd.resistanceLvl);
         assertNull(cmd.inclinePct);
     }
@@ -228,35 +217,35 @@ public class QzProtocolTest {
 
     @Test
     public void decodeTreadmill_twoParts_setsBothFields() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0;5.0"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0;5.0"));
         assertEquals(8.0f, cmd.speedKmh,   0.001f);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeTreadmill_roundsToOneDecimal() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.25;5.14"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.25;5.14"));
         assertEquals(8.3f, cmd.speedKmh,   0.001f);
         assertEquals(5.1f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeTreadmill_sentinelMinusOneHundred_speed_returnsNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-100;5.0"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-100;5.0"));
         assertNull(cmd.speedKmh);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeTreadmill_sentinelMinusOneHundred_incline_returnsNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0;-100"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0;-100"));
         assertEquals(8.0f, cmd.speedKmh, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeTreadmill_bothSentinels_returnsAllNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-100;-100"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-100;-100"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
@@ -264,35 +253,28 @@ public class QzProtocolTest {
     @Test
     public void decodeTreadmill_sentinelMinusOne_speed_returnsNull() {
         // -1 is the QZ no-op speed flush sentinel; it must not produce a speed command.
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-1;-100"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("-1;-100"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
-    public void decodeTreadmill_commaDecimalSeparator_parsesCorrectly() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.5;3.0"), ',');
-        assertEquals(8.5f, cmd.speedKmh,   0.001f);
-        assertEquals(3.0f, cmd.inclinePct, 0.001f);
-    }
-
-    @Test
     public void decodeTreadmill_onePart_returnsAllNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("8.0"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeTreadmill_zeroParts_returnsAllNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse(""), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse(""));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeTreadmill_threeParts_returnsAllNull() {
-        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("1.0;2.0;3.0"), '.');
+        Command cmd = QzProtocol.decodeTreadmill(QzPacket.parse("1.0;2.0;3.0"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }

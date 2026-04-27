@@ -64,7 +64,7 @@ public abstract class Device {
     public boolean requiresAccessibility() { return true; }
 
     /** Interprets a parsed QZ UDP packet for this device type. */
-    public abstract Command decodeCommand(QzPacket pkt, char decimalSeparator);
+    public abstract Command decodeCommand(QzPacket pkt);
 
     public MetricReader defaultMetricReader() {
         return new MonoStdoutMetricReader();

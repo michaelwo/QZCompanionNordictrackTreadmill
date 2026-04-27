@@ -423,7 +423,7 @@ public class BikeDeviceTest {
         // silently skips it because the resistance Slider is null.
         ProformCarbonC10Device dev = dev(new ProformCarbonC10Device());
         CommandDispatcher d = new CommandDispatcher(() -> 1000L);
-        d.dispatch("10.0", '.', dev);
+        d.dispatch("10.0", dev);
         assertNull("null resistance slider must not generate a swipe", lastCommand);
     }
 
@@ -436,17 +436,17 @@ public class BikeDeviceTest {
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = new CommandDispatcher(() -> t[0]);
 
-        d.dispatch("10.0", '.', device);  // applied at t=1000
+        d.dispatch("10.0", device);  // applied at t=1000
 
         t[0] += 200;
-        d.dispatch("11.0", '.', device);  // throttled → cache=11.0
+        d.dispatch("11.0", device);  // throttled → cache=11.0
 
         t[0] += 100;
-        d.dispatch("12.0", '.', device);  // still throttled → overwrites cache=12.0
+        d.dispatch("12.0", device);  // still throttled → overwrites cache=12.0
 
         t[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1", '.', device);    // flush → must apply 12.0, not 11.0
+        d.dispatch("-1", device);    // flush → must apply 12.0, not 11.0
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 

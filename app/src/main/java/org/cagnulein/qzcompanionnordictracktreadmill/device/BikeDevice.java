@@ -68,7 +68,7 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public Command decodeCommand(QzPacket pkt, char decimalSeparator) {
-        return QzProtocol.decodeBike(pkt, decimalSeparator);
+    public Command decodeCommand(QzPacket pkt) {
+        return QzProtocol.decodeBike(pkt);
     }
 }

@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.text.DecimalFormatSymbols;
-import java.util.Locale;
 import android.content.SharedPreferences;
 import android.app.Service;
 import android.content.Context;
@@ -50,7 +48,6 @@ public class CommandListenerService extends Service {
     static SharedPreferences sharedPreferences;
 
     private CommandDispatcher dispatcher;
-    private char decimalSeparator;
     private PowerManager.WakeLock wakeLock;
 
     private void writeLog(String command) {
@@ -63,7 +60,6 @@ public class CommandListenerService extends Service {
 
     private void listenAndWaitAndThrowIntent(Integer port) throws Exception {
         if (socket == null || socket.isClosed()) {
-            decimalSeparator = new DecimalFormatSymbols(Locale.getDefault()).getDecimalSeparator();
             socket = new DatagramSocket(port);
             socket.setBroadcast(true);
         }
@@ -83,7 +79,7 @@ public class CommandListenerService extends Service {
                     lastQzHeartbeatMs = System.currentTimeMillis();
                     qzAddress = pkt.getAddress();
                 }
-                dispatcher.dispatch(msg, decimalSeparator, currentDevice);
+                dispatcher.dispatch(msg, currentDevice);
             } else {
                 // No device selected yet — receive and discard the packet.
                 byte[] buf = new byte[UDP_BUFFER_SIZE];

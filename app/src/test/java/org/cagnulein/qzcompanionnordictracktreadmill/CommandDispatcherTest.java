@@ -53,7 +53,7 @@ public class CommandDispatcherTest {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', device);
+        d.dispatch("8.0;3.0", device);
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -66,7 +66,7 @@ public class CommandDispatcherTest {
         device.commandExecutor = cmd -> { lastCommand = cmd; count[0]++; };
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', device);
+        d.dispatch("8.0;3.0", device);
 
         // Only one swipe (speed). Incline was cached.
         assertEquals(1, count[0]);
@@ -81,10 +81,10 @@ public class CommandDispatcherTest {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', device); // speed applied, incline cached
+        d.dispatch("8.0;3.0", device); // speed applied, incline cached
 
         time[0] += Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", '.', device); // sentinels: flush cached incline
+        d.dispatch("-1;-100", device); // sentinels: flush cached incline
         assertEquals("input swipe 75 557 75 540 200", lastCommand);
     }
 
@@ -93,7 +93,7 @@ public class CommandDispatcherTest {
         // Speed must not be applied when current speed is 0 (device not yet running).
         // Use sentinel incline (-100) so that path also produces no command.
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", '.', dev(new X11iDevice()));
+        d.dispatch("8.0;-100", dev(new X11iDevice()));
         assertNull(lastCommand);
     }
 
@@ -102,12 +102,12 @@ public class CommandDispatcherTest {
         // Speed cached while stopped. Once moving and throttle window passes, applies.
         X11iDevice device = dev(new X11iDevice());
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", '.', device); // cached, no command (device stopped)
+        d.dispatch("8.0;-100", device); // cached, no command (device stopped)
         assertNull(lastCommand);
 
         setMoving(device); // device now reports speed > 0
         time[0] += Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", '.', device); // flush cached 8.0
+        d.dispatch("-1;-100", device); // flush cached 8.0
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -116,11 +116,11 @@ public class CommandDispatcherTest {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", '.', device); // applied at t=1000
+        d.dispatch("8.0;3.0", device); // applied at t=1000
         lastCommand = null;
 
         time[0] += 200; // still within 500 ms window
-        d.dispatch("9.0;3.0", '.', device); // throttled — same device instance
+        d.dispatch("9.0;3.0", device); // throttled — same device instance
         assertNull(lastCommand);
     }
 
@@ -131,20 +131,20 @@ public class CommandDispatcherTest {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", '.', device); // speed 8.0 applied, y 600→447
+        d.dispatch("8.0;-100", device); // speed 8.0 applied, y 600→447
 
         time[0] += 200;
-        d.dispatch("9.0;-100", '.', device); // throttled → cached
+        d.dispatch("9.0;-100", device); // throttled → cached
 
         time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", '.', device); // flush cached 9.0, y 447→425
+        d.dispatch("-1;-100", device); // flush cached 9.0, y 447→425
         assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
     @Test
     public void treadmill_sentinelMessage_noCommandGenerated() {
         CommandDispatcher d = dispatcher();
-        d.dispatch("-1;-100", '.', dev(new X11iDevice()));
+        d.dispatch("-1;-100", dev(new X11iDevice()));
         assertNull(lastCommand);
     }
 
@@ -153,7 +153,7 @@ public class CommandDispatcherTest {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", ',', device);
+        d.dispatch("8.0;3.0", device);
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -164,7 +164,7 @@ public class CommandDispatcherTest {
         // S15i: resistanceX=1848, initialResistanceY=790
         // targetResistanceY(10.0) = 790 - (int)(23.16*10) = 790 - 231 = 559
         CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", '.', dev(new S15iDevice()));
+        d.dispatch("10.0", dev(new S15iDevice()));
         assertEquals("input swipe 1845 790 1845 559 200", lastCommand);
     }
 
@@ -172,7 +172,7 @@ public class CommandDispatcherTest {
     public void bike_incline_appliesInclineSwipe() {
         // S22i targetInclineY(5.0)=(int)(622-18.57*5.0)=529; h=0 → dispatch=529
         CommandDispatcher d = dispatcher();
-        d.dispatch("5.0;0", '.', dev(new S22iDevice()));
+        d.dispatch("5.0;0", dev(new S22iDevice()));
         assertEquals("input swipe 75 622 75 529 200", lastCommand);
     }
 
@@ -180,11 +180,11 @@ public class CommandDispatcherTest {
     public void bike_duplicateResistance_notReapplied() {
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", '.', device); // applied
+        d.dispatch("10.0", device); // applied
         lastCommand = null;
 
         time[0] += Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("10.0", '.', device); // same value — skipped
+        d.dispatch("10.0", device); // same value — skipped
         assertNull(lastCommand);
     }
 
@@ -192,11 +192,11 @@ public class CommandDispatcherTest {
     public void bike_throttle_cachesResistance() {
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", '.', device); // applied at t=1000
+        d.dispatch("10.0", device); // applied at t=1000
         lastCommand = null;
 
         time[0] += 200; // within throttle window
-        d.dispatch("12.0", '.', device); // cached
+        d.dispatch("12.0", device); // cached
         assertNull(lastCommand);
     }
 
@@ -205,22 +205,22 @@ public class CommandDispatcherTest {
         // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", '.', device); // applied at t=1000
+        d.dispatch("10.0", device); // applied at t=1000
 
         time[0] += 200;
         lastCommand = null;
-        d.dispatch("12.0", '.', device); // throttled → cached
+        d.dispatch("12.0", device); // throttled → cached
         assertNull(lastCommand);
 
         time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1", '.', device); // sentinel: flush cached 12.0
+        d.dispatch("-1", device); // sentinel: flush cached 12.0
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
     @Test
     public void bike_sentinelResistance_noCommandGenerated() {
         CommandDispatcher d = dispatcher();
-        d.dispatch("-1", '.', dev(new S15iDevice()));
+        d.dispatch("-1", dev(new S15iDevice()));
         assertNull(lastCommand);
     }
 
@@ -228,12 +228,12 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_commaInValueWithDotSeparator_fallbackParsesCorrectly() {
-        // "8,0;3,0" with separator '.' — parseField fallback replaces ',' with '.'
+        // "8,0;3,0" — parseField fallback replaces ',' with '.'
         // X11i targetSpeedY(8.0) = (int)(621.997 - 21.785*8.0) = (int)447.117 = 447
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8,0;3,0", '.', device);
+        d.dispatch("8,0;3,0", device);
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 }

@@ -59,7 +59,7 @@ public class ZwiftRideSimulationTest {
     /** Advances time by ms and dispatches one Zwift grade message (2-part format). */
     private void send(CommandDispatcher d, S22iDevice bike, float grade, long advanceMs) {
         time[0] += advanceMs;
-        d.dispatch(grade + ";0", '.', bike);
+        d.dispatch(grade + ";0", bike);
     }
 
     // ── helper: expected swipe string ────────────────────────────────────────
@@ -162,7 +162,7 @@ public class ZwiftRideSimulationTest {
 
         for (int i = 0; i < 20; i++) {
             time[0] += 600;
-            d.dispatch("-1;-100", '.', bike);
+            d.dispatch("-1;-100", bike);
         }
 
         assertTrue("no swipes expected for 20 sentinel messages", commands.isEmpty());
@@ -184,8 +184,8 @@ public class ZwiftRideSimulationTest {
         bikeDot.commandExecutor   = cmd -> dotCmds.add(cmd);
         bikeComma.commandExecutor = cmd -> commaCmds.add(cmd);
         time[0] += 600;
-        dotDispatcher.dispatch("5.0;0", '.', bikeDot);
-        commaDispatcher.dispatch("5,0;0", ',', bikeComma);
+        dotDispatcher.dispatch("5.0;0", bikeDot);
+        commaDispatcher.dispatch("5,0;0", bikeComma);
 
         assertEquals(1, dotCmds.size());
         assertEquals(1, commaCmds.size());

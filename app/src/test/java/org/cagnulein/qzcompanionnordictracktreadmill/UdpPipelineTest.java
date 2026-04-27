@@ -75,7 +75,7 @@ public class UdpPipelineTest {
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 device.updateSnapshot(current);
-                dispatcher.dispatch(message, '.', device);
+                dispatcher.dispatch(message, device);
                 latch.countDown();
             } catch (Exception e) {
                 // Socket closed by tearDown — normal shutdown path.
@@ -144,7 +144,7 @@ public class UdpPipelineTest {
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 device.updateSnapshot(current);
-                dispatcher.dispatch(message, ',', device);
+                dispatcher.dispatch(message, device);
                 latch.countDown();
             } catch (Exception e) { /* closed */ }
         });

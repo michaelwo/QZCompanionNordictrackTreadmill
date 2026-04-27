@@ -1123,7 +1123,7 @@ public class TreadmillDeviceTest {
         device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build()); // was moving
         device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(0.0f).build()); // now stopped
         CommandDispatcher d = new CommandDispatcher(() -> 1_000L + Device.SWIPE_THROTTLE_MS + 100);
-        d.dispatch("8.0;-100", '.', device);
+        d.dispatch("8.0;-100", device);
         assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
     }
 
@@ -1136,17 +1136,17 @@ public class TreadmillDeviceTest {
         CommandDispatcher d = new CommandDispatcher(() -> t[0]);
 
         device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build());
-        d.dispatch("8.0;-100", '.', device);  // applied at t=1000; currentSpeedY → 447
+        d.dispatch("8.0;-100", device);  // applied at t=1000; currentSpeedY → 447
 
         t[0] += 200;
-        d.dispatch("9.0;-100", '.', device);  // throttled → cached as 9.0
+        d.dispatch("9.0;-100", device);  // throttled → cached as 9.0
 
         t[0] += 100;
-        d.dispatch("10.0;-100", '.', device); // still throttled → overwrites 9.0 → cached as 10.0
+        d.dispatch("10.0;-100", device); // still throttled → overwrites 9.0 → cached as 10.0
 
         t[0] = 1_000L + Device.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1;-100", '.', device);   // flush → must apply 10.0
+        d.dispatch("-1;-100", device);   // flush → must apply 10.0
         assertEquals("input swipe 1205 447 1205 404 200", lastCommand);
     }
 

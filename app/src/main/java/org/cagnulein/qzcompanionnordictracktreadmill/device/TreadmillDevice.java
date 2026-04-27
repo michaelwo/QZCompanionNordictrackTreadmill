@@ -61,7 +61,7 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public Command decodeCommand(QzPacket pkt, char decimalSeparator) {
-        return QzProtocol.decodeTreadmill(pkt, decimalSeparator);
+    public Command decodeCommand(QzPacket pkt) {
+        return QzProtocol.decodeTreadmill(pkt);
     }
 }
