@@ -34,7 +34,7 @@
         <service android:name=".service.MetricReaderUnicastingService"/>
         <service android:name=".service.CommandListenerService"/>
         <service android:name=".service.OcrCalibrationService"/>
-        <activity android:name=".CalibrationActivity" android:exported="false"/>
+        <activity android:name=".AutoDiscoverInclineActivity" android:exported="false"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
             android:enabled="true"

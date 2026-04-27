@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
         findViewById(R.id.btnCalibrate).setOnClickListener(v ->
                 startActivityForResult(
-                        new Intent(this, CalibrationActivity.class),
+                        new Intent(this, AutoDiscoverInclineActivity.class),
                         CALIBRATION_REQUEST_CODE));
 
         String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());

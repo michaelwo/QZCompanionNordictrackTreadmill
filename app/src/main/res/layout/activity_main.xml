@@ -53,7 +53,7 @@
         android:layout_marginStart="12dp"
         android:layout_marginEnd="12dp"
         android:layout_marginBottom="8dp"
-        android:text="Calibrate New Device" />
+        android:text="Auto-Detect Incline" />
 
     <TextView
         android:layout_width="wrap_content"
