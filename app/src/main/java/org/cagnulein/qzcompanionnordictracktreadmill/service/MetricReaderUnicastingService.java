@@ -3,8 +3,11 @@ package org.cagnulein.qzcompanionnordictracktreadmill.service;
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.DhcpInfo;
+import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
@@ -38,12 +41,30 @@ public class MetricReaderUnicastingService extends Service {
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
     private static MetricReaderUnicastingService instance;
 
+    /** LAN broadcast address computed once at startup; used when QZ has not yet been discovered. */
+    private static InetAddress broadcastAddress = null;
+
     @Override
     public void onCreate() {
         instance = this;
         sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
+        broadcastAddress = computeBroadcastAddress();
         writeLog("Service onCreate");
         if (Device.instance != null) applyDeviceInternal(Device.instance);
+    }
+
+    private InetAddress computeBroadcastAddress() {
+        try {
+            WifiManager wifi = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            DhcpInfo dhcp = wifi.getDhcpInfo();
+            int bcast = (dhcp.ipAddress & dhcp.netmask) | ~dhcp.netmask;
+            byte[] quads = new byte[4];
+            for (int k = 0; k < 4; k++) quads[k] = (byte) ((bcast >> k * 8) & 0xFF);
+            return InetAddress.getByAddress(quads);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Failed to compute broadcast address: " + e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -109,16 +130,19 @@ public class MetricReaderUnicastingService extends Service {
     public static void sendUnicast(String messageStr) {
         InetAddress target = CommandListenerService.qzAddress;
         long lastHb = CommandListenerService.lastQzHeartbeatMs;
-        if (target == null || lastHb == 0
-                || (System.currentTimeMillis() - lastHb) > CommandListenerService.QZ_HEARTBEAT_TIMEOUT_MS)
-            return;
+        boolean qzActive = target != null && lastHb > 0
+                && (System.currentTimeMillis() - lastHb) <= CommandListenerService.QZ_HEARTBEAT_TIMEOUT_MS;
+
+        InetAddress dest = qzActive ? target : broadcastAddress;
+        if (dest == null) return;
 
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
         StrictMode.setThreadPolicy(policy);
 
         try (DatagramSocket s = new DatagramSocket()) {
+            if (!qzActive) s.setBroadcast(true);
             byte[] sendData = messageStr.getBytes();
-            s.send(new DatagramPacket(sendData, sendData.length, target, UNICAST_PORT));
+            s.send(new DatagramPacket(sendData, sendData.length, dest, UNICAST_PORT));
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
         }

@@ -4,6 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -75,7 +76,10 @@ public class CommandListenerService extends Service {
                 socket.receive(pkt);
                 String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 Log.i(LOG_TAG, "rx: " + msg);
-                if (msg.startsWith("-100;")) {
+                if (msg.equals(QzPacket.END_OF_RIDE)) {
+                    lastQzHeartbeatMs = 0;
+                    qzAddress = null;
+                } else {
                     lastQzHeartbeatMs = System.currentTimeMillis();
                     qzAddress = pkt.getAddress();
                 }
