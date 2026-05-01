@@ -13,10 +13,9 @@ Run this once per physical device to generate the slider calibration file (`qz-c
 | iFit tablet powered on, screen unlocked | |
 | ADB over TCP enabled on tablet | See "Enable ADB over TCP" below |
 | iFit app open in an **active manual workout** | Slider events are only emitted during an active session |
+| QZCompanion installed and running | Required for `--a11y` mode (Xamarin/API 25 devices) |
 
 ### Enable ADB over TCP (one-time per tablet)
-
-The tablet must have Developer Options unlocked and ADB over Wi-Fi enabled.
 
 1. **Settings → About tablet → Software information** — tap "Build number" 7 times to unlock Developer Options.
 2. **Settings → Developer options** → enable "USB debugging" and "Wireless debugging".
@@ -29,72 +28,57 @@ The tablet must have Developer Options unlocked and ADB over Wi-Fi enabled.
 
 ---
 
-## Step-by-Step
+## Which mode do I need?
+
+| Device | Android version | Swipe mode |
+|---|---|---|
+| NordicTrack S22i, S15i, and other Xamarin iFit bikes | API 25 (Android 7.1.2) | **`--a11y`** — required |
+| Newer iFit devices (non-Xamarin) | API 26+ | default (no flag) |
+
+`adb shell input swipe` does not reach Xamarin's SurfaceView on API 25. The `--a11y` flag
+routes all calibration swipes through QZCompanion's AccessibilityService via UDP, which
+does reach Xamarin.
+
+---
+
+## Step-by-Step (Standard, API 26+)
 
 ### 1. Start an active manual workout in iFit
 
 1. Open iFit on the tablet.
 2. Tap **Workouts → Manual Workout → Manual Ride** (or Manual Run for treadmills).
 3. Tap **GO** — the workout timer must be running.
-4. Leave the workout screen visible; do not navigate away.
+4. Leave the workout screen visible; do not navigate away or let the screen dim.
 
-> The script aborts with an error if no metric events arrive within 15 seconds. This is the most common failure mode.
+> The script aborts if no metric events arrive within 15 seconds. This is the most common
+> failure mode — always verify the timer is running before starting the script.
 
-### 2. Run the calibration script (dry run first)
+### 2. Run the script (dry run first)
 
 ```bash
 python3 tools/discover-device.py --device <tablet-ip>:5555
 ```
 
-The script will:
-1. Print the detected screen resolution and track X coordinates.
-2. Wait up to 15s for iFit metric events to confirm the workout is active.
-3. Sweep the **incline** slider (left track) coarse → fine.
-4. Sweep the **resistance** slider (right track) coarse → fine.
-5. Fit linear formulas and print R² values.
-6. Write `qz-calibration.json` in the current directory.
+The script:
+1. Detects screen resolution and derives incline/resistance track X coordinates.
+2. Waits up to 15 s for iFit metric events to confirm the workout is active.
+3. Sweeps the **incline** slider (left track) with a coarse pass (50 px steps).
+4. If the coarse fit is already excellent (R² ≥ 0.99), uses it directly — common on
+   discrete-button sliders like the S22i where coarse steps land on exact button positions.
+   Otherwise runs a fine pass (25 px steps) for continuous sliders.
+5. Repeats for the **resistance** slider (right track).
+6. Fits linear formulas and prints R² values.
+7. Writes `qz-calibration.json` in the current directory.
 
-**Do not use `--push` on first run.** Inspect the output and verify R² before applying.
+Inspect the output and verify R² before pushing.
 
-### 3. Interpret the output
-
-```
-Screen: 1920×1200
-Track X — incline: 75  resistance: 1845
-
-── Incline sweep (trackX=75) ──
-    coarse y= 200 → (no change)
-    coarse y= 250 → grade=3.0
-    coarse y= 300 → grade=5.0
-    ...
-    fine   y= 230 → grade=2.50
-    ...
-  Fit: origin=622.1  scale=18.5700  R²=0.9981
-
-── Resistance sweep (trackX=1845) ──
-    ...
-  Fit: origin=724.3  scale=17.4300  minLevel=1  R²=0.9962
-
-✓ Written: qz-calibration.json
-```
-
-| Field | Meaning | Acceptable range |
-|---|---|---|
-| `origin` | Y pixel where slider sits at grade=0 (or resistance=minLevel) | — |
-| `scale` | Pixels per unit change | > 0 |
-| `R²` | Goodness of linear fit | ≥ 0.97 — below this the script warns `⚠ poor fit` |
-
-If resistance yields fewer than 3 readings it is skipped with a warning. The output JSON will contain only `"incline"` in that case; QZCompanion will function without resistance control.
-
-### 4. Push to the tablet and restart QZCompanion
-
-Once R² looks good:
+### 3. Push and restart
 
 ```bash
 python3 tools/discover-device.py --device <tablet-ip>:5555 --push
 ```
 
-Then force-stop and restart QZCompanion:
+Force-stop and restart QZCompanion to apply:
 
 ```bash
 PKG=org.cagnulein.qzcompanionnordictracktreadmill
@@ -102,13 +86,143 @@ adb -s <tablet-ip>:5555 shell am force-stop $PKG
 adb -s <tablet-ip>:5555 shell am start -n $PKG/.MainActivity
 ```
 
-On startup, `MainActivity` reads `/sdcard/qz-calibration.json` and automatically selects the **Custom (Calibrated)** device. Both incline and resistance sliders are active.
+---
 
-### 5. Verify in QZCompanion
+## Step-by-Step (Xamarin iFit, `--a11y` mode)
 
-1. Confirm the status chip shows **Custom (Calibrated)**.
-2. Send a Zwift incline command via QZ; confirm the incline slider moves to the expected Y.
-3. Send a resistance command; confirm the resistance slider responds.
+This procedure was validated on a **NordicTrack S22i (NTEX02117.2)** at API 25.
+
+### 1. Install QZCompanion and grant permissions
+
+```bash
+DEVICE=<tablet-ip>:5555
+PKG=org.cagnulein.qzcompanionnordictracktreadmill
+A11Y_SVC="$PKG/org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService"
+
+adb -s $DEVICE install -r app/build/outputs/apk/debug/app-debug.apk
+adb -s $DEVICE shell pm grant $PKG android.permission.READ_LOGS
+```
+
+### 2. Enable the Accessibility Service
+
+```bash
+adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
+adb -s $DEVICE shell settings put secure accessibility_enabled 1
+```
+
+Verify:
+```bash
+adb -s $DEVICE shell settings get secure enabled_accessibility_services | grep -i qz \
+  && echo "OK" || echo "FAIL"
+```
+
+### 3. Start an active manual workout in iFit
+
+Same as the standard procedure: open iFit → Manual Ride → GO.
+
+### 4. Launch QZCompanion and re-bind the Accessibility Service
+
+```bash
+adb -s $DEVICE shell settings put system screen_off_timeout 600000
+adb -s $DEVICE shell am start -n $PKG/.MainActivity
+sleep 4
+
+# Re-bind after launch — force-stop severs the OS→app accessibility binding.
+adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
+adb -s $DEVICE shell settings put secure accessibility_enabled 1
+sleep 3
+```
+
+**Verify the service is live** before running the sweep:
+
+```bash
+python3 -c "
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(b'CALSWIPE:57:250:450', ('<tablet-ip>', 8003))
+s.close()
+"
+sleep 2
+adb -s $DEVICE logcat -d | grep CALSWIPE | tail -2
+```
+
+**PASS:** log contains `CALSWIPE x=57 250→450` (no "not connected" warning).  
+**FAIL:** log contains `CALSWIPE: accessibility service not connected` — repeat the
+settings toggle above. If it persists, reboot the tablet and re-run from step 2.
+
+### 5. Run the sweep
+
+With iFit in the foreground (InWorkoutView visible):
+
+```bash
+python3 tools/discover-device.py --device $DEVICE --a11y --push
+```
+
+The `--a11y` flag routes all calibration swipes through the CALSWIPE UDP relay instead
+of `adb shell input swipe`. Probe taps still use `adb shell input tap` (which reaches
+Xamarin's SurfaceView directly).
+
+### 6. Restart QZCompanion after push
+
+```bash
+adb -s $DEVICE shell am force-stop $PKG
+sleep 2
+# Re-bind accessibility again after force-stop
+adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
+adb -s $DEVICE shell settings put secure accessibility_enabled 1
+sleep 2
+adb -s $DEVICE shell am start -n $PKG/.MainActivity
+```
+
+---
+
+## Interpreting the Output
+
+### Discrete-button slider (S22i and similar)
+
+```
+── Incline sweep (trackX=57) ──
+    coarse y= 200 → (no change)
+    coarse y= 250 → grade=17.5
+    coarse y= 300 → grade=15.0
+    ...
+    coarse y= 800 → grade=-10.0
+    coarse y= 850 → (no change)
+  Active incline range: Y 200–850
+  Coarse fit excellent (R²=1.0000) — skipping fine sweep.
+  Fit: origin=600.0  scale=20.0000  R²=1.0000
+```
+
+When the coarse pass is already perfect (R²≥0.99), the fine sweep is skipped. This is
+normal for discrete-button sliders where the 50 px coarse steps land exactly on button
+centres. The sweep completes in ~4 minutes instead of ~10.
+
+### Continuous slider (API 26+ devices)
+
+```
+── Incline sweep (trackX=75) ──
+    coarse y= 200 → (no change)
+    coarse y= 250 → grade=3.0
+    ...
+    fine   y= 230 → grade=2.50
+    ...
+  Fit: origin=622.1  scale=18.5700  R²=0.9981
+```
+
+Both coarse and fine passes run. The fine pass (25 px steps) improves precision for
+sliders that respond to sub-button-width positioning.
+
+### Output fields
+
+| Field | Meaning |
+|---|---|
+| `origin` | Y pixel where the slider sits at grade=0 (or resistance=minLevel) |
+| `scale` | Pixels per grade/resistance unit |
+| `R²` | Goodness of fit — ≥ 0.97 is acceptable; script warns `⚠ poor fit` below that |
+| `minLevel` | Lowest resistance level observed (resistance only; typically 1) |
+
+If resistance yields fewer than 3 readings it is skipped. The output JSON will contain
+only `"incline"`; QZCompanion will control incline but not resistance.
 
 ---
 
@@ -117,8 +231,34 @@ On startup, `MainActivity` reads `/sdcard/qz-calibration.json` and automatically
 | Argument | Default | Description |
 |---|---|---|
 | `--device` | *(required)* | ADB device address, e.g. `192.168.1.213:5555` |
-| `--push` | off | Push output JSON to `/sdcard/qz-calibration.json` after writing |
-| `--out` | `qz-calibration.json` | Local output file path |
+| `--a11y` | off | Route swipes via QZCompanion's AccessibilityService (required for API 25/Xamarin iFit) |
+| `--push` | off | Push output JSON to `/sdcard/qz-calibration.json` on the device |
+| `--out FILE` | `qz-calibration.json` | Local output file path |
+
+---
+
+## Verifying the Calibration
+
+After restarting QZCompanion:
+
+1. Confirm the status chip shows **Custom (Calibrated)**.
+2. Send an incline command from Zwift/QZ; confirm the slider moves to the expected position.
+3. If resistance was calibrated, send a resistance command and confirm it responds.
+
+Quick UDP smoke test (Python, no netcat required):
+
+```bash
+# Incline 5%
+python3 -c "
+import socket
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.sendto(b'5.0;-100', ('<tablet-ip>', 8003))
+s.close()
+"
+sleep 5
+adb -s <tablet-ip>:5555 logcat -d | grep -E "requestIncline|applyIncline" | tail -3
+# Expect: requestIncline(bike): 5.0 ... applyIncline(bike): 5.0
+```
 
 ---
 
@@ -126,40 +266,80 @@ On startup, `MainActivity` reads `/sdcard/qz-calibration.json` and automatically
 
 ### "ERROR: No iFit events received in 15s"
 
-- The manual workout timer must be actively running. Open iFit → Manual Ride → GO.
-- Verify ADB connectivity: `adb -s <ip>:5555 shell echo ok`
-- Check logcat manually to confirm events are flowing:
-  ```bash
-  adb -s <ip>:5555 logcat -s mono-stdout | grep "Changed"
-  ```
+The workout must be actively running (timer ticking, not paused).
+
+```bash
+adb -s <ip>:5555 logcat -s mono-stdout | grep "Changed"
+```
+
+You should see `Changed Grade to:` lines within a few seconds of tapping the incline
+slider. If nothing appears, go back to iFit and confirm the workout is in progress.
+
+For `--a11y` mode specifically: also confirm QZCompanion is running and the CALSWIPE
+smoke test passes (see step 4 of the `--a11y` procedure above).
+
+### "CALSWIPE: accessibility service not connected"
+
+The AccessibilityService binding was severed (usually by a `force-stop`). Fix:
+
+```bash
+A11Y_SVC="org.cagnulein.qzcompanionnordictracktreadmill/org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService"
+adb -s <ip>:5555 shell settings put secure enabled_accessibility_services "$A11Y_SVC"
+adb -s <ip>:5555 shell settings put secure accessibility_enabled 1
+sleep 3
+```
+
+Then re-run the CALSWIPE smoke test to confirm. If it still fails after two toggle
+attempts, reboot the tablet — this always clears the stuck state.
 
 ### "Only N coarse readings — need ≥ 3" (incline)
 
 The incline slider is not responding to swipes. Possible causes:
-- iFit UI is on a different screen (e.g. settings, not the active workout).
-- Screen is locked or dimmed — keep the screen on during the sweep.
-- `trackX` is wrong for this device's resolution. Check `screen_profile()` in the script against `ScreenProfile.java`.
+
+- **Wrong mode:** On API 25/Xamarin iFit, `adb shell input swipe` is silently ignored.
+  Use `--a11y`.
+- **iFit not in foreground:** The active workout screen must be visible. Do not switch
+  apps during the sweep.
+- **Screen dimmed:** Keep the screen on (`settings put system screen_off_timeout 600000`).
+- **Wrong trackX:** On 1920-wide screens the incline button column centre is X=57 (not 75).
+  Verify by sending a test tap:
+  ```bash
+  adb -s <ip>:5555 logcat -c
+  adb -s <ip>:5555 shell input tap 57 350
+  sleep 2
+  adb -s <ip>:5555 logcat -d -s mono-stdout | grep "Changed Grade"
+  ```
 
 ### "WARNING: Only N coarse resistance readings — skipping"
 
-Resistance is optional. The JSON will have `"incline"` only. QZCompanion will control incline but not resistance. To investigate:
-- Confirm the device has a physical resistance slider (some treadmill models do not).
-- Try swiping manually at `res_trackX` during an active workout and watch logcat.
+Resistance is optional. The S22i's resistance slider sits on the far-right edge of a
+1920-wide screen (X≈1845). It responds to `adb shell input tap` but not to CALSWIPE in
+the current implementation — resistance calibration via `--a11y` is not yet supported.
+
+If the device has a physical resistance slider and you need it calibrated, run without
+`--a11y` on a device where `adb shell input swipe` works.
 
 ### R² < 0.97 warning
 
-The fit is non-linear — possibly the slider has a dead zone or the sweep range is too narrow. Try:
-- Running the script again (sweep order matters; let iFit settle between runs).
-- Checking for mechanical friction or resistance steps at certain levels.
-- The calibration is still usable if R² is ≥ 0.95; the warning is advisory.
+The fit is poor. Try:
 
-### QZCompanion still shows previous device after restart
+- Re-running the script (let iFit settle fully between runs).
+- Confirming the slider moves smoothly without mechanical binding.
+- On discrete sliders the coarse quality gate (R²≥0.99) should fire automatically. If
+  coarse R² is poor, the slider may not be responding at every coarse step — check for
+  dead zones or a required long-press that the swipe gesture is missing.
+
+### QZCompanion still shows the previous device after restart
 
 `qz-calibration.json` must be at exactly `/sdcard/qz-calibration.json`. Verify:
+
 ```bash
 adb -s <ip>:5555 shell ls -la /sdcard/qz-calibration.json
+adb -s <ip>:5555 shell cat /sdcard/qz-calibration.json
 ```
-If missing, run with `--push` again or push manually:
+
+If missing, push manually:
+
 ```bash
 adb -s <ip>:5555 push qz-calibration.json /sdcard/qz-calibration.json
 ```
@@ -171,9 +351,9 @@ adb -s <ip>:5555 push qz-calibration.json /sdcard/qz-calibration.json
 ```json
 {
   "incline": {
-    "trackX": 75,
-    "origin": 622.10,
-    "scale": 18.5700
+    "trackX": 57,
+    "origin": 600.00,
+    "scale": 20.0000
   },
   "resistance": {
     "trackX": 1845,
@@ -184,10 +364,32 @@ adb -s <ip>:5555 push qz-calibration.json /sdcard/qz-calibration.json
 }
 ```
 
-The `"resistance"` section is omitted if resistance calibration was skipped. `minLevel` is the lowest resistance level observed during the sweep (typically 1).
+The `"resistance"` section is omitted if resistance calibration was skipped.
+
+**Formula:** `targetY = origin − scale × value`  
+For incline: `targetY = 600 − 20 × grade` (S22i example).  
+For resistance: `targetY = origin − scale × (level − minLevel)`.
+
+---
+
+## Device Reference
+
+| Device | Screen | incline trackX | Origin | Scale | Mode |
+|---|---|---|---|---|---|
+| NordicTrack S22i (NTEX02117.2) | 1920×1080 | 57 | 600.0 | 20.0 | `--a11y` |
+
+Add rows as new devices are calibrated.
 
 ---
 
 ## Re-calibrating
 
-Re-run the script any time slider accuracy degrades or after a screen resolution change. The new file overwrites the old one on push. Force-stop and restart QZCompanion to apply.
+Re-run the script any time slider accuracy degrades or after a firmware/screen update.
+The new file overwrites the old on push. Force-stop and restart QZCompanion to apply.
+
+```bash
+adb -s <ip>:5555 shell am force-stop org.cagnulein.qzcompanionnordictracktreadmill
+# (re-bind a11y if using --a11y mode)
+adb -s <ip>:5555 shell am start -n \
+  org.cagnulein.qzcompanionnordictracktreadmill/.MainActivity
+```
