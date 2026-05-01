@@ -127,9 +127,8 @@ python3 tools/discover-device.py --device $DEVICE --a11y --push
 ```
 
 The script's pre-flight block does the rest automatically:
-- Launches QZCompanion
+- Launches QZCompanion (which re-binds its AccessibilityService on startup via `WRITE_SECURE_SETTINGS`)
 - Dismisses the one-time "Use QZ Companion?" accessibility dialog if present
-- Binds the AccessibilityService (toggles `enabled_accessibility_services`)
 - Sends a test CALSWIPE to verify the relay is live; retries once if needed
 - Restores iFit to the foreground before the sweep starts
 
@@ -242,17 +241,25 @@ smoke test passes (see step 4 of the `--a11y` procedure above).
 
 ### "CALSWIPE: accessibility service not connected"
 
-The AccessibilityService binding was severed (usually by a `force-stop`). Fix:
+QZCompanion re-binds its AccessibilityService on every startup via `WRITE_SECURE_SETTINGS`.
+This error means either the permission was not granted or the app is not running.
 
+Check logcat for the cause:
 ```bash
-A11Y_SVC="org.cagnulein.qzcompanionnordictracktreadmill/org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService"
-adb -s <ip>:5555 shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s <ip>:5555 shell settings put secure accessibility_enabled 1
-sleep 3
+adb -s <ip>:5555 logcat -d | grep "QZ:Main" | tail -3
 ```
 
-Then re-run the CALSWIPE smoke test to confirm. If it still fails after two toggle
-attempts, reboot the tablet — this always clears the stuck state.
+- `AccessibilityService re-bound on startup` — service bound correctly; CALSWIPE failure is
+  transient. Force-stop and relaunch QZCompanion, then retry.
+- `WRITE_SECURE_SETTINGS not granted` — re-grant the permission:
+  ```bash
+  adb -s <ip>:5555 shell pm grant org.cagnulein.qzcompanionnordictracktreadmill \
+      android.permission.WRITE_SECURE_SETTINGS
+  ```
+  Then force-stop and relaunch QZCompanion.
+- Neither line present — QZCompanion may not have started yet; wait a few seconds and retry.
+
+If the error persists after relaunching, reboot the tablet — this always clears the stuck state.
 
 ### "Only N coarse readings — need ≥ 3" (incline)
 

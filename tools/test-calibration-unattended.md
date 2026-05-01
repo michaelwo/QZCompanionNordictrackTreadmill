@@ -95,19 +95,12 @@ If that also fails, skip — `/sdcard/` is still writable via `adb push` and the
 
 ## Phase 4 — Enable Accessibility Service
 
-`adb shell` runs as the `shell` user which has `WRITE_SECURE_SETTINGS` — this bypasses the manual Settings UI.
+QZCompanion re-binds its own AccessibilityService on every startup via `WRITE_SECURE_SETTINGS`
+(granted in Phase 3). No manual ADB toggle is needed here.
 
-```bash
-adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s $DEVICE shell settings put secure accessibility_enabled 1
-```
-
-**Verify:**
-```bash
-adb -s $DEVICE shell settings get secure enabled_accessibility_services
-```
-**PASS:** output contains `qzcompanionnordictracktreadmill`  
-**FAIL:** the OEM locks `secure` settings writes. Abort and ask user to enable manually at Settings → Accessibility.
+**Note:** if `WRITE_SECURE_SETTINGS` was not granted in Phase 3, the app logs:
+`WRITE_SECURE_SETTINGS not granted — grant via: adb shell pm grant <pkg> android.permission.WRITE_SECURE_SETTINGS`
+In that case, re-run Phase 3 before continuing.
 
 ---
 
@@ -134,11 +127,13 @@ Parse `/tmp/ifit-ui.xml` to find the first matching rule below and execute the c
 
 | Priority | Match text (case-insensitive, in any `text=` or `content-desc=` attribute) | Action |
 |---|---|---|
+| 0 | `"manual start"` | Tap it — starts a manual workout directly from the dashboard |
 | 1 | `"let's go"` or `"lets go"` or `"get started"` | Tap it — dismiss welcome screen |
 | 2 | `"workouts"` or `"explore"` or `"start"` (in nav/tab area) | Tap it — navigate to workout library |
 | 3 | `"manual"` or `"manual ride"` or `"manual workout"` | Tap it — select manual workout |
 | 4 | `"go"` or `"start ride"` or `"begin"` (large button, not nav) | Tap it — start the workout |
-| 5 | `"resume"` | Tap it — resume a paused workout |
+| 5 | `"end warmup"` | Tap it — skip warmup and enter active workout immediately |
+| 6 | `"resume"` | Tap it — resume a paused workout |
 
 To tap an element found at bounds `[left,top][right,bottom]`:
 ```bash
@@ -180,14 +175,13 @@ adb -s $DEVICE pull /sdcard/ui.xml /tmp/qz-ui.xml
 # If "Allow" button is visible in the XML, tap it
 ```
 
-**Re-bind the Accessibility Service after launch** — `force-stop` severs the OS–app
-binding; toggle `enabled_accessibility_services` to reconnect it:
-
+QZCompanion automatically re-binds its AccessibilityService on startup via `WRITE_SECURE_SETTINGS`.
+Confirm it fired:
 ```bash
-adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s $DEVICE shell settings put secure accessibility_enabled 1
-sleep 3
+adb -s $DEVICE logcat -d | grep "QZ:Main" | tail -3
 ```
+**PASS:** log contains `AccessibilityService re-bound on startup`  
+**FAIL:** log contains `WRITE_SECURE_SETTINGS not granted` — re-run Phase 3.
 
 **Verify the service is live** by sending a test CALSWIPE and checking logcat:
 
@@ -199,8 +193,7 @@ adb -s $DEVICE logcat -d | grep CALSWIPE | tail -3
 ```
 
 **PASS:** log line reads `CALSWIPE x=57 250→450` (no "not connected" warning)  
-**FAIL:** log reads `CALSWIPE: accessibility service not connected` — repeat the toggle
-above; if it persists, reboot the device and re-run from Phase 4.
+**FAIL:** log reads `CALSWIPE: accessibility service not connected` — reboot the device and re-run from Phase 3.
 
 ---
 
@@ -324,8 +317,9 @@ echo "=== Verdict ==="
 |---|---|---|
 | 0 | ADB not reachable | Check Wi-Fi, re-enable ADB over TCP |
 | 1 | Build fails | Fix compilation error, re-run |
-| 4 | `settings put secure` denied | User must enable Accessibility manually |
+| 3 | `WRITE_SECURE_SETTINGS` grant fails | Re-run `pm grant` command manually |
 | 5 | No iFit metric events after 3 retries | User must start Manual Ride |
+| 6 | `CALSWIPE: accessibility service not connected` | Reboot device, re-run from Phase 3 |
 | 7 | Incline R² < 0.97 | Re-run sweep; check slider responsiveness |
 | 8 | JSON load failed | Check `/sdcard/qz-calibration.json` content |
 | 9 | No UDP dispatch | Check same-subnet routing; try from tablet itself |
