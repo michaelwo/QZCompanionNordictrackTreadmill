@@ -34,8 +34,6 @@
         <service android:name=".BleCanaryService" android:enabled="true" />
         <service android:name=".service.MetricReaderUnicastingService"/>
         <service android:name=".service.CommandListenerService"/>
-        <service android:name=".service.OcrCalibrationService"/>
-        <activity android:name=".AutoDiscoverInclineActivity" android:exported="false"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
             android:enabled="true"
@@ -71,12 +69,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-            <service
-        android:name=".service.ScreenCaptureService"
-        android:foregroundServiceType="mediaProjection" />
-        <meta-data
-        android:name="com.google.mlkit.vision.DEPENDENCIES"
-        android:value="ocr" />        
     </application>
 
 </manifest>

@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
@@ -37,8 +36,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 
-import static org.cagnulein.qzcompanionnordictracktreadmill.MediaProjection.REQUEST_CODE;
-
 import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
 import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
@@ -53,8 +50,6 @@ public class MainActivity extends AppCompatActivity {
     private static final java.util.ArrayDeque<String> appLogBuffer = new java.util.ArrayDeque<>();
     private static final long MAX_LOG_FILE_BYTES = 1024 * 1024;
     private static BufferedWriter logFileWriter = null;
-
-    private AndroidActivityResultReceiver resultReceiver;
 
     private DeviceAdapter deviceAdapter;
     SharedPreferences sharedPreferences;
@@ -107,39 +102,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startOCR() {
-        final int REQUEST_CODE = 100;
-        MediaProjectionManager mediaProjectionManager =
-                (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-
-        Intent intent = mediaProjectionManager.createScreenCaptureIntent();
-        startActivityForResult(intent, REQUEST_CODE);
-    }
-
-    private static final int CALIBRATION_REQUEST_CODE = 200;
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE) {
-            resultReceiver.handleActivityResult(requestCode, resultCode, data);
-        } else if (requestCode == CALIBRATION_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            String deviceId = data.getStringExtra("deviceId");
-            if (deviceId != null) {
-                try {
-                    DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(deviceId);
-                    selectDevice(DeviceRegistry.forId(id));
-                    deviceAdapter.setSelectedId(id);
-                } catch (IllegalArgumentException ignored) {}
-            }
-        }
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        resultReceiver = new AndroidActivityResultReceiver(this);
         checkPermissions();
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
 
@@ -184,11 +150,6 @@ public class MainActivity extends AppCompatActivity {
             myEdit.commit();
         });
         deviceList.setAdapter(deviceAdapter);
-
-        findViewById(R.id.btnCalibrate).setOnClickListener(v ->
-                startActivityForResult(
-                        new Intent(this, AutoDiscoverInclineActivity.class),
-                        CALIBRATION_REQUEST_CODE));
 
         String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
         try {
