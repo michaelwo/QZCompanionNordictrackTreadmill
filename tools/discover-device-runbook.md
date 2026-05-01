@@ -92,87 +92,49 @@ adb -s <tablet-ip>:5555 shell am start -n $PKG/.MainActivity
 
 This procedure was validated on a **NordicTrack S22i (NTEX02117.2)** at API 25.
 
-### 1. Install QZCompanion and grant permissions
+The script handles all QZCompanion setup automatically — launching it, binding the
+Accessibility Service, verifying the CALSWIPE relay, and restarting it after push.
+
+### 1. Install QZCompanion and grant one-time permissions (one-time per install)
 
 ```bash
 DEVICE=<tablet-ip>:5555
 PKG=org.cagnulein.qzcompanionnordictracktreadmill
-A11Y_SVC="$PKG/org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService"
 
 adb -s $DEVICE install -r app/build/outputs/apk/debug/app-debug.apk
 adb -s $DEVICE shell pm grant $PKG android.permission.READ_LOGS
+adb -s $DEVICE shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
 ```
 
-### 2. Enable the Accessibility Service
+Both permissions must be re-granted after every fresh install (they do not survive uninstall).
 
-```bash
-adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s $DEVICE shell settings put secure accessibility_enabled 1
-```
+- `READ_LOGS` — lets QZCompanion stream iFit's logcat.
+- `WRITE_SECURE_SETTINGS` — lets QZCompanion re-bind its own AccessibilityService on every
+  startup, eliminating the need to manually toggle Settings → Accessibility after reboots
+  or force-stops.
 
-Verify:
-```bash
-adb -s $DEVICE shell settings get secure enabled_accessibility_services | grep -i qz \
-  && echo "OK" || echo "FAIL"
-```
+### 2. Start an active manual workout in iFit
 
-### 3. Start an active manual workout in iFit
+1. Open iFit on the tablet.
+2. Tap **Workouts → Manual Workout → Manual Ride**.
+3. Tap **GO** — the workout timer must be running.
+4. Leave the workout screen visible.
 
-Same as the standard procedure: open iFit → Manual Ride → GO.
-
-### 4. Launch QZCompanion and re-bind the Accessibility Service
-
-```bash
-adb -s $DEVICE shell settings put system screen_off_timeout 600000
-adb -s $DEVICE shell am start -n $PKG/.MainActivity
-sleep 4
-
-# Re-bind after launch — force-stop severs the OS→app accessibility binding.
-adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s $DEVICE shell settings put secure accessibility_enabled 1
-sleep 3
-```
-
-**Verify the service is live** before running the sweep:
-
-```bash
-python3 -c "
-import socket
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.sendto(b'CALSWIPE:57:250:450', ('<tablet-ip>', 8003))
-s.close()
-"
-sleep 2
-adb -s $DEVICE logcat -d | grep CALSWIPE | tail -2
-```
-
-**PASS:** log contains `CALSWIPE x=57 250→450` (no "not connected" warning).  
-**FAIL:** log contains `CALSWIPE: accessibility service not connected` — repeat the
-settings toggle above. If it persists, reboot the tablet and re-run from step 2.
-
-### 5. Run the sweep
-
-With iFit in the foreground (InWorkoutView visible):
+### 3. Run the script
 
 ```bash
 python3 tools/discover-device.py --device $DEVICE --a11y --push
 ```
 
-The `--a11y` flag routes all calibration swipes through the CALSWIPE UDP relay instead
-of `adb shell input swipe`. Probe taps still use `adb shell input tap` (which reaches
-Xamarin's SurfaceView directly).
+The script's pre-flight block does the rest automatically:
+- Launches QZCompanion
+- Dismisses the one-time "Use QZ Companion?" accessibility dialog if present
+- Binds the AccessibilityService (toggles `enabled_accessibility_services`)
+- Sends a test CALSWIPE to verify the relay is live; retries once if needed
+- Restores iFit to the foreground before the sweep starts
 
-### 6. Restart QZCompanion after push
-
-```bash
-adb -s $DEVICE shell am force-stop $PKG
-sleep 2
-# Re-bind accessibility again after force-stop
-adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
-adb -s $DEVICE shell settings put secure accessibility_enabled 1
-sleep 2
-adb -s $DEVICE shell am start -n $PKG/.MainActivity
-```
+After the sweep, `--push` writes the calibration file and restarts QZCompanion
+automatically, confirming `Loaded calibration from qz-calibration.json` from logcat.
 
 ---
 

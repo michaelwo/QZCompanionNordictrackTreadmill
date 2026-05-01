@@ -200,6 +200,8 @@ public class MainActivity extends AppCompatActivity {
         updateStatusChip();
 
 
+        rebindAccessibilityService();
+
         AlarmReceiver alarm = new AlarmReceiver();
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
         Intent inServer = new Intent(getApplicationContext(), CommandListenerService.class);
@@ -239,6 +241,21 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return false;
+    }
+
+    private void rebindAccessibilityService() {
+        String svc = getPackageName() + "/.service.MyAccessibilityService";
+        try {
+            Settings.Secure.putString(getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, svc);
+            Settings.Secure.putInt(getContentResolver(),
+                    Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+            Log.i("QZ:Main", "AccessibilityService re-bound on startup");
+        } catch (SecurityException e) {
+            Log.w("QZ:Main", "WRITE_SECURE_SETTINGS not granted — grant via: "
+                    + "adb shell pm grant " + getPackageName()
+                    + " android.permission.WRITE_SECURE_SETTINGS");
+        }
     }
 
     @Override

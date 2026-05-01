@@ -72,11 +72,14 @@ adb -s $DEVICE install -r $APK
 
 ## Phase 3 — Permissions
 
-Run all three; verify each succeeds silently (non-zero exit = failure).
+Run all; verify each succeeds silently (non-zero exit = failure).
 
 ```bash
 # Lets MonoStdoutMetricReader stream iFit logcat from within the app
 adb -s $DEVICE shell pm grant $PKG android.permission.READ_LOGS
+
+# Lets MainActivity re-bind its own AccessibilityService on every startup
+adb -s $DEVICE shell pm grant $PKG android.permission.WRITE_SECURE_SETTINGS
 
 # Lets MainActivity read/write /sdcard/qz-calibration.json on Android 11+
 adb -s $DEVICE shell appops set $PKG MANAGE_EXTERNAL_STORAGE allow
