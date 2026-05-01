@@ -144,7 +144,25 @@ public class MainActivity extends AppCompatActivity {
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
 
         sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
-        CalibrationResult.current = CalibrationResult.load(sharedPreferences);
+        File calFile = new File(Environment.getExternalStorageDirectory(), "qz-calibration.json");
+        if (calFile.exists()) {
+            try {
+                CalibrationResult.current = CalibrationResult.loadFromJson(calFile);
+                String savedId = sharedPreferences.getString("deviceId",
+                        DeviceRegistry.DeviceId.other.name());
+                if (DeviceRegistry.DeviceId.other.name().equals(savedId)) {
+                    sharedPreferences.edit()
+                            .putString("deviceId", DeviceRegistry.DeviceId.custom_calibrated.name())
+                            .apply();
+                }
+                Log.i("QZ:Main", "Loaded calibration from qz-calibration.json");
+            } catch (Exception e) {
+                Log.w("QZ:Main", "qz-calibration.json load failed, falling back: " + e.getMessage());
+                CalibrationResult.current = CalibrationResult.load(sharedPreferences);
+            }
+        } else {
+            CalibrationResult.current = CalibrationResult.load(sharedPreferences);
+        }
         initLogFile();
 
         if (getSupportActionBar() != null) {

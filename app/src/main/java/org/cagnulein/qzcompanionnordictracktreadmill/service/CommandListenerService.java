@@ -69,29 +69,51 @@ public class CommandListenerService extends Service {
 
         wakeLock.acquire(10_000L); // 10-second timeout — auto-releases if receive hangs
         try {
-            Device currentDevice = Device.instance;
-            if (currentDevice != null) {
-                byte[] buf = new byte[UDP_BUFFER_SIZE];
-                DatagramPacket pkt = new DatagramPacket(buf, buf.length);
-                socket.receive(pkt);
-                String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
-                Log.i(LOG_TAG, "rx: " + msg);
-                if (msg.equals(QzPacket.END_OF_RIDE)) {
-                    lastQzHeartbeatMs = 0;
-                    qzAddress = null;
-                } else {
-                    lastQzHeartbeatMs = System.currentTimeMillis();
-                    qzAddress = pkt.getAddress();
-                }
-                dispatcher.dispatch(msg, currentDevice);
-            } else {
-                // No device selected yet — receive and discard the packet.
-                byte[] buf = new byte[UDP_BUFFER_SIZE];
-                socket.receive(new DatagramPacket(buf, buf.length));
-                writeLog("Packet discarded: no device selected");
+            byte[] buf = new byte[UDP_BUFFER_SIZE];
+            DatagramPacket pkt = new DatagramPacket(buf, buf.length);
+            socket.receive(pkt);
+            String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
+            Log.i(LOG_TAG, "rx: " + msg);
+
+            if (msg.startsWith("CALSWIPE:")) {
+                handleCalibrationSwipe(msg);
+                return;
             }
+
+            Device currentDevice = Device.instance;
+            if (currentDevice == null) {
+                writeLog("Packet discarded: no device selected");
+                return;
+            }
+
+            if (msg.equals(QzPacket.END_OF_RIDE)) {
+                lastQzHeartbeatMs = 0;
+                qzAddress = null;
+            } else {
+                lastQzHeartbeatMs = System.currentTimeMillis();
+                qzAddress = pkt.getAddress();
+            }
+            dispatcher.dispatch(msg, currentDevice);
         } finally {
             if (wakeLock.isHeld()) wakeLock.release();
+        }
+    }
+
+    /** Dispatches a raw swipe via AccessibilityService. Format: CALSWIPE:<x>:<from_y>:<to_y> */
+    private void handleCalibrationSwipe(String msg) {
+        if (!MyAccessibilityService.isConnected()) {
+            Log.w(LOG_TAG, "CALSWIPE: accessibility service not connected");
+            return;
+        }
+        try {
+            String[] parts = msg.split(":");
+            float x     = Float.parseFloat(parts[1]);
+            float fromY = Float.parseFloat(parts[2]);
+            float toY   = Float.parseFloat(parts[3]);
+            MyAccessibilityService.performSwipe(x, fromY, x, toY, 200);
+            Log.i(LOG_TAG, "CALSWIPE x=" + (int)x + " " + (int)fromY + "→" + (int)toY);
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "CALSWIPE parse error: " + e.getMessage());
         }
     }
 
