@@ -177,12 +177,34 @@ adb -s $DEVICE pull /sdcard/ui.xml /tmp/qz-ui.xml
 # If "Allow" button is visible in the XML, tap it
 ```
 
+**Re-bind the Accessibility Service after launch** — `force-stop` severs the OS–app
+binding; toggle `enabled_accessibility_services` to reconnect it:
+
+```bash
+adb -s $DEVICE shell settings put secure enabled_accessibility_services "$A11Y_SVC"
+adb -s $DEVICE shell settings put secure accessibility_enabled 1
+sleep 3
+```
+
+**Verify the service is live** by sending a test CALSWIPE and checking logcat:
+
+```bash
+python3 -c "import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); \
+  s.sendto(b'CALSWIPE:57:250:450', ('192.168.1.213', 8003)); s.close()"
+sleep 2
+adb -s $DEVICE logcat -d | grep CALSWIPE | tail -3
+```
+
+**PASS:** log line reads `CALSWIPE x=57 250→450` (no "not connected" warning)  
+**FAIL:** log reads `CALSWIPE: accessibility service not connected` — repeat the toggle
+above; if it persists, reboot the device and re-run from Phase 4.
+
 ---
 
 ## Phase 7 — Run `discover-device.py`
 
 ```bash
-python3 tools/discover-device.py --device $DEVICE --push 2>&1 | tee /tmp/calibration-run.log
+python3 tools/discover-device.py --device $DEVICE --a11y --push 2>&1 | tee /tmp/calibration-run.log
 ```
 
 This step takes approximately **8–12 minutes** (coarse + fine sweeps for both sliders).

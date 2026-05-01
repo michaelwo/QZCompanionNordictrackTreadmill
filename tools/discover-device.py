@@ -98,6 +98,37 @@ class MetricReader:
             time.sleep(0.2)
         return None
 
+    def wait_stable_grade(self, after_ts, settle=1.0, timeout=8.0):
+        """Return the settled grade: last value that didn't change for settle seconds.
+
+        iFit emits a transit event as the gesture passes through intermediate buttons,
+        then a settled event when the thumb lands.  Waiting for stability discards the
+        transit events and returns the final landed value.
+        """
+        return self._wait_stable("grade", after_ts, settle, timeout)
+
+    def wait_stable_resistance(self, after_ts, settle=1.0, timeout=8.0):
+        return self._wait_stable("resistance", after_ts, settle, timeout)
+
+    def _wait_stable(self, metric, after_ts, settle, timeout):
+        val_attr = f"_{metric}"
+        ts_attr  = f"_{metric}_ts"
+        deadline = time.time() + timeout
+        last_val = None
+        last_change = 0.0
+        while time.time() < deadline:
+            with self._lock:
+                val = getattr(self, val_attr)
+                ts  = getattr(self, ts_attr)
+            if ts > after_ts and val is not None:
+                if val != last_val:
+                    last_val    = val
+                    last_change = time.time()
+                elif time.time() - last_change >= settle:
+                    return last_val
+            time.sleep(0.1)
+        return last_val   # return whatever settled last, even if settle window didn't expire
+
     def any_event_ts(self):
         with self._lock:
             return max(self._grade_ts, self._resistance_ts)
@@ -196,52 +227,104 @@ def find_active_range(readings, screen_h):
 
 
 def fine_sweep(device, reader, track_x, y_top, y_bottom, screen_h, metric):
-    """Fine sweep in the active range; return [(y, value)]."""
-    wait_fn = reader.wait_fresh_grade if metric == "grade" else reader.wait_fresh_resistance
+    """Fine sweep in the active range; return [(y, value)].
+
+    Applies a monotonicity filter: for a downward incline/resistance sweep
+    (increasing Y = decreasing metric), any step where the metric jumped UP
+    relative to the previous accepted reading is a slider-snap artefact and is
+    silently dropped before fitting.
+    """
+    # Fine sweep uses wait_stable to discard iFit's transit events (fired as the gesture
+    # passes through intermediate buttons) and capture only the settled landed value.
+    wait_fn = reader.wait_stable_grade if metric == "grade" else reader.wait_stable_resistance
     # Reset to top of active range starting from y_bottom (which is within the slider
     # after the coarse sweep), so iFit recognises the reset swipe as a slider interaction.
     swipe(device, track_x, y_bottom, y_top)
     time.sleep(FINE_SETTLE * 2)
     prev_y = y_top
-    points = []
+    raw = []
     for y in range(y_top, y_bottom + 1, FINE_STEP):
         ts = time.time()
         swipe(device, track_x, prev_y, y)
         prev_y = y
         time.sleep(FINE_SETTLE)
-        v = wait_fn(ts, FINE_TIMEOUT)
+        v = wait_fn(ts, timeout=FINE_TIMEOUT)
         if v is not None:
-            points.append((y, v))
+            raw.append((y, v))
             print(f"    fine   y={y:4d} → {metric}={v:.2f}")
         else:
             print(f"    fine   y={y:4d} → (timeout)")
+
+    # Monotonicity filter: drop any reading that jumped UP (snap artefact).
+    # Tolerance of 1 grade unit absorbs normal measurement noise.
+    # When a snap is dropped, update the running baseline to the snapped value so
+    # the next reading (measured from the snapped position) is accepted correctly.
+    MONO_TOL = 1.0
+    points = []
+    prev_metric = None
+    for pt in raw:
+        if prev_metric is not None and pt[1] > prev_metric + MONO_TOL:
+            print(f"    [snap artefact dropped: y={pt[0]} {metric}={pt[1]:.2f}"
+                  f" > prev {prev_metric:.2f}]")
+            prev_metric = pt[1]   # slider is now at this position; next step measured from here
+        else:
+            points.append(pt)
+            prev_metric = pt[1]
     return points
 
 
 # ── formula fitting ───────────────────────────────────────────────────────────
 
-def fit_linear(points):
-    """
-    Fit Y = origin - scale * x  (origin and scale both positive for iFit sliders).
-    Returns (origin, scale, r2).  Pure Python OLS, no numpy.
-    """
+def _ols(points):
+    """OLS fit for [(y_pixel, metric_value)]. Returns (intercept, slope)."""
     n = len(points)
-    ys = [p[0] for p in points]   # pixel Y
-    xs = [p[1] for p in points]   # metric value
+    ys = [p[0] for p in points]
+    xs = [p[1] for p in points]
     sx = sum(xs);  sy = sum(ys)
     sxx = sum(xi * xi for xi in xs)
     sxy = sum(xi * yi for xi, yi in zip(xs, ys))
     denom = n * sxx - sx * sx
     if abs(denom) < 1e-9:
         raise ValueError("Degenerate fit — metric values did not vary")
-    slope     = (n * sxy - sx * sy) / denom   # dy/dx (should be negative)
+    slope = (n * sxy - sx * sy) / denom
     intercept = (sy - slope * sx) / n
-    # Y = intercept + slope*x  ↔  Y = origin - scale*x  where scale = -slope
+    return intercept, slope
+
+
+def fit_linear(points):
+    """
+    Fit Y = origin - scale * x  (origin and scale both positive for iFit sliders).
+    Returns (origin, scale, r2).  Pure Python OLS, no numpy.
+
+    One pass of 3σ outlier rejection: fit → compute residuals → drop the worst
+    point if its residual exceeds 3 * median-absolute-residual, then refit.
+    iFit occasionally fires a delayed grade event from the previous gesture that
+    the stale-guard misses by a few ms; this catches those single-point spikes.
+    """
+    n = len(points)
+    intercept, slope = _ols(points)
+
+    # Compute residuals and MAR
+    residuals = [p[0] - (intercept + slope * p[1]) for p in points]
+    sorted_abs = sorted(abs(r) for r in residuals)
+    mar = sorted_abs[n // 2]                         # median absolute residual
+    threshold = max(3 * mar, 5.0)                    # at least 5 px so we don't over-reject
+
+    worst_idx  = max(range(n), key=lambda i: abs(residuals[i]))
+    if abs(residuals[worst_idx]) > threshold and n - 1 >= 3:
+        rejected = points[worst_idx]
+        points   = [p for i, p in enumerate(points) if i != worst_idx]
+        print(f"    [outlier rejected: y={rejected[0]} metric={rejected[1]:.2f} "
+              f"residual={residuals[worst_idx]:+.1f}px]")
+        intercept, slope = _ols(points)
+
+    ys     = [p[0] for p in points]
+    xs     = [p[1] for p in points]
     origin = intercept
     scale  = -slope
-    y_mean  = sy / n
-    ss_tot  = sum((yi - y_mean) ** 2 for yi in ys)
-    ss_res  = sum((yi - (intercept + slope * xi)) ** 2 for xi, yi in zip(xs, ys))
+    y_mean = sum(ys) / len(ys)
+    ss_tot = sum((yi - y_mean) ** 2 for yi in ys)
+    ss_res = sum((p[0] - (intercept + slope * p[1])) ** 2 for p in points)
     r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
     return origin, scale, r2
 
@@ -325,12 +408,24 @@ def main():
         reader.stop()
         sys.exit(1)
     print(f"  Active incline range: Y {r[0]}–{r[1]}")
-    points = fine_sweep(device, reader, inc_x, r[0], r[1], h, "grade")
-    if len(points) < 3:
-        print(f"ERROR: Only {len(points)} incline fine points — need ≥ 3.")
-        reader.stop()
-        sys.exit(1)
-    origin, scale, r2 = fit_linear(points)
+
+    # Quality gate: if coarse data is already highly linear (R² ≥ 0.99), use it
+    # directly.  Discrete sliders (e.g. iFit S22i) measure at exact button positions
+    # during the coarse sweep, so the coarse fit is more accurate than a fine sweep
+    # that lands between buttons and causes snap artefacts.
+    coarse_origin, coarse_scale, coarse_r2 = fit_linear(coarse)
+    if coarse_r2 >= 0.99:
+        print(f"  Coarse fit excellent (R²={coarse_r2:.4f}) — skipping fine sweep.")
+        origin, scale, r2 = coarse_origin, coarse_scale, coarse_r2
+        points = coarse
+    else:
+        points = fine_sweep(device, reader, inc_x, r[0], r[1], h, "grade")
+        if len(points) < 3:
+            print(f"ERROR: Only {len(points)} incline fine points — need ≥ 3.")
+            reader.stop()
+            sys.exit(1)
+        origin, scale, r2 = fit_linear(points)
+
     flag = "  ⚠ poor fit" if r2 < 0.97 else ""
     print(f"  Fit: origin={origin:.1f}  scale={scale:.4f}  R²={r2:.4f}{flag}")
     result["incline"] = {
@@ -347,14 +442,22 @@ def main():
         print(f"  WARNING: Only {len(coarse_r)} coarse resistance readings — skipping.")
     else:
         print(f"  Active resistance range: Y {rr[0]}–{rr[1]}")
-        points_r = fine_sweep(device, reader, res_x, rr[0], rr[1], h, "resistance")
-        if len(points_r) < 3:
-            print(f"  WARNING: Only {len(points_r)} resistance fine points — skipping.")
+        min_level = int(round(min(v for _, v in coarse_r)))
+        coarse_adj = [(y, v - min_level) for y, v in coarse_r]
+        cr_origin, cr_scale, cr_r2 = fit_linear(coarse_adj)
+        if cr_r2 >= 0.99:
+            print(f"  Coarse fit excellent (R²={cr_r2:.4f}) — skipping fine sweep.")
+            origin_r, scale_r, r2_r = cr_origin, cr_scale, cr_r2
         else:
-            # Resistance starts at 1, not 0 — shift x so minLevel maps to origin
-            min_level = int(round(min(v for _, v in points_r)))
-            pts_adj   = [(y, v - min_level) for y, v in points_r]
-            origin_r, scale_r, r2_r = fit_linear(pts_adj)
+            points_r = fine_sweep(device, reader, res_x, rr[0], rr[1], h, "resistance")
+            if len(points_r) < 3:
+                print(f"  WARNING: Only {len(points_r)} resistance fine points — skipping.")
+                rr = None
+            else:
+                min_level = int(round(min(v for _, v in points_r)))
+                pts_adj   = [(y, v - min_level) for y, v in points_r]
+                origin_r, scale_r, r2_r = fit_linear(pts_adj)
+        if rr is not None:
             flag_r = "  ⚠ poor fit" if r2_r < 0.97 else ""
             print(f"  Fit: origin={origin_r:.1f}  scale={scale_r:.4f}"
                   f"  minLevel={min_level}  R²={r2_r:.4f}{flag_r}")
