@@ -54,7 +54,7 @@ If you're searching the codebase for something that lived in `QZService` in 3.x,
 | `static long lastSwipeMs` | `Device.lastCommandMs` (instance field) |
 | `static float lastSpeedFloat` etc. | `device.lastSnapshot` (`MetricSnapshot`) |
 | `static boolean ifit_v2` | `MetricReader.forIfitV2()` — no flag; format adaptation is on the reader |
-| OCR parsing inline in `QZService` | `calibration/Ocr.java`, `OcrBlock.java`, `WattRectFallback.java` |
+| OCR-based calibration in `QZService` + `CalibrationActivity` | Removed — calibration is now done by `tools/discover-device.py` (ADB sweep); `CalibrationResult` loads the resulting `qz-calibration.json` at startup |
 | Device selection in `MainActivity` (RadioGroup) | `DeviceAdapter` (RecyclerView, sectioned by type) |
 
 ---
@@ -236,7 +236,7 @@ if (ifit_v2) {
 
 ## Tests
 
-There were no tests in 3.x. The 4.x codebase has 379 tests across 14 test classes that run without a device, emulator, or Android SDK:
+There were no tests in 3.x. The 4.x codebase has 281 tests across 11 test classes that run without a device, emulator, or Android SDK:
 
 ```bash
 ./run-tests.sh
@@ -294,7 +294,7 @@ Debug tools (Verbose Logging, Live Logcat, Dump Log) moved to the **overflow men
 
 The action bar subtitle shows the version and build identifier (`build 214` for CI releases, `dev-a3f1c2b` for local builds).
 
-Two new UI elements appear below the device list:
+Two UI elements appear above the device list:
 
 **Status chip** — a single line showing `UDP 8003 · <selected device> · <local IP>`. Updates whenever the device selection changes.
 

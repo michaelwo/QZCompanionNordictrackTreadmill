@@ -7,12 +7,10 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 - `app/src/main/java/.../service/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
 - `app/src/main/java/.../service/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout and unicasts changes over UDP (port 8002)
 - `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
-- `app/src/main/java/.../service/OcrCalibrationService.java` — calibration-only OCR polling loop
-- `app/src/main/java/.../service/ScreenCaptureService.java` — captures screen frames for OCR during calibration
 - `app/src/main/java/.../MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
 - `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
 - `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
-- `app/src/main/java/.../calibration/` — `Ocr.java`, `OcrBlock.java`, `FormulaFitter.java`, `CalibrationResult.java`
+- `app/src/main/java/.../calibration/CalibrationResult.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
 - `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI (no radio buttons)
 - `app/build.gradle` — Android build configuration
 - `app/src/main/AndroidManifest.xml` — Android manifest
@@ -23,11 +21,11 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
 ├── service/          CommandListenerService, MetricReaderUnicastingService,
-│                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
+│                     MyAccessibilityService
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
-├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult, ShellRuntime
+├── calibration/      CalibrationResult
 ├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
 └── reader/           MetricReader hierarchy, MetricSnapshot
 ```

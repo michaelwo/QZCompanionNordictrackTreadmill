@@ -130,11 +130,11 @@ Zwift (PC/console)
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
 ├── service/          CommandListenerService, MetricReaderUnicastingService,
-│                     MyAccessibilityService, OcrCalibrationService, ScreenCaptureService
+│                     MyAccessibilityService
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
 │   ├── bike/         One class per bike device
 │   └── treadmill/    One class per treadmill device
-├── calibration/      Ocr, OcrBlock, FormulaFitter, CalibrationResult, ShellRuntime
+├── calibration/      CalibrationResult
 ├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
 └── reader/           MetricReader hierarchy, MetricSnapshot
 ```
@@ -194,11 +194,13 @@ The `MetricReader` interface and its implementations are described in the [Desig
 
 All 44 devices use `MyAccessibilityService.performSwipe()`. `Device.requiresAccessibility()` returns `true` and `Device.requiresAdb()` returns `false` by default; no device overrides these. `MainActivity` shows the "Enable Accessibility Service" prompt for all devices and does not establish an ADB connection.
 
-### Calibration (OCR)
+### Calibration
 
-`OcrCalibrationService` runs in the background after the user grants screen-capture permission. It captures frames via `ScreenCaptureService`, passes them to `Ocr.extractMetrics()`, and logs each recognised metric under the `QZ:OcrCalibration` tag. Recognised labels: `"speed"`, `"incline"`, `"cadence"`, `"resistance"`, `"watt"`, `"strokes per min"`, `"500 split"`.
+Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps the incline (and optionally resistance) slider, fits a linear formula `Y = origin − scale × value`, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `CalibrationResult.loadFromJson()` and selects the `custom_calibrated` device automatically.
 
-OCR output is **not** unicast to the QZ app — it is used exclusively by `CalibrationActivity`, which reads `OcrCalibrationService.latestReading` during a swipe sweep to build a commanded-Y → observed-incline mapping table. The production metric path (`MetricReaderUnicastingService`) reads from the iFit log file only; it has no OCR dependency.
+`CalibrationResult` is the only calibration class in the app. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `CalibrationResult.load(SharedPreferences)` provides a legacy fallback.
+
+The full calibration procedure — including `--a11y` mode for Xamarin/API 25 devices — is documented in [tools/discover-device-runbook.md](../tools/discover-device-runbook.md).
 
 ---
 
