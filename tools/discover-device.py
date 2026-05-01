@@ -137,11 +137,18 @@ def screen_size(device):
 
 
 def screen_profile(width):
-    """Return (incline_trackX, resistance_trackX) matching ScreenProfile.java breakpoints."""
-    if width >= 1920: return 75, 1845
-    if width >= 1280: return 75, 1205
-    if width >= 1024: return 74,  950
-    return 73, 725
+    """Return (incline_trackX, resistance_trackX).
+
+    inc_x is the horizontal centre of the incline button column, not the ScreenProfile
+    track used by QZCompanion for swiping.  For Xamarin iFit the AccessibilityService swipe
+    must start at the button-column centre (≈57 px on a 1920-wide screen); starting at the
+    column right edge (75 px) is unreliable.  The trackX written to qz-calibration.json is
+    this centre value, so QZCompanion also benefits.
+    """
+    if width >= 1920: return 57, 1845
+    if width >= 1280: return 57, 1205
+    if width >= 1024: return 56,  950
+    return 55, 725
 
 
 # ── sweep logic ───────────────────────────────────────────────────────────────
@@ -156,11 +163,13 @@ FINE_SETTLE  = 2.0
 FINE_TIMEOUT = 6.0
 
 
-def coarse_sweep(device, reader, track_x, screen_h, metric):
+def coarse_sweep(device, reader, track_x, screen_h, metric, start_y=None):
     """Sweep full height at coarse resolution; return [(y, value)] where value changed."""
     wait_fn = reader.wait_fresh_grade if metric == "grade" else reader.wait_fresh_resistance
     readings = []
-    prev_y = screen_h // 2
+    # start_y: where the slider thumb is before this sweep begins (set by probe tap in
+    # --a11y mode). Each CALSWIPE starts from the previous endpoint so iFit recognises it.
+    prev_y = start_y if start_y is not None else COARSE_MARGIN
     for y in range(COARSE_MARGIN, screen_h - COARSE_MARGIN + 1, COARSE_STEP):
         ts = time.time()
         swipe(device, track_x, prev_y, y)
@@ -189,8 +198,9 @@ def find_active_range(readings, screen_h):
 def fine_sweep(device, reader, track_x, y_top, y_bottom, screen_h, metric):
     """Fine sweep in the active range; return [(y, value)]."""
     wait_fn = reader.wait_fresh_grade if metric == "grade" else reader.wait_fresh_resistance
-    # Reset to top of range first
-    swipe(device, track_x, screen_h - COARSE_MARGIN, y_top)
+    # Reset to top of active range starting from y_bottom (which is within the slider
+    # after the coarse sweep), so iFit recognises the reset swipe as a slider interaction.
+    swipe(device, track_x, y_bottom, y_top)
     time.sleep(FINE_SETTLE * 2)
     prev_y = y_top
     points = []
@@ -270,6 +280,21 @@ def main():
     adb(device, "logcat", "-c")
     reader = MetricReader(device)
     reader.start()
+    # Give the logcat subprocess a moment to start reading before we fire probe events.
+    time.sleep(1.0)
+
+    # In --a11y mode, grade events only fire on slider movement and adb shell input swipe
+    # doesn't reach Xamarin's SurfaceView.  Use adb shell input tap (which does reach it)
+    # to force two distinct grade values — at least one tap will cause a change event.
+    # Y=450 (≈grade 10) and Y=250 (≈grade 20) are far apart so one always differs from
+    # whatever grade is currently active, guaranteeing at least one change event fires.
+    if _a11y_host is not None:
+        print("Probe taps (--a11y mode): tapping grade≈10 then grade≈20 buttons…")
+        adb(device, "shell", "input", "tap", str(inc_x), "450")
+        time.sleep(1.5)
+        # Leave slider near max grade so the coarse sweep starts from a known position.
+        adb(device, "shell", "input", "tap", str(inc_x), "250")
+        time.sleep(1.5)
 
     print("\nWaiting up to 15s for iFit metric events (workout must be active)…")
     deadline = time.time() + 15
@@ -279,6 +304,8 @@ def main():
         time.sleep(0.5)
     else:
         print("ERROR: No iFit events received in 15s.")
+        if _a11y_host is not None:
+            print("  → Ensure QZCompanion is running with Accessibility Service enabled.")
         print("  → Open iFit, start a Manual Ride, press GO, then re-run.")
         reader.stop()
         sys.exit(1)
@@ -288,7 +315,9 @@ def main():
 
     # ── incline sweep ─────────────────────────────────────────────────────────
     print(f"── Incline sweep (trackX={inc_x}) ──")
-    coarse = coarse_sweep(device, reader, inc_x, h, "grade")
+    # In --a11y mode the probe left the slider at Y=250 (grade≈20); pass that as start_y.
+    inc_start_y = 250 if _a11y_host is not None else None
+    coarse = coarse_sweep(device, reader, inc_x, h, "grade", start_y=inc_start_y)
     r = find_active_range(coarse, h)
     if r is None:
         print(f"ERROR: Only {len(coarse)} coarse incline readings — need ≥ 3.")
