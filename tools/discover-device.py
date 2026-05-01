@@ -10,6 +10,9 @@ Two sweep modes:
   default   -- adb shell input swipe (works on Android 11+, non-Xamarin iFit)
   --a11y    -- routes swipes via QZCompanion's AccessibilityService over UDP port
                8003 (required for API 25 / Xamarin iFit — NordicTrack S22i etc.)
+               In --a11y mode the script handles all setup automatically:
+               it launches QZCompanion, binds the AccessibilityService, verifies
+               the CALSWIPE relay, and restores iFit to the foreground.
 
 Usage:
     python3 tools/discover-device.py --device 192.168.1.213:5555 [--push] [--out FILE]
@@ -19,7 +22,7 @@ Requirements:
     - adb in PATH, connected to device
     - iFit running in active manual workout (screen on)
     - Python 3.6+, stdlib only
-    - --a11y: QZCompanion installed and running with Accessibility Service enabled
+    - --a11y: QZCompanion APK installed on device (script starts and configures it)
 """
 
 import argparse
@@ -30,6 +33,11 @@ import subprocess
 import sys
 import threading
 import time
+import xml.etree.ElementTree as ET
+
+
+_QZ_PKG  = "org.cagnulein.qzcompanionnordictracktreadmill"
+_A11Y_SVC = f"{_QZ_PKG}/{_QZ_PKG}.service.MyAccessibilityService"
 
 
 # ── logcat parsing ────────────────────────────────────────────────────────────
@@ -145,6 +153,113 @@ def adb(device, *args, check=True):
 
 # Module-level: set to device IP when --a11y is active, else None.
 _a11y_host = None
+
+
+# ── a11y setup helpers ────────────────────────────────────────────────────────
+
+def _dismiss_dialog(device, button_text):
+    """Tap a dialog button by text, if present. Silent on any failure."""
+    try:
+        adb(device, "shell", "uiautomator", "dump", "/sdcard/qz_ui_tmp.xml", check=False)
+        xml_text = adb(device, "shell", "cat", "/sdcard/qz_ui_tmp.xml", check=False).stdout
+        root = ET.fromstring(xml_text)
+        for node in root.iter("node"):
+            t = (node.get("text", "") or node.get("content-desc", "")).strip()
+            if t.upper() == button_text.upper():
+                m = re.findall(r"\d+", node.get("bounds", ""))
+                if len(m) == 4:
+                    x = (int(m[0]) + int(m[2])) // 2
+                    y = (int(m[1]) + int(m[3])) // 2
+                    print(f"  Dismissing [{button_text}] dialog at ({x},{y})…")
+                    adb(device, "shell", "input", "tap", str(x), str(y))
+                    time.sleep(2)
+                return
+    except Exception:
+        pass
+
+
+def a11y_preflight(device, inc_x):
+    """Launch QZCompanion, bind its AccessibilityService, verify CALSWIPE, restore iFit.
+
+    Replaces the multi-step manual procedure in the runbook.  The caller only needs
+    to ensure iFit is in an active workout before running the sweep.
+    """
+    print("── a11y pre-flight ──")
+
+    # Keep the screen on for the full sweep.
+    adb(device, "shell", "settings", "put", "system", "screen_off_timeout", "600000")
+
+    # Launch (or bring to foreground) QZCompanion.
+    print("  Launching QZCompanion…")
+    adb(device, "shell", "am", "start", "-n", f"{_QZ_PKG}/.MainActivity", check=False)
+    time.sleep(4)
+
+    # Dismiss the "Use QZ Companion?" confirmation dialog that appears on first run
+    # or after app data is cleared.
+    _dismiss_dialog(device, "OK")
+
+    # (Re-)bind the AccessibilityService.  `am start` alone does not restore a binding
+    # severed by a prior force-stop; toggling the settings forces the OS to reconnect.
+    def _bind():
+        adb(device, "shell", "settings", "put", "secure",
+            "enabled_accessibility_services", _A11Y_SVC)
+        adb(device, "shell", "settings", "put", "secure",
+            "accessibility_enabled", "1")
+
+    print("  Binding AccessibilityService…")
+    _bind()
+
+    # Verify with a test CALSWIPE.  Retry once — the service can take a few extra
+    # seconds to connect after the settings toggle.
+    for attempt in range(1, 3):
+        time.sleep(3)
+        adb(device, "logcat", "-c")
+        time.sleep(0.3)
+        probe = f"CALSWIPE:{int(inc_x)}:300:325"
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.sendto(probe.encode(), (_a11y_host, 8003))
+        s.close()
+        time.sleep(2)
+        log = adb(device, "logcat", "-d").stdout
+        if f"CALSWIPE x={int(inc_x)}" in log and "not connected" not in log:
+            print("  ✓ AccessibilityService connected\n")
+            break
+        if attempt < 2:
+            print(f"  Attempt {attempt}: service not yet ready — re-binding…")
+            _bind()
+    else:
+        print("ERROR: AccessibilityService did not connect after 2 attempts.")
+        print("  → Reboot the tablet and re-run.")
+        print(f"  → Or enable manually: Settings → Accessibility → QZ Companion → On.")
+        sys.exit(1)
+
+    # Restore iFit to the foreground — QZCompanion may have taken focus.
+    print("  Restoring iFit to foreground…")
+    adb(device, "shell", "monkey", "-p", "com.ifit.standalone",
+        "-c", "android.intent.category.LAUNCHER", "1", check=False)
+    time.sleep(3)
+
+
+def _a11y_restart_qz(device):
+    """After --push: force-stop QZCompanion, re-bind a11y, restart.  Replaces manual steps."""
+    print("\nRestarting QZCompanion to apply calibration…")
+    adb(device, "shell", "am", "force-stop", _QZ_PKG)
+    time.sleep(2)
+    adb(device, "shell", "settings", "put", "secure",
+        "enabled_accessibility_services", _A11Y_SVC)
+    adb(device, "shell", "settings", "put", "secure", "accessibility_enabled", "1")
+    time.sleep(1)
+    adb(device, "shell", "am", "start", "-n", f"{_QZ_PKG}/.MainActivity")
+    time.sleep(4)
+    # Check logcat to confirm calibration loaded.
+    log = adb(device, "logcat", "-d").stdout
+    if "Loaded calibration from qz-calibration.json" in log:
+        print("✓ QZCompanion restarted — calibration loaded, status chip: Custom (Calibrated)")
+    else:
+        print("✓ QZCompanion restarted")
+        print("  (Could not confirm calibration load from logcat — check the app manually.)")
+
+    adb(device, "shell", "settings", "put", "system", "screen_off_timeout", "60000")
 
 
 def swipe(device, x, from_y, to_y, duration_ms=200):
@@ -359,6 +474,10 @@ def main():
     inc_x, res_x = screen_profile(w)
     print(f"Track X — incline: {inc_x}  resistance: {res_x}")
 
+    # ── a11y setup (--a11y mode only) ─────────────────────────────────────────
+    if _a11y_host is not None:
+        a11y_preflight(device, inc_x)
+
     # ── start metric reader ───────────────────────────────────────────────────
     adb(device, "logcat", "-c")
     reader = MetricReader(device)
@@ -480,10 +599,12 @@ def main():
     if args.push:
         adb(device, "push", args.out, "/sdcard/qz-calibration.json")
         print("\n✓ Pushed to /sdcard/qz-calibration.json")
-        print("  Force-stop and restart QZCompanion to apply:")
-        pkg = "org.cagnulein.qzcompanionnordictracktreadmill"
-        print(f"    adb -s {device} shell am force-stop {pkg}")
-        print(f"    adb -s {device} shell am start -n {pkg}/.MainActivity")
+        if _a11y_host is not None:
+            _a11y_restart_qz(device)
+        else:
+            print("  Force-stop and restart QZCompanion to apply:")
+            print(f"    adb -s {device} shell am force-stop {_QZ_PKG}")
+            print(f"    adb -s {device} shell am start -n {_QZ_PKG}/.MainActivity")
 
 
 if __name__ == "__main__":
