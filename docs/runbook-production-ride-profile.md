@@ -12,7 +12,7 @@ Run this once per firmware update, app release, or any change to the dispatch pi
 
 **On the development machine:**
 - `adb` on PATH (`adb version` prints without error)
-- This repo checked out (`monitor-ride.sh` and `analyze-ride.sh` present and executable)
+- This repo checked out (`tools/monitor-ride.sh` and `tools/analyze-ride.sh` present and executable)
 - At least 50 MB free disk space for logcat output
 
 **On the S22i:**
@@ -47,7 +47,7 @@ adb shell pidof org.cagnulein.qzcompanionnordictracktreadmill
 Open a terminal in the repo root and run:
 
 ```bash
-./monitor-ride.sh 60
+tools/monitor-ride.sh 60
 ```
 
 The `60` is the polling interval in seconds. For a 1-hour ride this produces ~60 CSV rows —
@@ -93,7 +93,7 @@ Done. Files saved to ./ride-20260417-182737/
   Metrics : ./ride-20260417-182737/metrics.csv
   Logcat  : ./ride-20260417-182737/logcat.txt
 
-Run ./analyze-ride.sh ./ride-20260417-182737 for a summary report.
+Run tools/analyze-ride.sh ./ride-20260417-182737 for a summary report.
 ```
 
 ---
@@ -101,7 +101,7 @@ Run ./analyze-ride.sh ./ride-20260417-182737 for a summary report.
 ## Step 4 — Analyze
 
 ```bash
-./analyze-ride.sh ./ride-20260417-182737
+tools/analyze-ride.sh ./ride-20260417-182737
 ```
 
 This writes `report.txt` into the ride directory and prints the same content to stdout.

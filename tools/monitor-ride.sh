@@ -94,7 +94,7 @@ cleanup() {
     echo "  Metrics : ${CSV}"
     echo "  Logcat  : ${LOGCAT_FILE}"
     echo ""
-    echo "Run ./analyze-ride.sh ${OUT_DIR} for a summary report."
+    echo "Run tools/analyze-ride.sh ${OUT_DIR} for a summary report."
 }
 trap cleanup EXIT INT TERM
 
