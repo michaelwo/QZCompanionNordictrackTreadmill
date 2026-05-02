@@ -281,12 +281,18 @@ The incline slider is not responding to swipes. Possible causes:
 
 ### "WARNING: Only N coarse resistance readings — skipping"
 
-Resistance is optional. The S22i's resistance slider sits on the far-right edge of a
-1920-wide screen (X≈1845). It responds to `adb shell input tap` but not to CALSWIPE in
-the current implementation — resistance calibration via `--a11y` is not yet supported.
+The probe scan (y=800 → y=300) didn't find the resistance slider. The most common causes:
 
-If the device has a physical resistance slider and you need it calibrated, run without
-`--a11y` on a device where `adb shell input swipe` works.
+- **Workout in warmup:** iFit locks resistance at level 1 during the warmup countdown. The
+  slider ignores all input until you tap **END WARMUP**. The `--a11y` pre-flight block
+  does this automatically; if you're running without `--a11y`, tap it manually first.
+- **Slider already at max:** all probe swipes are upward and produce no change. In
+  `--a11y` mode re-run the script — the probe starts at y=800 (near the bottom of the
+  resistance track) so a max-position slider should still respond at the lowest probe steps.
+
+Resistance calibration via `--a11y` was validated on the **NordicTrack S22i at API 25**
+and produces R²=1.0000 in normal conditions. If it fails on a different device, check
+that `trackX=1845` is correct for your screen width (see `screen_profile()` in the script).
 
 ### R² < 0.97 warning
 
@@ -343,9 +349,9 @@ For resistance: `targetY = origin − scale × (level − minLevel)`.
 
 ## Device Reference
 
-| Device | Screen | incline trackX | Origin | Scale | Mode |
-|---|---|---|---|---|---|
-| NordicTrack S22i (NTEX02117.2) | 1920×1080 | 57 | 600.0 | 20.0 | `--a11y` |
+| Device | Screen | Incline trackX | Incline Origin | Incline Scale | Resistance trackX | Resistance Origin | Resistance Scale | Mode |
+|---|---|---|---|---|---|---|---|---|
+| NordicTrack S22i (NTEX02117.2) | 1920×1080 | 57 | 600.0 | 20.0 | 1845 | 750.0 | 25.0 | `--a11y` |
 
 Add rows as new devices are calibrated.
 

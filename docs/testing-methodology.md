@@ -4,9 +4,9 @@
 
 Tests in this project are pure JVM unit tests — no mocking framework, no fakes, no stubs beyond simple capturing lambdas. The production code is structured to be testable without Android by:
 
-- Keeping `CommandDispatcher`, `Ocr`, `FormulaFitter`, and all `Device` subclasses free of `android.*` imports.
+- Keeping `CommandDispatcher` and all `Device` subclasses free of `android.*` imports.
 - Injecting side effects via functional interfaces (`CommandExecutor`, `Clock`, `Logger`) rather than static calls or singletons.
-- Keeping calibration logic (`Ocr`, `FormulaFitter`) in the `calibration/` package with no Android dependencies.
+- Keeping `CalibrationResult` in the `calibration/` package with no Android dependencies.
 
 Robolectric is used only where the Android service lifecycle or real socket I/O is the subject under test.
 
@@ -25,13 +25,10 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 
 | File | Tests | What it covers |
 |------|------:|----------------|
-| `OcrTest` | 44 | `Ocr.extractMetrics()`: all label variants, 500m-split conversion, thresholds, fallbacks, edge cases |
-| `WattRectFallbackTest` | 19 | `OcrRect` (fromString, width, intersects) and `WattRectFallback` (update/cache/tryRecover) |
-| `FormulaFitterTest` | 17 | `FormulaFitter.fit()`: least-squares coefficients, R², hysteresis classification, degenerate-input guards, Result format strings |
-| `DeviceUtilsTest` | 15 | `Device.parseField()` and `Device.roundToOneDecimal()`: locale separators, fallback parsing, boundary rounding |
-| `MetricReaderTest` | 24 | Log-line parsing for all field types across all polling readers; malformed lines; truncation boundary; `MonoStdoutMetricReader` stream parsing and push subscription |
-| `BikeDeviceTest` | 67 | All bike device subclasses: `targetY()` formula at representative values, throttle/cache, de-dup, null resistance slider, negative incline, hysteresis overshoot |
-| `TreadmillDeviceTest` | 144 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, throttle/cache, negative incline, cache overwrite |
+| `MetricReaderTest` | 3 | `MonoStdoutMetricReader` stream parsing and push subscription; malformed lines |
+| `BikeDeviceTest` | 64 | All bike device subclasses: `targetY()` formula at representative values, throttle/cache, de-dup, null resistance slider, negative incline, hysteresis overshoot |
+| `TreadmillDeviceTest` | 142 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, throttle/cache, negative incline, cache overwrite |
+| `QzPacketTest` | 23 | `QzPacket` and `QzProtocol` parsing: all command types, malformed input, locale separators, boundary values |
 | `CommandDispatcherTest` | 16 | Full pipeline from raw UDP string → `decodeCommand` → `applyCommand` → captured swipe; throttle, cache, locale mismatch |
 | `UdpPipelineTest` | 5 | End-to-end with real UDP sockets: datagram received by `CommandListenerService` → `CommandDispatcher` → device swipe captured |
 | `ZwiftRideSimulationTest` | 10 | Scenario replay against S22i: synthetic Zwift grade sequence through the full pipeline; time-injected throttle; verifies y1→y2 state chain across calls |
@@ -39,7 +36,7 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `CommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `CommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
 | `MetricReaderUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
-| **Total** | **379** | |
+| **Total** | **281** | |
 
 ---
 
@@ -97,5 +94,5 @@ The helper methods `dev()`, `applyIncline()`, `applySpeed()`, and `assertSwipe()
 | `FtmsPacket` | Not tested | Pure Java; `parseControlPoint()` and `response()` have no unit tests. Straightforward to add. |
 | `BleCanaryService` | Not tested | Android BLE stack; would require Robolectric + shadow classes. Low priority while the canary is in pre-production. |
 | `MetricReader` error paths | Partially tested | Malformed lines and truncation boundary covered; duplicate-field and extreme-value edge cases are not. |
-| `FormulaFitter` — real-world calibration datasets | Not tested | Algorithm is verified for synthetic cases; representative sweep data from real devices is not in the test suite. |
+| `discover-device.py` sweep output | Not tested | The calibration script is validated via the unattended test plan (`tools/test-calibration-unattended.md`), not a unit test. |
 | Accessibility swipe path | Not tested | `MyAccessibilityService.performSwipe()` requires an Android runtime; no Robolectric coverage yet. |

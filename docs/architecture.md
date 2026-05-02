@@ -196,7 +196,7 @@ All 44 devices use `MyAccessibilityService.performSwipe()`. `Device.requiresAcce
 
 ### Calibration
 
-Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps the incline (and optionally resistance) slider, fits a linear formula `Y = origin − scale × value`, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `CalibrationResult.loadFromJson()` and selects the `custom_calibrated` device automatically.
+Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps both the incline and resistance sliders, fits a linear formula `Y = origin − scale × value` for each, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `CalibrationResult.loadFromJson()` and selects the `custom_calibrated` device automatically.
 
 `CalibrationResult` is the only calibration class in the app. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `CalibrationResult.load(SharedPreferences)` provides a legacy fallback.
 

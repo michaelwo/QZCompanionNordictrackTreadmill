@@ -91,7 +91,7 @@ Bike UDP message: `"inclinePct;?"` (2-part) or `"resistanceLvl"` (1-part). Senti
 | Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 18.57*v)` | 0.5% steps | from `snapshot.inclinePct` | travel ≥40px → 15px; <40px → 10px |
 | Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | from `snapshot.resistanceLvl` (when ≥1) | — |
 
-**Calibration (2026-04-19, 1920×1080):** 13-point ascending sweep; least-squares fit: `Y = 622 − 18.57 × grade` (R² ≈ 0.999). Negative slope retained at −10 px/% from earlier 3-point calibration (insufficient data to refit). Intercept 622 confirmed from iFit log at neutral. Resistance: two points (level 1 → Y=724, level 24 → Y=323), slope −401/23 ≈ −17.43 px/level.
+**Calibration (2026-05-01, 1920×1080, `discover-device.py --a11y`):** Incline: 12-point coarse sweep, R²=1.0000 — `Y = 600 − 20.0 × grade`. Resistance: 6-point coarse sweep, R²=1.0000 — `Y = 750 − 25.0 × (level − 1)`. The hardcoded `S22iDevice` formula above (origin 622/724, scale 18.57/17.43) is from an earlier manual measurement and remains the static fallback; `CalibratedBikeDevice` uses the discover-device.py values when `qz-calibration.json` is present.
 
 Hysteresis compensates for physical slider stiction: swipe overshoots `targetThumbY` in the direction of travel; `thumbY` tracks the logical target so de-dup is unaffected. `currentThumbY` reads back the iFit-reported grade before each swipe, correcting residual drift.
 
@@ -173,7 +173,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 ### Custom (Calibrated) (`custom_calibrated`)
 
-`CalibratedBikeDevice` — formula and hysteresis derived at runtime from the last `CalibrationResult` written by `CalibrationActivity`. Falls back to a no-op swipe if no calibration data is present. See `calibration-runbook.md`.
+`CalibratedBikeDevice` — formula derived at runtime from `CalibrationResult` loaded from `/sdcard/qz-calibration.json`, which is written by `tools/discover-device.py`. Falls back to `CalibrationResult.load(SharedPreferences)` (legacy, incline-only) if the file is absent. See `tools/discover-device-runbook.md`.
 
 ---
 
@@ -488,9 +488,9 @@ b = (Y1 - Y2) / (v2 - v1)
 a = Y1 + b * v1
 ```
 
-For more than two points, use `FormulaFitter.fit()` (least-squares; also reports R² and hysteresis classification). The interactive calibration flow in `calibrate-device.sh` automates the sweep and calls the fitter — see `calibration-runbook.md`.
+For more than two points, use `tools/discover-device.py` — it runs a full ADB sweep, fits the formula via least-squares, reports R², and writes `qz-calibration.json` directly. See `tools/discover-device-runbook.md`.
 
-To observe current slider positions: `adb shell screencap -p /sdcard/screen.png` or use the OCR calibration UI in `CalibrationActivity`.
+To observe current slider positions, take a screenshot: `adb shell screencap -p /sdcard/screen.png`.
 
 ---
 
