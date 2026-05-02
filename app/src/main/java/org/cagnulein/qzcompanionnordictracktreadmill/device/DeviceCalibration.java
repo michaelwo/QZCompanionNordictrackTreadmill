@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
+package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import android.content.SharedPreferences;
 
@@ -19,7 +19,7 @@ import java.io.IOException;
  * Resistance fields are null when absent from the source — CalibratedBikeDevice
  * skips the resistance slider in that case.
  */
-public class CalibrationResult {
+public class DeviceCalibration {
 
     private static final String KEY_A            = "cal_a";
     private static final String KEY_B            = "cal_b";
@@ -43,17 +43,17 @@ public class CalibrationResult {
     public final int     resistanceMinLevel; // lowest valid resistance level (typically 1)
 
     /** In-memory singleton loaded by MainActivity on startup. */
-    public static volatile CalibrationResult current;
+    public static volatile DeviceCalibration current;
 
     /** Legacy constructor (no resistance data). Used by SharedPreferences load path. */
-    public CalibrationResult(double a, double b, int x, int neutralY,
+    public DeviceCalibration(double a, double b, int x, int neutralY,
                              int hystThresholdPx, int hystSmallPx, int hystLargePx) {
         this(a, b, x, neutralY, hystThresholdPx, hystSmallPx, hystLargePx,
              null, null, null, 1);
     }
 
     /** Full constructor including resistance. Used by JSON load path. */
-    public CalibrationResult(double a, double b, int x, int neutralY,
+    public DeviceCalibration(double a, double b, int x, int neutralY,
                              int hystThresholdPx, int hystSmallPx, int hystLargePx,
                              Double resistanceOrigin, Double resistanceScale,
                              Integer resistanceTrackX, int resistanceMinLevel) {
@@ -78,7 +78,7 @@ public class CalibrationResult {
      *           "resistance": { "trackX", "origin", "scale", "minLevel" } }
      * The resistance section is optional.
      */
-    public static CalibrationResult loadFromJson(File f) throws IOException, JSONException {
+    public static DeviceCalibration loadFromJson(File f) throws IOException, JSONException {
         byte[] bytes = new byte[(int) f.length()];
         FileInputStream fis = new FileInputStream(f);
         fis.read(bytes);
@@ -102,7 +102,7 @@ public class CalibrationResult {
             resMin    = res.optInt("minLevel", 1);
         }
         // Hysteresis not stored in JSON — use empirical S22i defaults
-        return new CalibrationResult(a, b, x, (int) a, 40, 10, 15,
+        return new DeviceCalibration(a, b, x, (int) a, 40, 10, 15,
                                      resOrigin, resScale, resTrackX, resMin);
     }
 
@@ -121,9 +121,9 @@ public class CalibrationResult {
     }
 
     /** Returns null if no calibration has been saved yet. */
-    public static CalibrationResult load(SharedPreferences prefs) {
+    public static DeviceCalibration load(SharedPreferences prefs) {
         if (!prefs.contains(KEY_A)) return null;
-        return new CalibrationResult(
+        return new DeviceCalibration(
             Double.longBitsToDouble(prefs.getLong(KEY_A, 0)),
             Double.longBitsToDouble(prefs.getLong(KEY_B, 0)),
             prefs.getInt(KEY_X,           75),

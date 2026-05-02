@@ -4,13 +4,13 @@
 Android app for controlling NordicTrack and ProForm fitness devices via AccessibilityService gesture injection.
 
 ### Main Files
-- `app/src/main/java/.../service/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
-- `app/src/main/java/.../service/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout and unicasts changes over UDP (port 8002)
-- `app/src/main/java/.../service/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
+- `app/src/main/java/.../command/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
+- `app/src/main/java/.../reader/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout and unicasts changes over UDP (port 8002)
+- `app/src/main/java/.../command/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
 - `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
 - `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
-- `app/src/main/java/.../calibration/CalibrationResult.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
+- `app/src/main/java/.../device/DeviceCalibration.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
 - `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI (no radio buttons)
 - `app/build.gradle` — Android build configuration
 - `app/src/main/AndroidManifest.xml` — Android manifest
@@ -20,14 +20,14 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
-├── service/          CommandListenerService, MetricReaderUnicastingService,
-│                     MyAccessibilityService
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
+├── command/          CommandListenerService, MyAccessibilityService,
+│                     CommandDispatcher, QZCommandPacket, Command
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum),
+│                     DeviceCalibration
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
-├── calibration/      CalibrationResult
-├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
-└── reader/           MetricReader hierarchy, MetricSnapshot
+└── reader/           MetricReader hierarchy, MetricSnapshot, QZMetricPacket,
+                      MetricReaderUnicastingService
 ```
 
 ---
@@ -106,22 +106,6 @@ Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a
 - `displayName()`: `"{Series} {Type} ({Model})"` (e.g. `"S22i Bike (NTEX02117.2)"`)
 - Class name: `{Series}{Model}Device.java` (e.g. `S22iNtex02117Device.java`)
 - No strings.xml — display names are hardcoded in `displayName()`
-
----
-
-## OCR / Calibration
-
-OCR parsing lives in `calibration/Ocr.java`. It has no Android dependencies and is fully unit-tested.
-
-### Recognised metric labels (case-insensitive)
-| Metric | Labels |
-|--------|--------|
-| Speed (km/h) | `"speed"` |
-| Speed from 500m split | `"500 split"`, `"/500m"` → `km/h = 1800 / seconds` |
-| Incline | `"incline"` |
-| Resistance | `"resistance"` |
-| Cadence | `"cadence"`, `"rpm"`, `"strokes per min"` |
-| Watts | `"watt"` |
 
 ---
 

@@ -55,9 +55,8 @@ CommandListenerService.listenAndWaitAndThrowIntent()
         ▼
 CommandDispatcher.dispatch()
         │
-        │  QzPacket.parse(message)      ← splits on ";"
-        │  device.decodeCommand(pkt, decimalSeparator)
-        │    → QzProtocol.decodeBike/decodeTreadmill
+        │  QZCommandPacket.parse(message)   ← splits on ";"
+        │  device.decodeCommand(pkt)
         │    → produces Command{speedKmh, inclinePct, resistanceLvl}
         │
         │  device.applyCommand(cmd, now)
@@ -129,14 +128,14 @@ Zwift (PC/console)
 
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
-├── service/          CommandListenerService, MetricReaderUnicastingService,
-│                     MyAccessibilityService
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum)
+├── command/          CommandListenerService, MyAccessibilityService,
+│                     CommandDispatcher, QZCommandPacket, Command
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum),
+│                     DeviceCalibration
 │   ├── bike/         One class per bike device
 │   └── treadmill/    One class per treadmill device
-├── calibration/      CalibrationResult
-├── dispatch/         CommandDispatcher, QzPacket, QzProtocol, Command
-└── reader/           MetricReader hierarchy, MetricSnapshot
+└── reader/           MetricReader hierarchy, MetricSnapshot,
+                      MetricReaderUnicastingService, QZMetricPacket
 ```
 
 ### Device Model
@@ -178,11 +177,11 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 **`CommandListenerService`** — Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Records `qzAddress` and `lastQzHeartbeatMs` from `-100;N` heartbeat packets so `MetricReaderUnicastingService` knows where to send metric updates. Handles locale-aware decimal separators (`,` vs `.`).
 
-**`CommandDispatcher`** — stateless parser/router. Calls `QzPacket.parse(message)` to split the raw string, then `device.decodeCommand(pkt, decimalSeparator)` to get a `Command`, then `device.applyCommand(cmd, now)`. Has an injectable `Clock` interface so tests can drive time without sleeping.
+**`CommandDispatcher`** — stateless parser/router. Calls `QZCommandPacket.parse(message)` to split the raw string, then `device.decodeCommand(pkt)` to get a `Command`, then `device.applyCommand(cmd, now)`. Has an injectable `Clock` interface so tests can drive time without sleeping.
 
-**`QzPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, and named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`). The `;` split is not exposed outside this class.
+**`QZCommandPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, and named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`). The `;` split is not exposed outside this class.
 
-**`QzProtocol`** — semantic decoder. `decodeBike(pkt, sep)` and `decodeTreadmill(pkt, sep)` translate a `QzPacket` into a `Command`, applying all sentinel filtering. `BikeDevice.decodeCommand()` and `TreadmillDevice.decodeCommand()` are one-line delegates to these methods.
+**`QZMetricPacket`** — typed wrapper for an outbound UDP metric message. The `Metric` enum encodes both the wire-format prefix string and whether the value serialises as an integer or float. `serialize()` produces the raw string sent over UDP; `parse()` reconstructs the object from a raw string (used in tests). `MetricReaderUnicastingService` constructs one instance per changed metric and calls `serialize()` before passing the result to `sendUnicast()`.
 
 ### Metric Reading
 
@@ -196,9 +195,9 @@ All 44 devices use `MyAccessibilityService.performSwipe()`. `Device.requiresAcce
 
 ### Calibration
 
-Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps both the incline and resistance sliders, fits a linear formula `Y = origin − scale × value` for each, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `CalibrationResult.loadFromJson()` and selects the `custom_calibrated` device automatically.
+Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps both the incline and resistance sliders, fits a linear formula `Y = origin − scale × value` for each, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `DeviceCalibration.loadFromJson()` and selects the `custom_calibrated` device automatically.
 
-`CalibrationResult` is the only calibration class in the app. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `CalibrationResult.load(SharedPreferences)` provides a legacy fallback.
+`DeviceCalibration` is the only calibration class in the app. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `DeviceCalibration.load(SharedPreferences)` provides a legacy fallback.
 
 The full calibration procedure — including `--a11y` mode for Xamarin/API 25 devices — is documented in [tools/discover-device-runbook.md](../tools/discover-device-runbook.md).
 

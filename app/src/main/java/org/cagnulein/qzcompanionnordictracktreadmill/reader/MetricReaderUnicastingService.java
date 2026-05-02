@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.service;
+package org.cagnulein.qzcompanionnordictracktreadmill.reader;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 
@@ -12,10 +12,8 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -88,27 +86,18 @@ public class MetricReaderUnicastingService extends Service {
     private void unicastLastKnown() {
         if (Device.instance == null) return;
         MetricSnapshot s = Device.instance.lastSnapshot;
-        sendIfChanged(s.speedKmh,      unicastedSoFar.speedKmh,      "Changed KPH ",         v -> unicastedSoFar.speedKmh      = v);
-        sendIfChanged(s.inclinePct,    unicastedSoFar.inclinePct,    "Changed Grade ",       v -> unicastedSoFar.inclinePct    = v);
-        sendIfChanged(s.cadenceRpm,    unicastedSoFar.cadenceRpm,    "Changed RPM ",         v -> unicastedSoFar.cadenceRpm    = v);
-        sendIfChanged(s.gearLevel,     unicastedSoFar.gearLevel,     "Changed CurrentGear ", v -> unicastedSoFar.gearLevel     = v);
-        sendIfChanged(s.resistanceLvl, unicastedSoFar.resistanceLvl, "Changed Resistance ",  v -> unicastedSoFar.resistanceLvl = v);
-        sendIfChangedInt(s.watts,      unicastedSoFar.watts,         "Changed Watts ",       v -> unicastedSoFar.watts         = v);
-        sendIfChangedInt(s.heartRate,  unicastedSoFar.heartRate,     "HeartRateDataUpdate ", v -> unicastedSoFar.heartRate     = v);
+        sendIfChanged(s.speedKmh,      unicastedSoFar.speedKmh,      QZMetricPacket.Metric.KPH,          v -> unicastedSoFar.speedKmh      = v);
+        sendIfChanged(s.inclinePct,    unicastedSoFar.inclinePct,    QZMetricPacket.Metric.GRADE,        v -> unicastedSoFar.inclinePct    = v);
+        sendIfChanged(s.cadenceRpm,    unicastedSoFar.cadenceRpm,    QZMetricPacket.Metric.RPM,          v -> unicastedSoFar.cadenceRpm    = v);
+        sendIfChanged(s.gearLevel,     unicastedSoFar.gearLevel,     QZMetricPacket.Metric.CURRENT_GEAR, v -> unicastedSoFar.gearLevel     = v);
+        sendIfChanged(s.resistanceLvl, unicastedSoFar.resistanceLvl, QZMetricPacket.Metric.RESISTANCE,   v -> unicastedSoFar.resistanceLvl = v);
+        sendIfChanged(s.watts,         unicastedSoFar.watts,         QZMetricPacket.Metric.WATTS,        v -> unicastedSoFar.watts         = v);
+        sendIfChanged(s.heartRate,     unicastedSoFar.heartRate,     QZMetricPacket.Metric.HEART_RATE,   v -> unicastedSoFar.heartRate     = v);
     }
 
-    private void sendIfChanged(Float current, Float last, String label, Consumer<Float> save) {
+    private void sendIfChanged(Float current, Float last, QZMetricPacket.Metric metric, Consumer<Float> save) {
         if (current != null && !current.equals(last)) {
-            String msg = label + current;
-            logMetric(msg);
-            sendUnicast(msg);
-            save.accept(current);
-        }
-    }
-
-    private void sendIfChangedInt(Float current, Float last, String label, Consumer<Float> save) {
-        if (current != null && !current.equals(last)) {
-            String msg = label + current.intValue();
+            String msg = new QZMetricPacket(metric, current).serialize();
             logMetric(msg);
             sendUnicast(msg);
             save.accept(current);

@@ -1,10 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.MyAccessibilityService;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
 
 public abstract class Device {
     /** The currently active device. Set by MainActivity when the user selects one. */
@@ -64,7 +65,7 @@ public abstract class Device {
     public boolean requiresAccessibility() { return true; }
 
     /** Interprets a parsed QZ UDP packet for this device type. */
-    public abstract Command decodeCommand(QzPacket pkt);
+    public abstract Command decodeCommand(QZCommandPacket pkt);
 
     public MetricReader defaultMetricReader() {
         return new MonoStdoutMetricReader();

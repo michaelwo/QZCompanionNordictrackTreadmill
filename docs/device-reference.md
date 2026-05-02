@@ -173,7 +173,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 ### Custom (Calibrated) (`custom_calibrated`)
 
-`CalibratedBikeDevice` — formula derived at runtime from `CalibrationResult` loaded from `/sdcard/qz-calibration.json`, which is written by `tools/discover-device.py`. Falls back to `CalibrationResult.load(SharedPreferences)` (legacy, incline-only) if the file is absent. See `tools/discover-device-runbook.md`.
+`CalibratedBikeDevice` — formula derived at runtime from `DeviceCalibration` loaded from `/sdcard/qz-calibration.json`, which is written by `tools/discover-device.py`. Falls back to `DeviceCalibration.load(SharedPreferences)` (legacy, incline-only) if the file is absent. See `tools/discover-device-runbook.md`.
 
 ---
 

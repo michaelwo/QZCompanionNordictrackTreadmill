@@ -36,10 +36,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 
-import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MyAccessibilityService;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.MyAccessibilityService;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 
@@ -113,7 +113,7 @@ public class MainActivity extends AppCompatActivity {
         File calFile = new File(Environment.getExternalStorageDirectory(), "qz-calibration.json");
         if (calFile.exists()) {
             try {
-                CalibrationResult.current = CalibrationResult.loadFromJson(calFile);
+                DeviceCalibration.current = DeviceCalibration.loadFromJson(calFile);
                 String savedId = sharedPreferences.getString("deviceId",
                         DeviceRegistry.DeviceId.other.name());
                 if (DeviceRegistry.DeviceId.other.name().equals(savedId)) {
@@ -124,10 +124,10 @@ public class MainActivity extends AppCompatActivity {
                 Log.i("QZ:Main", "Loaded calibration from qz-calibration.json");
             } catch (Exception e) {
                 Log.w("QZ:Main", "qz-calibration.json load failed, falling back: " + e.getMessage());
-                CalibrationResult.current = CalibrationResult.load(sharedPreferences);
+                DeviceCalibration.current = DeviceCalibration.load(sharedPreferences);
             }
         } else {
-            CalibrationResult.current = CalibrationResult.load(sharedPreferences);
+            DeviceCalibration.current = DeviceCalibration.load(sharedPreferences);
         }
         initLogFile();
 
@@ -205,7 +205,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void rebindAccessibilityService() {
-        String svc = getPackageName() + "/.service.MyAccessibilityService";
+        String svc = getPackageName() + "/.command.MyAccessibilityService";
         try {
             Settings.Secure.putString(getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, svc);

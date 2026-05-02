@@ -30,8 +30,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl392
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1167,35 +1168,35 @@ public class TreadmillDeviceTest {
 
     @Test
     public void decodeCommand_twoParts_setsBothFields() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("8.0;5.0"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0;5.0"));
         assertEquals(8.0f, cmd.speedKmh,   0.001f);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_roundsToOneDecimal() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("8.25;5.14"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.25;5.14"));
         assertEquals(8.3f, cmd.speedKmh,   0.001f);
         assertEquals(5.1f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOneHundred_speed_returnsNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("-100;5.0"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-100;5.0"));
         assertNull(cmd.speedKmh);
         assertEquals(5.0f, cmd.inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("8.0;-100"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0;-100"));
         assertEquals(8.0f, cmd.speedKmh, 0.001f);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_bothSentinels_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("-100;-100"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-100;-100"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
@@ -1203,28 +1204,28 @@ public class TreadmillDeviceTest {
     @Test
     public void decodeCommand_sentinelMinusOne_speed_returnsNull() {
         // -1 is the QZ no-op speed flush sentinel; it must not produce a speed command.
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("-1;-100"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-1;-100"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_onePart_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("8.0"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_zeroParts_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse(""));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse(""));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }
 
     @Test
     public void decodeCommand_threeParts_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QzPacket.parse("1.0;2.0;3.0"));
+        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("1.0;2.0;3.0"));
         assertNull(cmd.speedKmh);
         assertNull(cmd.inclinePct);
     }

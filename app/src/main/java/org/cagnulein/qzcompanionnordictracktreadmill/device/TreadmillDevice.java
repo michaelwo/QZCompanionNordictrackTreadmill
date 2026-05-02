@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 
 public abstract class TreadmillDevice extends Device {
 
@@ -60,15 +61,15 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public Command decodeCommand(QzPacket pkt) {
+    public Command decodeCommand(QZCommandPacket pkt) {
         Command cmd = new Command();
         if (pkt.fieldCount() == 2) {
-            Float s = QzPacket.parseField(pkt.rawField(0));
-            Float i = QzPacket.parseField(pkt.rawField(1));
-            if (s != null && s != QzPacket.NO_COMMAND && s != QzPacket.NO_RESISTANCE)
-                cmd.speedKmh   = QzPacket.roundToOneDecimal(s);
-            if (i != null && i != QzPacket.NO_COMMAND)
-                cmd.inclinePct = QzPacket.roundToOneDecimal(i);
+            Float s = QZCommandPacket.parseField(pkt.rawField(0));
+            Float i = QZCommandPacket.parseField(pkt.rawField(1));
+            if (s != null && s != QZCommandPacket.NO_COMMAND && s != QZCommandPacket.NO_RESISTANCE)
+                cmd.speedKmh   = QZCommandPacket.roundToOneDecimal(s);
+            if (i != null && i != QZCommandPacket.NO_COMMAND)
+                cmd.inclinePct = QZCommandPacket.roundToOneDecimal(i);
         }
         return cmd;
     }

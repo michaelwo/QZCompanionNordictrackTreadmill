@@ -12,7 +12,7 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.service.MetricReaderUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import static org.junit.Assert.*;
 

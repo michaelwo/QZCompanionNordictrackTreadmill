@@ -6,7 +6,7 @@ Tests in this project are pure JVM unit tests — no mocking framework, no fakes
 
 - Keeping `CommandDispatcher` and all `Device` subclasses free of `android.*` imports.
 - Injecting side effects via functional interfaces (`CommandExecutor`, `Clock`, `Logger`) rather than static calls or singletons.
-- Keeping `CalibrationResult` in the `calibration/` package with no Android dependencies.
+- Keeping `DeviceCalibration` in the `device/` package with no Android dependencies.
 
 Robolectric is used only where the Android service lifecycle or real socket I/O is the subject under test.
 
@@ -28,7 +28,8 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `MetricReaderTest` | 3 | `MonoStdoutMetricReader` stream parsing and push subscription; malformed lines |
 | `BikeDeviceTest` | 64 | All bike device subclasses: `targetY()` formula at representative values, throttle/cache, de-dup, null resistance slider, negative incline, hysteresis overshoot |
 | `TreadmillDeviceTest` | 142 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, throttle/cache, negative incline, cache overwrite |
-| `QzPacketTest` | 23 | `QzPacket` and `QzProtocol` parsing: all command types, malformed input, locale separators, boundary values |
+| `QZCommandPacketTest` | 23 | `QZCommandPacket` parsing: all command types, malformed input, locale separators, boundary values |
+| `QZMetricPacketTest` | 29 | `QZMetricPacket`: serialize, parse, round-trip, wire-format identity |
 | `CommandDispatcherTest` | 16 | Full pipeline from raw UDP string → `decodeCommand` → `applyCommand` → captured swipe; throttle, cache, locale mismatch |
 | `UdpPipelineTest` | 5 | End-to-end with real UDP sockets: datagram received by `CommandListenerService` → `CommandDispatcher` → device swipe captured |
 | `ZwiftRideSimulationTest` | 10 | Scenario replay against S22i: synthetic Zwift grade sequence through the full pipeline; time-injected throttle; verifies y1→y2 state chain across calls |
@@ -36,7 +37,7 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `CommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `CommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
 | `MetricReaderUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
-| **Total** | **281** | |
+| **Total** | **310** | |
 
 ---
 

@@ -1,7 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.*;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.*;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 
 
 import java.util.Collections;

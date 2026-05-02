@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 /**
  * A requested change to a device — decoded from a single UDP message.

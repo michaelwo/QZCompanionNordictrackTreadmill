@@ -113,13 +113,13 @@ Can a new contributor understand and extend the app without reading every file?
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
-| Test Coverage | 3 | HillyRouteReplayTest + ZwiftRideSimulationTest (full route replay + de-dup); TreadmillDeviceTest (133 tests), BikeDeviceTest (53), QzProtocolTest (46), MetricReaderTest (3); all 45+ registry devices have ≥1 test |
+| Test Coverage | 3 | HillyRouteReplayTest + ZwiftRideSimulationTest (full route replay + de-dup); TreadmillDeviceTest (133 tests), BikeDeviceTest (53), QZCommandPacketTest (23), QZMetricPacketTest (29), MetricReaderTest (3); all 45+ registry devices have ≥1 test |
 | Observability | 3 | Structured tags (QZ:Dispatch, QZ:Shell, QZ:Snapshot, QZ:Device, QZ:IFit); analyze-ride.sh reports dispatch count, de-dup/throttle, INJECT_EVENTS failures, heap/CPU/thread/FD stats, monotonic heap-trend flag, 5 auto-warning thresholds; ADB removed — "ADB DOWN" counter in analyze-ride.sh is permanently 0 (stale label, harmless) |
 | Device Portability | 3 | All devices self-contained in device/bike/ and device/treadmill/ (one file per device); DeviceRegistry + DeviceAdapter; all devices have ≥1 test; defaultMetricReader() returns MonoStdoutMetricReader for all devices |
 | Formula Auditability | 1 | S22i incline and resistance calibrated via discover-device.py (R²=1.0000, 2026-05-01); X32i, S15i, Ntex71021 and ~40 others have named origin constants but no derivation or methodology notes |
 | Build Reproducibility | 2 | CI signs and publishes on every master push; version from version.properties; versionCode from run number; action refs unpinned (checkout@v2, sign-android-release@v1, add-and-commit@v9) |
 | Failure Resilience | 3 | UDP listener loop catches per-packet exceptions and continues (no permanent thread death); MonoStdoutMetricReader parseLine exceptions caught in-loop (reader thread survives); performSwipe logs Log.e on null instance and dispatchGesture=false; MyExceptionHandler logs QZ:Crash + saves to CrashPrefs before kill |
-| Calibration Capability | 3 | discover-device.py: fully automated ADB sweep (both sliders), least-squares fit, R² gate, JSON push, QZCompanion auto-restart; --a11y mode for Xamarin/API 25 devices; unattended test plan in tools/test-calibration-unattended.md; CalibrationResult not yet fed into a regression test |
+| Calibration Capability | 3 | discover-device.py: fully automated ADB sweep (both sliders), least-squares fit, R² gate, JSON push, QZCompanion auto-restart; --a11y mode for Xamarin/API 25 devices; unattended test plan in tools/test-calibration-unattended.md; DeviceCalibration not yet fed into a regression test |
 | Documentation | 2 | architecture.md, device-reference.md, discover-device-runbook.md, migrating-from-3x.md present and updated; hand-maintained in docs/ (not adjacent to code) |
 
 **Overall: 20 / 24**
@@ -143,5 +143,5 @@ in the preview.
 | Formula Auditability | Add two-point derivation comments to X32i and one other device file (methodology visible without real-device access); then expand |
 | Build Reproducibility | Pin all GitHub Actions to SHA digests to eliminate mutable external dependencies |
 | Failure Resilience | ✓ Done — service loops resilient; uncaught exceptions logged at QZ:Crash |
-| Calibration Capability | Feed CalibrationResult into a regression test that verifies formula tolerance ≤ 0.5% |
+| Calibration Capability | Feed DeviceCalibration into a regression test that verifies formula tolerance ≤ 0.5% |
 | Documentation | Verify runbook commands execute correctly end-to-end |

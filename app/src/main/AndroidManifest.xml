@@ -25,8 +25,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
-        <service android:name=".service.MetricReaderUnicastingService"/>
-        <service android:name=".service.CommandListenerService"/>
+        <service android:name=".reader.MetricReaderUnicastingService"/>
+        <service android:name=".command.CommandListenerService"/>
 
         <service android:name="com.cgutman.androidremotedebugger.service.ShellService"
             android:enabled="true"
@@ -34,7 +34,7 @@
         </service>
 
         <service
-            android:name=".service.MyAccessibilityService"
+            android:name=".command.MyAccessibilityService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>

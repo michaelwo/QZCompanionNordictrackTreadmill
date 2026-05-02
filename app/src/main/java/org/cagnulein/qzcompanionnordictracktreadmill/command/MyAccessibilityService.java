@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.service;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;

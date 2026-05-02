@@ -1,6 +1,6 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.dispatch;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
-public class QzPacket {
+public class QZCommandPacket {
     public static final char   DELIMITER     = ';';
     public static final float  NO_COMMAND    = -100f;
     public static final float  NO_RESISTANCE = -1f;
@@ -8,12 +8,12 @@ public class QzPacket {
 
     private final String[] fields;
 
-    private QzPacket(String[] fields) {
+    private QZCommandPacket(String[] fields) {
         this.fields = fields;
     }
 
-    public static QzPacket parse(String raw) {
-        return new QzPacket(raw.split(String.valueOf(DELIMITER)));
+    public static QZCommandPacket parse(String raw) {
+        return new QZCommandPacket(raw.split(String.valueOf(DELIMITER)));
     }
 
     public int fieldCount() { return fields.length; }

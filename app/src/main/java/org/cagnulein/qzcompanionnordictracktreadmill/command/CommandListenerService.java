@@ -1,10 +1,9 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.service;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.dispatch.QzPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -86,7 +85,7 @@ public class CommandListenerService extends Service {
                 return;
             }
 
-            if (msg.equals(QzPacket.END_OF_RIDE)) {
+            if (msg.equals(QZCommandPacket.END_OF_RIDE)) {
                 lastQzHeartbeatMs = 0;
                 qzAddress = null;
             } else {

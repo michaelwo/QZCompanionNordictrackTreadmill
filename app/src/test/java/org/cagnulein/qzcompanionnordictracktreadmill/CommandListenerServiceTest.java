@@ -17,7 +17,7 @@ import java.net.InetAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.service.CommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
