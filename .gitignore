@@ -33,6 +33,7 @@ QZCompanionNordictrackTreadmill/
 /build-download/
 Dockerfile.ilspy
 qz-calibration.json
+*.code-workspace
 
 # IDE / local Eclipse metadata
 .project
