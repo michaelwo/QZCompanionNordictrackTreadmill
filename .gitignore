@@ -34,6 +34,7 @@ QZCompanionNordictrackTreadmill/
 Dockerfile.ilspy
 qz-calibration.json
 *.code-workspace
+tools/decompile-sindarin.sh
 
 # IDE / local Eclipse metadata
 .project
