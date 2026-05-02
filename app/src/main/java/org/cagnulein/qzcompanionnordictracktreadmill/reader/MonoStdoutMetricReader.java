@@ -85,7 +85,7 @@ public class MonoStdoutMetricReader implements MetricReader {
         if (line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).speedKmh(v).build();
         } else if (line.contains("Changed Grade") || line.contains("Changed Actual Grade")
-                || line.contains("Grade changed")) {
+                || line.contains("Changed Actual Incline") || line.contains("Grade changed")) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).inclinePct(v).build();
         } else if (line.contains("Changed Watts")) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).watts(v).build();

@@ -67,6 +67,17 @@ public class MetricReaderTest {
     }
 
     @Test
+    public void monoStdout_parsesActualInclineKeyword() throws IOException, InterruptedException {
+        MonoStdoutMetricReader.factory = () -> fakeProcess(
+            "V/mono-stdout(2174): [Trace:FitPro] Changed Actual Incline to: 3.5\n"
+        );
+        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.read();
+        MetricSnapshot m = reader.awaitCurrentStream();
+        assertEquals(3.5f, m.inclinePct, DELTA);
+    }
+
+    @Test
     public void monoStdout_parsesHeartRate() throws IOException, InterruptedException {
         MonoStdoutMetricReader.factory = () -> fakeProcess(
             "V/mono-stdout(2174): [Trace:FitPro] HeartRateDataUpdate 72\n"
