@@ -5,9 +5,11 @@ import android.content.SharedPreferences;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Holds calibration coefficients for incline and (optionally) resistance sliders.
@@ -80,10 +82,10 @@ public class DeviceCalibration {
      */
     public static DeviceCalibration loadFromJson(File f) throws IOException, JSONException {
         byte[] bytes = new byte[(int) f.length()];
-        FileInputStream fis = new FileInputStream(f);
-        fis.read(bytes);
-        fis.close();
-        String text = new String(bytes);
+        try (DataInputStream dis = new DataInputStream(new FileInputStream(f))) {
+            dis.readFully(bytes);
+        }
+        String text = new String(bytes, StandardCharsets.UTF_8);
         JSONObject root = new JSONObject(text);
         JSONObject inc  = root.getJSONObject("incline");
         double a = inc.getDouble("origin");

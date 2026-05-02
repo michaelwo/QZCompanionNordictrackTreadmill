@@ -28,6 +28,9 @@ public class MetricReaderUnicastingService extends Service {
     /** UDP port on the QZ host that receives unicast metric updates. */
     static final int UNICAST_PORT = 8002;
 
+    private static final StrictMode.ThreadPolicy PERMIT_ALL =
+            new StrictMode.ThreadPolicy.Builder().permitAll().build();
+
     static SharedPreferences sharedPreferences;
 
     /** Tracks the last value sent for each metric — only changed values are unicast. */
@@ -125,8 +128,7 @@ public class MetricReaderUnicastingService extends Service {
         InetAddress dest = qzActive ? target : broadcastAddress;
         if (dest == null) return;
 
-        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
-        StrictMode.setThreadPolicy(policy);
+        StrictMode.setThreadPolicy(PERMIT_ALL);
 
         try (DatagramSocket s = new DatagramSocket()) {
             if (!qzActive) s.setBroadcast(true);
@@ -163,11 +165,11 @@ public class MetricReaderUnicastingService extends Service {
         instance = null;
     }
 
-    private static void writeLog(String command) {
+    private static void writeLog(String msg) {
         if (sharedPreferences.getBoolean("debugLog", false)) {
-            MainActivity.writeLog(command);
-            Log.i(LOG_TAG, command);
-            sendUnicast(command);
+            MainActivity.writeLog(msg);
+            Log.i(LOG_TAG, msg);
+            sendUnicast(msg);
         }
     }
 }
