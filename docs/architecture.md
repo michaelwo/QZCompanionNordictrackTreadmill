@@ -201,6 +201,16 @@ Device-specific slider calibration is performed once per physical device by runn
 
 The full calibration procedure — including `--a11y` mode for Xamarin/API 25 devices — is documented in [tools/discover-device-runbook.md](../tools/discover-device-runbook.md).
 
+#### discover-device.py as a device onboarding tool
+
+Most contributors don't own every NordicTrack/ProForm variant they want to support. `discover-device.py` is the mechanism for closing that gap: a user with the physical device runs the sweep, obtains working ORIGIN and scale constants for their machine, and can immediately ride with Zwift via the `custom_calibrated` device — no code changes required.
+
+The fitted constants from `qz-calibration.json` are also the exact values a contributor needs to write a proper hardcoded device class (the `ORIGIN_INCLINE_THUMBY`, `ORIGIN_SPEED_THUMBY`, and scale factors in the `offsetXxxThumbY` formulas). The typical onboarding workflow for a new device is:
+
+1. User runs `discover-device.py` on their hardware, selects `custom_calibrated` in the app, and confirms Zwift control works.
+2. User submits the resulting `qz-calibration.json` (or pastes the printed constants) in a GitHub issue or PR.
+3. A contributor uses those constants to write the device class and register it — the user's calibration data becomes the hardcoded formula for everyone.
+
 ---
 
 ## Design Decisions

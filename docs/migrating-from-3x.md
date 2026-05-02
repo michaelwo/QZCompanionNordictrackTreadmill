@@ -94,6 +94,8 @@ There was no enforced structure — pixel constants, formulas, and dispatch logi
 
 ### 4.x — one self-contained file, plus two registrations
 
+Before writing Step 1, you need the ORIGIN constants and scale factors for the device. If you own the hardware, derive them empirically. If you don't, this is where `tools/discover-device.py` comes in: ask the user who reported the device to run the calibration sweep on their machine. The script fits a linear formula for each slider axis and prints the ORIGIN and scale values directly — those numbers become the constants in your device class, and the user can ride with Zwift immediately via `custom_calibrated` while the PR is in review.
+
 **Step 1 — create the device class:**
 
 ```java
