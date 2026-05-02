@@ -22,5 +22,21 @@ local.properties
 *.keystore
 Thursday.rtf
 download-build.sh~
+download-build.sh
+signapk.sh
 QZCompanionNordictrackTreadmill/
 .claude/settings.local.json
+
+# Calibration and research artifacts
+/calibration/
+/ifit/
+/build-download/
+Dockerfile.ilspy
+qz-calibration.json
+
+# IDE / local Eclipse metadata
+.project
+.settings/
+app/.classpath
+app/.project
+app/.settings/
