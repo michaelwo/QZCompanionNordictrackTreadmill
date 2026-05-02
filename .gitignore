@@ -36,6 +36,8 @@ qz-calibration.json
 *.code-workspace
 tools/decompile-sindarin.sh
 app/src/androidTest/
+app/src/main/java/com/cgutman/
+app/src/main/java/com/rvalerio/
 
 # IDE / local Eclipse metadata
 .project
