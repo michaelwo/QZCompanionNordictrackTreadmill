@@ -146,9 +146,9 @@ static final List<DeviceId> TREADMILL_DEVICES = Arrays.asList(
 python3 tools/validate_swipe_targets.py
 ```
 
-This cross-checks your `trackX` values against the iFit APK layout XML and flags formula monotonicity and bounds issues. Exit code 0 means all checks pass. See the validator section in [device-reference.md](device-reference.md) for what each check means.
+This cross-checks your `trackX` values against the iFit APK layout XML and flags formula monotonicity and bounds issues. Exit code 0 means all checks pass. See the validator section in [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md) for what each check means.
 
-The CLAUDE.md has the full pattern including bike devices, naming conventions, and the `ThumbYFormula` constructor. For a complete listing of all 44 supported devices with their pixel formulas, see [device-reference.md](device-reference.md).
+The CLAUDE.md has the full pattern including bike devices, naming conventions, and the `ThumbYFormula` constructor. For a complete listing of all 44 supported devices with their pixel formulas, see [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md).
 
 ---
 
@@ -242,7 +242,7 @@ There were no tests in 3.x. The 4.x codebase has 310 tests across 12 test classe
 ./run-tests.sh
 ```
 
-Full details — test file inventory, how swipe assertions work, the `MonoStdoutMetricReader` test pattern, and a step-by-step guide for adding tests when you add a new device — are in [testing-methodology.md](testing-methodology.md).
+Full details — test file inventory, how swipe assertions work, the `MonoStdoutMetricReader` test pattern, and a step-by-step guide for adding tests when you add a new device — are in [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 ---
 

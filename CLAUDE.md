@@ -109,6 +109,15 @@ Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a
 
 ---
 
+## Documentation
+
+Most docs live in `docs/`. Two live adjacent to the code they describe:
+
+- `app/src/main/java/.../device/device-reference.md` — per-device pixel formulas, ScreenProfile table, validator notes; edit alongside device classes
+- `app/src/test/java/.../testing-methodology.md` — test file inventory, swipe assertion patterns, how to add tests for a new device; edit alongside test files
+
+---
+
 ## Code Style Guidelines
 - All comments must be in English
 - Use descriptive variable names

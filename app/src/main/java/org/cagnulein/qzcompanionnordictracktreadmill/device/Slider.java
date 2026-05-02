@@ -39,7 +39,7 @@ public class Slider {
 
     /** Single-arg constructor for subclasses that override {@link #trackX()} at runtime. */
     protected Slider(int initialThumbY) {
-        this(initialThumbY, 0, null);
+        this(0, initialThumbY, null);
     }
 
     /** Fixed horizontal pixel coordinate of this slider's track on screen. */

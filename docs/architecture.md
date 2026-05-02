@@ -159,7 +159,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 
 **`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `CommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
-For per-device pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](device-reference.md).
+For per-device pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md).
 
 ### Coordinate Validation
 
@@ -171,7 +171,7 @@ Run it before and after editing any device class:
 python3 tools/validate_swipe_targets.py   # exits 0 if clean
 ```
 
-Full methodology, per-screen-width tables, and documentation of known anomalies are in [device-reference.md](device-reference.md).
+Full methodology, per-screen-width tables, and documentation of known anomalies are in [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md).
 
 ### Command Dispatch
 

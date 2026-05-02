@@ -8,7 +8,7 @@ input swipe <trackX> <fromY> <trackX> <targetThumbY(v)> 200
 
 Swipe duration is always 200 ms. `fromY` is the slider's current tracked position; `targetThumbY(v)` is computed from the formula for the requested value `v`. When a device overrides `currentThumbY(snapshot)`, the starting position is re-derived from the live iFit-reported value before each swipe, correcting drift.
 
-For the full dispatch pipeline see [architecture.md](architecture.md). For how to add a device and write formula tests see the steps at the bottom of this file and [testing-methodology.md](testing-methodology.md).
+For the full dispatch pipeline see [architecture.md](../../../../../../../../docs/architecture.md). For how to add a device and write formula tests see the steps at the bottom of this file and [testing-methodology.md](../../../../../../test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 ---
 
@@ -472,7 +472,7 @@ Fallback device. Uses ProForm 2000 geometry without `currentThumbY`. Useful for 
 3. Override `displayName()`. No `requiresAdb()` or `requiresAccessibility()` overrides are needed — all devices use AccessibilityService by default.
 4. Add a `DeviceId` enum value to `DeviceRegistry.DeviceId` and a `m.put(DeviceId.my_device, new MyDevice())` line in `DeviceRegistry.DEVICES`.
 5. Add the `DeviceId` to the appropriate list in `DeviceAdapter` — `BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`. The UI is not automatic; if you skip this step the device will not appear in the app.
-6. Add formula tests in `BikeDeviceTest` or `TreadmillDeviceTest`. See [testing-methodology.md](testing-methodology.md) for the pattern.
+6. Add formula tests in `BikeDeviceTest` or `TreadmillDeviceTest`. See [testing-methodology.md](../../../../../../test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for the pattern.
 
 See `S22iDevice` + `BikeDevice` for the canonical bike example and `X11iDevice` + `TreadmillDevice` for treadmill.
 
