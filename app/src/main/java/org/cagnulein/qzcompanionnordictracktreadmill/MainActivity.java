@@ -285,18 +285,13 @@ public class MainActivity extends AppCompatActivity {
 
         BluetoothManager btMgr = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
         BluetoothAdapter btAdapter = btMgr != null ? btMgr.getAdapter() : null;
-        boolean bleSupported = btAdapter != null
-                && btAdapter.isEnabled()
-                && btAdapter.isMultipleAdvertisementSupported();
-        String bleDetail;
-        if (!bleSupported) {
-            bleDetail = "Not supported on this device";
-        } else if (BleCanaryService.isRunning) {
-            bleDetail = "Active — Zwift can pair with this device via QZ";
-        } else {
-            bleDetail = "Available — use QZ to pair Zwift over Bluetooth";
-        }
-        addRequirementRow(list, bleSupported, "Zwift via Bluetooth", bleDetail, null);
+        boolean canAdvertise = btAdapter != null && btAdapter.isMultipleAdvertisementSupported();
+        addRequirementRow(list, !canAdvertise,
+                "Bluetooth",
+                canAdvertise
+                        ? "BLE advertising supported — install QZ or connect Zwift directly to your device"
+                        : "BLE advertising not supported — QZCompanion is the right approach",
+                null);
 
         IfitConsoleSnapshot snap = IfitConsoleSnapshot.load(sharedPreferences);
         if (snap != null && snap.isValid()) {
