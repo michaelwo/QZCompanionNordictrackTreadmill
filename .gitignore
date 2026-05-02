@@ -35,6 +35,7 @@ Dockerfile.ilspy
 qz-calibration.json
 *.code-workspace
 tools/decompile-sindarin.sh
+app/src/androidTest/
 
 # IDE / local Eclipse metadata
 .project
