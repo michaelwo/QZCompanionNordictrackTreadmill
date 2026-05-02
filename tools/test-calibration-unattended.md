@@ -128,12 +128,14 @@ Parse `/tmp/ifit-ui.xml` to find the first matching rule below and execute the c
 | Priority | Match text (case-insensitive, in any `text=` or `content-desc=` attribute) | Action |
 |---|---|---|
 | 0 | `"manual start"` | Tap it — starts a manual workout directly from the dashboard |
-| 1 | `"let's go"` or `"lets go"` or `"get started"` | Tap it — dismiss welcome screen |
-| 2 | `"workouts"` or `"explore"` or `"start"` (in nav/tab area) | Tap it — navigate to workout library |
-| 3 | `"manual"` or `"manual ride"` or `"manual workout"` | Tap it — select manual workout |
-| 4 | `"go"` or `"start ride"` or `"begin"` (large button, not nav) | Tap it — start the workout |
-| 5 | `"end warmup"` | Tap it — skip warmup and enter active workout immediately |
+| 1 | `"end warmup"` | Tap it — skip warmup and enter active workout immediately |
+| 2 | `"let's go"` or `"lets go"` or `"get started"` | Tap it — dismiss welcome screen |
+| 3 | `"workouts"` or `"explore"` or `"start"` (in nav/tab area) | Tap it — navigate to workout library |
+| 4 | `"manual"` or `"manual ride"` or `"manual workout"` | Tap it — select manual workout |
+| 5 | `"go"` or `"start ride"` (large button, not nav) | Tap it — start the workout |
 | 6 | `"resume"` | Tap it — resume a paused workout |
+
+**Important:** Do not match `"begin"` as a substring — `"Workout begins in"` is a countdown label on the warmup screen, not a button. Use `"end warmup"` (priority 1) to skip the warmup countdown instead.
 
 To tap an element found at bounds `[left,top][right,bottom]`:
 ```bash
@@ -203,18 +205,19 @@ adb -s $DEVICE logcat -d | grep CALSWIPE | tail -3
 python3 tools/discover-device.py --device $DEVICE --a11y --push 2>&1 | tee /tmp/calibration-run.log
 ```
 
-This step takes approximately **8–12 minutes** (coarse + fine sweeps for both sliders).
+This step takes approximately **5–12 minutes** (coarse + fine sweeps for both sliders; when coarse R²≥0.99 fine sweep is skipped — S22i typically completes in ~5 min).
+
+The script automatically handles warmup dismissal (END WARMUP tap) before the sweep. iFit logs resistance changes as `Changed CurrentGear to:` on the S22i — the script matches this automatically.
 
 **PASS criteria** — all must be true:
-1. Output contains `BUILD SUCCESSFUL` — not needed, script exits 0
-2. Output contains `✓ Written: qz-calibration.json`
-3. Output contains `✓ Pushed to /sdcard/qz-calibration.json`
-4. Incline R² ≥ 0.97 (grep: `Fit: origin=.* R²=0\.[0-9][0-9]` where value ≥ 0.97)
-5. No `⚠ poor fit` warning for incline
+1. Output contains `✓ Written: qz-calibration.json`
+2. Output contains `✓ Pushed to /sdcard/qz-calibration.json`
+3. Incline R² ≥ 0.97 and no `⚠ poor fit` warning for incline
+4. Resistance R² ≥ 0.97 (S22i always produces a linear result when past warmup)
 
 **WARN (non-blocking):**
-- Resistance R² < 0.97 — note but continue; resistance is optional
-- Resistance sweep skipped (< 3 readings) — note but continue
+- Resistance `⚠ Indicator not located` — the homing scan didn't find the indicator during the 6-probe scan; the sweep still runs from y=200 downward, which works if the indicator is already near max.  If resistance R² is poor, force-restart iFit, start a new manual workout, and re-run.
+- Resistance sweep skipped (< 3 readings) — only if workout was in warmup when script ran; re-run after confirming END WARMUP was tapped
 
 **FAIL (abort):**
 - Script exits non-zero

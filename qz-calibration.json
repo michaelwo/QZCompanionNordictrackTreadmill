@@ -3,5 +3,11 @@
     "trackX": 57,
     "origin": 600.0,
     "scale": 20.0
+  },
+  "resistance": {
+    "trackX": 1845,
+    "origin": 750.0,
+    "scale": 25.0,
+    "minLevel": 1
   }
 }

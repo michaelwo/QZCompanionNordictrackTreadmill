@@ -9,10 +9,15 @@ Push the file to /sdcard/ and restart QZCompanion to apply.
 Two sweep modes:
   default   -- adb shell input swipe (works on Android 11+, non-Xamarin iFit)
   --a11y    -- routes swipes via QZCompanion's AccessibilityService over UDP port
-               8003 (required for API 25 / Xamarin iFit — NordicTrack S22i etc.)
+               8003 (CALSWIPE) for both incline and resistance — required for
+               API 25/Xamarin iFit (NordicTrack S22i etc.).
                In --a11y mode the script handles all setup automatically:
                it launches QZCompanion, binds the AccessibilityService, verifies
-               the CALSWIPE relay, and restores iFit to the foreground.
+               the CALSWIPE relay, dismisses any warmup screen, and restores
+               iFit to the foreground.
+               Resistance is a vertical slider; a probe scan locates the thumb
+               and chains upward swipes to home to max, then sweeps downward
+               with thumb-tracking so every CALSWIPE starts at the thumb.
 
 Usage:
     python3 tools/discover-device.py --device 192.168.1.213:5555 [--push] [--out FILE]
@@ -43,7 +48,9 @@ _A11Y_SVC = f"{_QZ_PKG}/{_QZ_PKG}.service.MyAccessibilityService"
 # ── logcat parsing ────────────────────────────────────────────────────────────
 
 GRADE_RE      = re.compile(r"Changed Grade to:\s*([-\d.]+)")
-RESISTANCE_RE = re.compile(r"Changed Resistance to:\s*([-\d.]+)")
+# S22i (and similar iFit bikes) log gear changes as "Changed CurrentGear to:" rather than
+# "Changed Resistance to:".  Both patterns are matched so the same code works across devices.
+RESISTANCE_RE = re.compile(r"Changed (?:Resistance|CurrentGear) to:\s*([-\d.]+)")
 
 
 class MetricReader:
@@ -237,7 +244,28 @@ def a11y_preflight(device, inc_x):
     print("  Restoring iFit to foreground…")
     adb(device, "shell", "monkey", "-p", "com.ifit.standalone",
         "-c", "android.intent.category.LAUNCHER", "1", check=False)
-    time.sleep(3)
+    time.sleep(5)
+
+    # Dismiss warmup screen if present.  iFit locks resistance to level 1 during
+    # the warmup countdown; swiping the resistance slider has no effect until the
+    # warmup ends.  Tap END WARMUP so both sliders are live before we sweep.
+    try:
+        adb(device, "shell", "uiautomator", "dump", "/sdcard/qz_ui_tmp.xml", check=False)
+        xml_text = adb(device, "shell", "cat", "/sdcard/qz_ui_tmp.xml", check=False).stdout
+        root = ET.fromstring(xml_text)
+        for node in root.iter("node"):
+            t = (node.get("text", "") or node.get("content-desc", "")).strip().upper()
+            if t == "END WARMUP":
+                m = re.findall(r"\d+", node.get("bounds", ""))
+                if len(m) == 4:
+                    cx = (int(m[0]) + int(m[2])) // 2
+                    cy = (int(m[1]) + int(m[3])) // 2
+                    print(f"  Warmup detected — tapping END WARMUP at ({cx},{cy})…")
+                    adb(device, "shell", "input", "tap", str(cx), str(cy))
+                    time.sleep(5)
+                break
+    except Exception:
+        pass
 
 
 def _a11y_restart_qz(device):
@@ -272,6 +300,17 @@ def swipe(device, x, from_y, to_y, duration_ms=200):
     else:
         adb(device, "shell", "input", "swipe",
             str(x), str(from_y), str(x), str(to_y), str(duration_ms))
+
+
+def tap(device, x, y):
+    """Tap a single point via adb shell input tap.
+
+    On Xamarin/API 25 devices, adb shell input swipe does not reach the iFit
+    SurfaceView, but adb shell input tap does.  The resistance slider responds
+    to discrete taps at each button position rather than drag gestures, so the
+    resistance sweep uses this instead of swipe() in --a11y mode.
+    """
+    adb(device, "shell", "input", "tap", str(int(x)), str(int(y)))
 
 
 def screen_size(device):
@@ -309,8 +348,12 @@ FINE_SETTLE  = 2.0
 FINE_TIMEOUT = 6.0
 
 
-def coarse_sweep(device, reader, track_x, screen_h, metric, start_y=None):
-    """Sweep full height at coarse resolution; return [(y, value)] where value changed."""
+def coarse_sweep(device, reader, track_x, screen_h, metric, start_y=None, use_tap=False):
+    """Sweep full height at coarse resolution; return [(y, value)] where value changed.
+
+    use_tap=True uses adb shell input tap instead of swipe — required for resistance
+    buttons on Xamarin/API 25 devices where input swipe doesn't reach the SurfaceView.
+    """
     wait_fn = reader.wait_fresh_grade if metric == "grade" else reader.wait_fresh_resistance
     readings = []
     # start_y: where the slider thumb is before this sweep begins (set by probe tap in
@@ -318,8 +361,11 @@ def coarse_sweep(device, reader, track_x, screen_h, metric, start_y=None):
     prev_y = start_y if start_y is not None else COARSE_MARGIN
     for y in range(COARSE_MARGIN, screen_h - COARSE_MARGIN + 1, COARSE_STEP):
         ts = time.time()
-        swipe(device, track_x, prev_y, y)
-        prev_y = y
+        if use_tap:
+            tap(device, track_x, y)
+        else:
+            swipe(device, track_x, prev_y, y)
+            prev_y = y
         time.sleep(COARSE_SETTLE)
         v = wait_fn(ts, COARSE_TIMEOUT)
         if v is not None:
@@ -341,27 +387,36 @@ def find_active_range(readings, screen_h):
     return y_top, y_bottom
 
 
-def fine_sweep(device, reader, track_x, y_top, y_bottom, screen_h, metric):
+def fine_sweep(device, reader, track_x, y_top, y_bottom, screen_h, metric, use_tap=False):
     """Fine sweep in the active range; return [(y, value)].
 
     Applies a monotonicity filter: for a downward incline/resistance sweep
     (increasing Y = decreasing metric), any step where the metric jumped UP
     relative to the previous accepted reading is a slider-snap artefact and is
     silently dropped before fitting.
+
+    use_tap=True: each step is a discrete tap rather than a drag swipe — required
+    for resistance buttons on Xamarin/API 25 devices.
     """
     # Fine sweep uses wait_stable to discard iFit's transit events (fired as the gesture
     # passes through intermediate buttons) and capture only the settled landed value.
     wait_fn = reader.wait_stable_grade if metric == "grade" else reader.wait_stable_resistance
-    # Reset to top of active range starting from y_bottom (which is within the slider
-    # after the coarse sweep), so iFit recognises the reset swipe as a slider interaction.
-    swipe(device, track_x, y_bottom, y_top)
+    # Reset to top of active range.  For swipe mode, start from y_bottom so iFit
+    # recognises the gesture; for tap mode, just tap y_top directly.
+    if use_tap:
+        tap(device, track_x, y_top)
+    else:
+        swipe(device, track_x, y_bottom, y_top)
     time.sleep(FINE_SETTLE * 2)
     prev_y = y_top
     raw = []
     for y in range(y_top, y_bottom + 1, FINE_STEP):
         ts = time.time()
-        swipe(device, track_x, prev_y, y)
-        prev_y = y
+        if use_tap:
+            tap(device, track_x, y)
+        else:
+            swipe(device, track_x, prev_y, y)
+            prev_y = y
         time.sleep(FINE_SETTLE)
         v = wait_fn(ts, timeout=FINE_TIMEOUT)
         if v is not None:
@@ -555,7 +610,62 @@ def main():
 
     # ── resistance sweep ──────────────────────────────────────────────────────
     print(f"\n── Resistance sweep (trackX={res_x}) ──")
-    coarse_r = coarse_sweep(device, reader, res_x, h, "resistance")
+
+    if _a11y_host is not None:
+        # Resistance is a vertical slider like incline.  CALSWIPE must start AT the
+        # thumb's current position; a swipe starting away from the thumb is ignored.
+        # Strategy:
+        #   1. Probe downward from y=800 in 100px steps; first response reveals thumb_y.
+        #   2. Chain 100px upward swipes (each from current thumb_y) until thumb ≤ 250.
+        #   3. Sweep downward tracking thumb_y so every step starts at the thumb.
+        thumb_y = None
+        print("  Probing for resistance slider…")
+        for probe_y in [800, 700, 600, 500, 400, 300]:
+            probe_ts = time.time()
+            swipe(device, res_x, probe_y, probe_y - 100)
+            v = reader.wait_fresh_resistance(probe_ts, timeout=3.0)
+            if v is not None:
+                # The probe swipe dragged the thumb from ~probe_y to probe_y-100.
+                # Track the thumb at the swipe endpoint.
+                thumb_y = probe_y - 100
+                print(f"  ✓ Slider responds at y≈{probe_y} (level {v:.0f}) — "
+                      f"thumb_y={thumb_y}, homing to max…")
+                # Home to max resistance: chain upward 100px swipes each starting from
+                # the tracked thumb position.  Stop when thumb is at or above y=250
+                # (S22i max-resistance is around y=225; going further gains nothing).
+                while thumb_y > 250:
+                    to_y = max(200, thumb_y - 100)
+                    swipe(device, res_x, thumb_y, to_y)
+                    thumb_y = to_y
+                    time.sleep(0.8)
+                time.sleep(2.0)
+                break
+        else:
+            print("  ⚠ Resistance slider not found — skipping")
+
+        if thumb_y is None:
+            coarse_r = []
+        else:
+            # Sweep downward from current thumb position (max level), tracking thumb.
+            # Each swipe moves the thumb by COARSE_STEP so every swipe starts exactly
+            # at the thumb's current position — required for iFit to accept the gesture.
+            coarse_r = []
+            prev_y = thumb_y
+            for y in range(thumb_y + COARSE_STEP, h - COARSE_MARGIN + 1, COARSE_STEP):
+                ts = time.time()
+                swipe(device, res_x, prev_y, y)
+                prev_y = y
+                time.sleep(COARSE_SETTLE)
+                v = reader.wait_fresh_resistance(ts, COARSE_TIMEOUT)
+                if v is not None and v >= 1:
+                    coarse_r.append((y, v))
+                    print(f"    coarse y={y:4d} → resistance={v:.0f}")
+                    if v <= 1:
+                        break
+                else:
+                    print(f"    coarse y={y:4d} → (no response)")
+    else:
+        coarse_r = coarse_sweep(device, reader, res_x, h, "resistance")
     rr = find_active_range(coarse_r, h)
     if rr is None:
         print(f"  WARNING: Only {len(coarse_r)} coarse resistance readings — skipping.")
