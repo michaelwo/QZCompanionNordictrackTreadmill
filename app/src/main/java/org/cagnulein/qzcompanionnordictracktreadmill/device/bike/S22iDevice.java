@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;
@@ -22,26 +22,26 @@ public class S22iDevice extends BikeDevice {
                     return Math.round(v * 2) / 2.0f;
                 }
                 @Override
-                protected int currentThumbY(MetricSnapshot s) {
-                    return s.inclinePct != null ? targetThumbY(s.inclinePct) : thumbY();
+                protected int currentThumbY() {
+                    return liveValue != null ? targetThumbY(liveValue) : thumbY();
                 }
                 @Override
                 protected int hysteresisPixels(int fromY, int toY) {
                     return Math.abs(toY - fromY) >= 40 ? hystLong : hystShort;
                 }
-            },
+            }.withMetric(SliderMetric.GRADE),
             new Slider(ScreenProfile.W1920.rightTrackX, ORIGIN_RESISTANCE_THUMBY, S22iDevice::offsetResistanceThumbY) {
                 // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
                 // Slope = (323−724) / 23 = −401/23 ≈ −17.43 px per level.
                 public float quantize(float v) { return Math.round(v); }
                 @Override
-                protected int currentThumbY(MetricSnapshot s) {
+                protected int currentThumbY() {
                     // Guard against the "Changed Resistance to: 0" noise readings emitted
                     // during coast/reset — 0 is not a valid level and would swipe off-range.
-                    return (s.resistanceLvl != null && s.resistanceLvl >= 1)
-                            ? targetThumbY(s.resistanceLvl) : thumbY();
+                    return (liveValue != null && liveValue >= 1)
+                            ? targetThumbY(liveValue) : thumbY();
                 }
-            }
+            }.withMetric(SliderMetric.RESISTANCE)
         );
     }
 

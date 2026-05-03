@@ -46,7 +46,7 @@ public class IfitConsoleSnapshot {
              .apply();
     }
 
-    static Float parseNullable(String s) {
+    public static Float parseNullable(String s) {
         if (s == null || s.isEmpty()) return null;
         try { return Float.parseFloat(s); } catch (NumberFormatException e) { return null; }
     }

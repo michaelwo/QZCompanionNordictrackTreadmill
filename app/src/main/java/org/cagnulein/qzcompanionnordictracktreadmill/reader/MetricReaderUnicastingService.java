@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.function.Consumer;
 
 public class MetricReaderUnicastingService extends Service {
     private static final String LOG_TAG = "QZ:MetricReaderService";
@@ -29,9 +28,6 @@ public class MetricReaderUnicastingService extends Service {
 
     private static final StrictMode.ThreadPolicy PERMIT_ALL =
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
-
-    /** Tracks the last value sent for each metric — only changed values are unicast. */
-    private final MetricSnapshot unicastedSoFar = new MetricSnapshot();
 
     /** Current reader; replaced on every device switch via {@link #applyDevice(Device)}. */
     private MetricReader cachedReader = null;
@@ -85,24 +81,22 @@ public class MetricReaderUnicastingService extends Service {
         try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
     }
 
-    private void unicastLastKnown() {
-        if (Device.instance == null) return;
-        MetricSnapshot s = Device.instance.lastSnapshot;
-        sendIfChanged(s.speedKmh,      unicastedSoFar.speedKmh,      QZMetricPacket.Metric.KPH,          v -> unicastedSoFar.speedKmh      = v);
-        sendIfChanged(s.inclinePct,    unicastedSoFar.inclinePct,    QZMetricPacket.Metric.GRADE,        v -> unicastedSoFar.inclinePct    = v);
-        sendIfChanged(s.cadenceRpm,    unicastedSoFar.cadenceRpm,    QZMetricPacket.Metric.RPM,          v -> unicastedSoFar.cadenceRpm    = v);
-        sendIfChanged(s.gearLevel,     unicastedSoFar.gearLevel,     QZMetricPacket.Metric.CURRENT_GEAR, v -> unicastedSoFar.gearLevel     = v);
-        sendIfChanged(s.resistanceLvl, unicastedSoFar.resistanceLvl, QZMetricPacket.Metric.RESISTANCE,   v -> unicastedSoFar.resistanceLvl = v);
-        sendIfChanged(s.watts,         unicastedSoFar.watts,         QZMetricPacket.Metric.WATTS,        v -> unicastedSoFar.watts         = v);
-        sendIfChanged(s.heartRate,     unicastedSoFar.heartRate,     QZMetricPacket.Metric.HEART_RATE,   v -> unicastedSoFar.heartRate     = v);
+    private void applyAndUnicast(QZMetricPacket packet) {
+        String msg = packet.serialize();
+        logMetric(msg);
+        sendUnicast(msg);
+        SliderMetric sliderMetric = toSliderMetric(packet.metric);
+        if (sliderMetric != null && Device.instance != null)
+            Device.instance.applyMetric(sliderMetric, packet.value);
     }
 
-    private void sendIfChanged(Float current, Float last, QZMetricPacket.Metric metric, Consumer<Float> save) {
-        if (current != null && !current.equals(last)) {
-            String msg = new QZMetricPacket(metric, current).serialize();
-            logMetric(msg);
-            sendUnicast(msg);
-            save.accept(current);
+    private static SliderMetric toSliderMetric(QZMetricPacket.Metric m) {
+        switch (m) {
+            case KPH:          return SliderMetric.KPH;
+            case GRADE:        return SliderMetric.GRADE;
+            case RESISTANCE:   return SliderMetric.RESISTANCE;
+            case CURRENT_GEAR: return SliderMetric.CURRENT_GEAR;
+            default:           return null;
         }
     }
 
@@ -111,11 +105,6 @@ public class MetricReaderUnicastingService extends Service {
             MainActivity.writeLog(msg);
             Log.i(LOG_TAG, msg);
         }
-    }
-
-    private void applyAndUnicast(MetricSnapshot m) {
-        if (Device.instance != null) Device.instance.updateSnapshot(m);
-        unicastLastKnown();
     }
 
     public static void sendUnicast(String messageStr) {

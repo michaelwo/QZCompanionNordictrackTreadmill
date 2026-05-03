@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 public abstract class TreadmillDevice extends Device {
 
@@ -10,6 +11,7 @@ public abstract class TreadmillDevice extends Device {
     private final Slider speed;
     private final Slider incline;
     private final Command cached = new Command();
+    private volatile float lastKnownKph = 0f;
 
     protected TreadmillDevice(Slider incline, Slider speed) {
         this.incline = incline;
@@ -25,12 +27,19 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
+    public void applyMetric(SliderMetric metric, float value) {
+        incline.applyIfMatch(metric, value);
+        speed.applyIfMatch(metric, value);
+        if (metric == SliderMetric.KPH) lastKnownKph = value;
+    }
+
+    @Override
     public final void applyCommand(Command cmd, long now) {
         // speed (2-part message, first field)
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
-            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastSnapshot.speed() + " cachedSpeed=" + cached.speedKmh);
-            if (lastSnapshot.speed() <= 0) {
+            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cached.speedKmh);
+            if (lastKnownKph <= 0) {
                 logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
                 cached.speedKmh = speedVal;
             } else if (lastCommandMs + SWIPE_THROTTLE_MS < now) {

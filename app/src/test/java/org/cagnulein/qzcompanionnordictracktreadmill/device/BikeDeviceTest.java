@@ -14,7 +14,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S27iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Se9iEllipticalDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;

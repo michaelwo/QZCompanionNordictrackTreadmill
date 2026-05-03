@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 public abstract class BikeDevice extends Device {
 
@@ -21,6 +22,12 @@ public abstract class BikeDevice extends Device {
     protected final void applyResistance(double level) {
         if (resistance == null) return;
         resistance.moveTo(level, this);
+    }
+
+    @Override
+    public void applyMetric(SliderMetric metric, float value) {
+        incline.applyIfMatch(metric, value);
+        if (resistance != null) resistance.applyIfMatch(metric, value);
     }
 
     @Override

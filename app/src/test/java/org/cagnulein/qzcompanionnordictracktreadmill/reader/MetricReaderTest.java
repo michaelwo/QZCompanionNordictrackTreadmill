@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.reader;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.QZMetricPacket;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,6 +12,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MetricReaderTest {
 
@@ -56,14 +58,23 @@ public class MetricReaderTest {
             "V/mono-stdout(2174): [Trace:FitPro] Changed Watts to: 128\n" +
             "V/mono-stdout(2174): [Trace:FitPro] Changed RPM to: 43\n"
         );
+        List<QZMetricPacket> received = new ArrayList<>();
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.subscribe(received::add);
         reader.read();
-        MetricSnapshot m = reader.awaitCurrentStream();
-        assertEquals(12.11f, m.speedKmh,      DELTA);
-        assertEquals(5f,     m.inclinePct,    DELTA);
-        assertEquals(13f,    m.resistanceLvl, DELTA);
-        assertEquals(128f,   m.watts,         DELTA);
-        assertEquals(43f,    m.cadenceRpm,    DELTA);
+        reader.awaitStream();
+
+        assertEquals(5, received.size());
+        assertEquals(QZMetricPacket.Metric.KPH,        received.get(0).metric);
+        assertEquals(12.11f, received.get(0).value, DELTA);
+        assertEquals(QZMetricPacket.Metric.GRADE,      received.get(1).metric);
+        assertEquals(5f,     received.get(1).value, DELTA);
+        assertEquals(QZMetricPacket.Metric.RESISTANCE, received.get(2).metric);
+        assertEquals(13f,    received.get(2).value, DELTA);
+        assertEquals(QZMetricPacket.Metric.WATTS,      received.get(3).metric);
+        assertEquals(128f,   received.get(3).value, DELTA);
+        assertEquals(QZMetricPacket.Metric.RPM,        received.get(4).metric);
+        assertEquals(43f,    received.get(4).value, DELTA);
     }
 
     @Test
@@ -71,10 +82,15 @@ public class MetricReaderTest {
         MonoStdoutMetricReader.factory = () -> fakeProcess(
             "V/mono-stdout(2174): [Trace:FitPro] Changed Actual Incline to: 3.5\n"
         );
+        List<QZMetricPacket> received = new ArrayList<>();
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.subscribe(received::add);
         reader.read();
-        MetricSnapshot m = reader.awaitCurrentStream();
-        assertEquals(3.5f, m.inclinePct, DELTA);
+        reader.awaitStream();
+
+        assertEquals(1, received.size());
+        assertEquals(QZMetricPacket.Metric.GRADE, received.get(0).metric);
+        assertEquals(3.5f, received.get(0).value, DELTA);
     }
 
     @Test
@@ -82,10 +98,15 @@ public class MetricReaderTest {
         MonoStdoutMetricReader.factory = () -> fakeProcess(
             "V/mono-stdout(2174): [Trace:FitPro] HeartRateDataUpdate 72\n"
         );
+        List<QZMetricPacket> received = new ArrayList<>();
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.subscribe(received::add);
         reader.read();
-        MetricSnapshot m = reader.awaitCurrentStream();
-        assertEquals(72f, m.heartRate, DELTA);
+        reader.awaitStream();
+
+        assertEquals(1, received.size());
+        assertEquals(QZMetricPacket.Metric.HEART_RATE, received.get(0).metric);
+        assertEquals(72f, received.get(0).value, DELTA);
     }
 
     @Test
@@ -94,9 +115,14 @@ public class MetricReaderTest {
             "QZ:Service Changed KPH 99.9\n" +
             "V/mono-stdout(2174): [Trace:FitPro] Changed KPH to: 12.11\n"
         );
+        List<QZMetricPacket> received = new ArrayList<>();
         MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        reader.subscribe(received::add);
         reader.read();
-        MetricSnapshot m = reader.awaitCurrentStream();
-        assertEquals(12.11f, m.speedKmh, DELTA);
+        reader.awaitStream();
+
+        assertEquals(1, received.size());
+        assertEquals(QZMetricPacket.Metric.KPH, received.get(0).metric);
+        assertEquals(12.11f, received.get(0).value, DELTA);
     }
 }

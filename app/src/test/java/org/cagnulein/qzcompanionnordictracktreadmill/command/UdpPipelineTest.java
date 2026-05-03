@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.junit.After;
 import org.junit.Before;
@@ -67,14 +67,14 @@ public class UdpPipelineTest {
      * signals the latch.  Mirrors the core of CommandListenerService.listenAndWaitAndThrowIntent
      * without the Android PowerManager/WifiManager calls.
      */
-    private void startReceiver(Device device, MetricSnapshot current, CountDownLatch latch) {
+    private void startReceiver(Device device, float speedKmh, CountDownLatch latch) {
         listenerThread = new Thread(() -> {
             try {
                 byte[] buf = new byte[1024];
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
-                device.updateSnapshot(current);
+                device.applyMetric(SliderMetric.KPH, speedKmh);
                 dispatcher.dispatch(message, device);
                 latch.countDown();
             } catch (Exception e) {
@@ -102,8 +102,7 @@ public class UdpPipelineTest {
         // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
         // Expected: input swipe 1205 600 1205 447 200
         CountDownLatch latch = new CountDownLatch(1);
-        MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        startReceiver(dev(new X11iDevice()), current, latch);
+        startReceiver(dev(new X11iDevice()), 5.0f, latch);
 
         sendUdp("8.0;3.0");
 
@@ -119,8 +118,7 @@ public class UdpPipelineTest {
         X11iDevice sentinelDevice = new X11iDevice();
         sentinelDevice.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
 
-        MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
-        startReceiver(sentinelDevice, current, new CountDownLatch(1));
+        startReceiver(sentinelDevice, 5.0f, new CountDownLatch(1));
 
         sendUdp("-1;-100");
 
@@ -133,7 +131,6 @@ public class UdpPipelineTest {
     public void treadmill_commaDecimalSeparator_parsesCorrectly() throws Exception {
         // Same expected swipe as the dot-separator test — parsing must handle both.
         CountDownLatch latch = new CountDownLatch(1);
-        MetricSnapshot current = new MetricSnapshot.Builder().speedKmh(5.0f).build();
 
         // Simulate a listener with comma as decimal separator.
         X11iDevice device = dev(new X11iDevice());
@@ -143,7 +140,7 @@ public class UdpPipelineTest {
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
-                device.updateSnapshot(current);
+                device.applyMetric(SliderMetric.KPH, 5.0f);
                 dispatcher.dispatch(message, device);
                 latch.countDown();
             } catch (Exception e) { /* closed */ }
@@ -163,7 +160,7 @@ public class UdpPipelineTest {
     public void bike_resistanceMessage_producesExpectedSwipe() throws Exception {
         // S15i: resistance 10 → input swipe 1845 790 1845 559 200
         CountDownLatch latch = new CountDownLatch(1);
-        startReceiver(dev(new S15iDevice()), new MetricSnapshot(), latch);
+        startReceiver(dev(new S15iDevice()), 0.0f, latch);
 
         sendUdp("10.0");
 
@@ -178,7 +175,7 @@ public class UdpPipelineTest {
         S15iDevice sentinelDevice = new S15iDevice();
         sentinelDevice.commandExecutor = cmd -> { captured.set(cmd); commandLatch.countDown(); };
 
-        startReceiver(sentinelDevice, new MetricSnapshot(), new CountDownLatch(1));
+        startReceiver(sentinelDevice, 0.0f, new CountDownLatch(1));
 
         sendUdp("-1");
 

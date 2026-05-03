@@ -28,7 +28,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iDevice
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39019Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39221Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
@@ -156,24 +156,24 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t65s_isInstanceOfTreadmillDevice() {
-        assertTrue(new T65sDevice("T6.5s Treadmill") instanceof TreadmillDevice);
+        assertTrue(new T65sDevice() instanceof TreadmillDevice);
     }
 
     @Test
     public void t65s_hasCorrectDisplayName() {
-        assertEquals("T6.5s Treadmill", new T65sDevice("T6.5s Treadmill").displayName());
+        assertEquals("T6.5s Treadmill", new T65sDevice().displayName());
     }
 
     // ── Elite1000Device ───────────────────────────────────────────────────────
 
     @Test
     public void elite1000_isInstanceOfTreadmillDevice() {
-        assertTrue(new Elite1000Device("Elite 1000 Treadmill") instanceof TreadmillDevice);
+        assertTrue(new Elite1000Device() instanceof TreadmillDevice);
     }
 
     @Test
     public void elite1000_hasCorrectDisplayName() {
-        assertEquals("Elite 1000 Treadmill", new Elite1000Device("Elite 1000 Treadmill").displayName());
+        assertEquals("Elite 1000 Treadmill", new Elite1000Device().displayName());
     }
 
     // ── Speed monotonicity ────────────────────────────────────────────────────
@@ -323,7 +323,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t65s_applySpeed_atZero_generatesCorrectSwipe() {
-        T65sDevice dev = dev(new T65sDevice("T6.5s Treadmill"));
+        T65sDevice dev = dev(new T65sDevice());
         dev.applySpeed(0.0);
         // fromY=495; y2=(int)(578.36)=578
         assertEquals("input swipe 1205 495 1205 578 200", lastCommand);
@@ -331,7 +331,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t65s_applySpeed_atEight_generatesCorrectSwipe() {
-        T65sDevice dev = dev(new T65sDevice("T6.5s Treadmill"));
+        T65sDevice dev = dev(new T65sDevice());
         dev.applySpeed(0.0); // advance currentY to 578
         dev.applySpeed(8.0);
         // fromY=578; y2=(int)(578.36-35.866*8*0.621371)=(int)(578.36-178.283)=(int)400.077=400
@@ -340,7 +340,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t65s_applyIncline_atZero_generatesCorrectSwipe() {
-        T65sDevice dev = dev(new T65sDevice("T6.5s Treadmill"));
+        T65sDevice dev = dev(new T65sDevice());
         dev.applyIncline(0.0);
         // fromY=585; y2=(int)(576.91)=576
         assertEquals("input swipe 75 585 75 576 200", lastCommand);
@@ -348,7 +348,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t65s_applyIncline_atFive_generatesCorrectSwipe() {
-        T65sDevice dev = dev(new T65sDevice("T6.5s Treadmill"));
+        T65sDevice dev = dev(new T65sDevice());
         dev.applyIncline(0.0); // advance currentY to 576
         dev.applyIncline(5.0);
         // fromY=576; y2=(int)(576.91-34.182*5); FP gives 405 not 406
@@ -362,7 +362,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void elite1000_applySpeed_atEight_generatesCorrectSwipe() {
-        Elite1000Device dev = dev(new Elite1000Device("Elite 1000 Treadmill"));
+        Elite1000Device dev = dev(new Elite1000Device());
         dev.applySpeed(8.0);
         // fromY=600; y2=600-(int)(4.970968*31.33)=600-(int)155.691=600-155=445
         assertEquals("input swipe 1205 600 1205 445 200", lastCommand);
@@ -370,7 +370,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void elite1000_applyIncline_atFive_generatesCorrectSwipe() {
-        Elite1000Device dev = dev(new Elite1000Device("Elite 1000 Treadmill"));
+        Elite1000Device dev = dev(new Elite1000Device());
         dev.applyIncline(5.0);
         // fromY=589; y2=589-(int)(5*32.8)=589-164=425
         assertEquals("input swipe 75 589 75 425 200", lastCommand);
@@ -1122,8 +1122,8 @@ public class TreadmillDeviceTest {
         // guard is speed() > 0; device that previously moved but is now stopped at 0.0f
         // must still cache the command (not apply it).
         X11iDevice device = dev(new X11iDevice());
-        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build()); // was moving
-        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(0.0f).build()); // now stopped
+        device.applyMetric(SliderMetric.KPH, 5.0f); // was moving
+        device.applyMetric(SliderMetric.KPH, 0.0f); // now stopped
         CommandDispatcher d = new CommandDispatcher(() -> 1_000L + Device.SWIPE_THROTTLE_MS + 100);
         d.dispatch("8.0;-100", device);
         assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
@@ -1137,7 +1137,7 @@ public class TreadmillDeviceTest {
         X11iDevice device = dev(new X11iDevice());
         CommandDispatcher d = new CommandDispatcher(() -> t[0]);
 
-        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build());
+        device.applyMetric(SliderMetric.KPH, 5.0f);
         d.dispatch("8.0;-100", device);  // applied at t=1000; currentSpeedY → 447
 
         t[0] += 200;

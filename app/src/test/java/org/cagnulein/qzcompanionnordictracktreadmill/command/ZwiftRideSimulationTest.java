@@ -3,7 +3,6 @@ package org.cagnulein.qzcompanionnordictracktreadmill.command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 import org.junit.Before;
 import org.junit.Test;

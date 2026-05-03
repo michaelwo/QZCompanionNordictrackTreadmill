@@ -6,10 +6,10 @@ import java.io.InputStreamReader;
 import java.util.function.Consumer;
 
 /**
- * Streams {@code logcat -s mono-stdout} in a daemon thread, updating a cached snapshot
- * as each line arrives. {@link #read} returns the cached snapshot without doing I/O.
- * {@code mono-stdout} is the logcat tag emitted by the Xamarin/Mono runtime for all
- * {@code com.ifit.standalone} (iFit APK) metric changes — present on every supported device.
+ * Streams {@code logcat -s mono-stdout} in a daemon thread, emitting a {@link QZMetricPacket}
+ * for each matched line. {@code mono-stdout} is the logcat tag emitted by the Xamarin/Mono
+ * runtime for all {@code com.ifit.standalone} (iFit APK) metric changes — present on every
+ * supported device.
  *
  * The stream is started lazily on the first {@link #read} call and restarts automatically
  * if the underlying logcat process exits.
@@ -32,12 +32,11 @@ public class MonoStdoutMetricReader implements MetricReader {
      *  can run without Android. The service overrides this to log via {@code Log.e()}. */
     public static volatile Consumer<Exception> onError = e -> {};
 
-    /** Called for each raw logcat line that produced a snapshot update. No-op by default;
+    /** Called for each raw logcat line that produced a packet. No-op by default;
      *  the service sets this to a logger when verbose mode is on. */
     public static volatile Consumer<String> onLine = s -> {};
 
-    private volatile MetricSnapshot latest = new MetricSnapshot();
-    private volatile Consumer<MetricSnapshot> listener;
+    private volatile Consumer<QZMetricPacket> listener;
     private Thread readerThread;
 
     @Override
@@ -46,19 +45,17 @@ public class MonoStdoutMetricReader implements MetricReader {
     }
 
     @Override
-    public boolean subscribe(Consumer<MetricSnapshot> l) {
+    public boolean subscribe(Consumer<QZMetricPacket> l) {
         this.listener = l;
         return true;
     }
 
     /**
      * Blocks until the reader thread terminates. Intended for tests that inject a finite
-     * stream via {@link #factory} and need to drain it before asserting on the snapshot.
-     * Returns the accumulated snapshot.
+     * stream via {@link #factory} and need to drain it before asserting.
      */
-    public MetricSnapshot awaitCurrentStream() throws InterruptedException {
+    public void awaitStream() throws InterruptedException {
         if (readerThread != null) readerThread.join();
-        return latest;
     }
 
     private synchronized void ensureRunning() {
@@ -85,35 +82,27 @@ public class MonoStdoutMetricReader implements MetricReader {
     }
 
     private void parseLine(String line) {
-        MetricSnapshot updated = null;
+        QZMetricPacket packet = null;
         if (containsAny(line, KPH_KEYWORDS)) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).speedKmh(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.KPH, v);
         } else if (containsAny(line, GRADE_KEYWORDS)) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).inclinePct(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.GRADE, v);
         } else if (line.contains("Changed Watts")) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).watts(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.WATTS, v);
         } else if (line.contains("Changed RPM")) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).cadenceRpm(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.RPM, v);
         } else if (line.contains("Changed CurrentGear")) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).gearLevel(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.CURRENT_GEAR, v);
         } else if (line.contains("Changed Resistance")) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).resistanceLvl(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.RESISTANCE, v);
         } else if (line.contains("HeartRateDataUpdate")) {
-            Float v = lastFloat(line); if (v != null) updated = copyOf(latest).heartRate(v).build();
+            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.HEART_RATE, v);
         }
-        if (updated != null) {
+        if (packet != null) {
             onLine.accept(line);
-            latest = updated;
-            Consumer<MetricSnapshot> l = listener;
-            if (l != null) l.accept(updated);
+            Consumer<QZMetricPacket> l = listener;
+            if (l != null) l.accept(packet);
         }
-    }
-
-    private static MetricSnapshot.Builder copyOf(MetricSnapshot s) {
-        return new MetricSnapshot.Builder()
-                .speedKmh(s.speedKmh).inclinePct(s.inclinePct).watts(s.watts)
-                .cadenceRpm(s.cadenceRpm).gearLevel(s.gearLevel)
-                .resistanceLvl(s.resistanceLvl).heartRate(s.heartRate);
     }
 
     private static boolean containsAny(String line, String[] keywords) {

@@ -23,7 +23,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerServ
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import static org.junit.Assert.*;
 
@@ -211,7 +211,7 @@ public class ZwiftRideRobolectricTest {
     @Test
     public void x11i_speedMessage_producesExpectedSwipe() throws Exception {
         X11iDevice x11i = new X11iDevice();
-        x11i.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
+        x11i.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
         Device.instance = x11i;

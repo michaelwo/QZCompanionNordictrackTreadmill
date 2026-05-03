@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 /**
  * Represents one physical slider on the fitness device's touch screen.
@@ -9,6 +9,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  *   - a fixed horizontal track position ({@link #trackX})
  *   - a movable thumb whose current vertical position is tracked in {@link #thumbY}
  *   - a formula mapping a metric value to a target Y coordinate ({@link #targetThumbY})
+ *   - an optional live metric value ({@link #liveValue}) updated via {@link #applyIfMatch}
  *
  * The formula can be supplied either as a {@link ThumbYFormula} constructor argument
  * (preferred for simple sliders) or by overriding {@link #targetThumbY} in a subclass
@@ -29,6 +30,8 @@ public class Slider {
     private final ThumbYFormula formula;
     private int thumbY;
     private Float lastApplied = null;
+    private SliderMetric metric = null;
+    protected volatile Float liveValue = null;
 
     public Slider(int trackX, int initialThumbY, ThumbYFormula formula) {
         this.trackX  = trackX;
@@ -47,43 +50,45 @@ public class Slider {
 
     // ── Static factory methods ─────────────────────────────────────────────────
 
-    /** Creates a Slider with targetThumbY = origin - (int)(scale * v). */
+    /** Creates a Slider with targetThumbY = (int)(origin - scale * v). */
     public static Slider linear(int trackX, int origin, double scale) {
-        return new Slider(trackX, origin, v -> origin - (int)(scale * v));
+        return new Slider(trackX, origin, v -> (int)(origin - scale * v));
     }
 
-    /** Creates a Slider with targetThumbY = origin - (int)(scale * (v + shift)). */
+    /** Creates a Slider with targetThumbY = (int)(origin - scale * (v + shift)). */
     public static Slider linear(int trackX, int origin, double scale, double shift) {
-        return new Slider(trackX, origin, v -> origin - (int)(scale * (v + shift)));
+        return new Slider(trackX, origin, v -> (int)(origin - scale * (v + shift)));
     }
 
     /** Creates a Slider that derives currentThumbY from the live incline metric. */
     public static Slider inclineLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula) {
-            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.incline()); }
-        };
+        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.GRADE);
     }
 
     /** Creates a Slider that derives currentThumbY from the live speed metric. */
     public static Slider speedLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula) {
-            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.speed()); }
-        };
+        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.KPH);
     }
 
     /** Creates a Slider that derives currentThumbY from the live resistance metric. */
     public static Slider resistanceLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula) {
-            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.resistance()); }
-        };
+        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.RESISTANCE);
     }
 
     /** Creates a Slider that derives currentThumbY from the live gear metric. */
     public static Slider gearLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula) {
-            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.gear()); }
-        };
+        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.CURRENT_GEAR);
     }
+
+    // ── Live metric ownership ──────────────────────────────────────────────────
+
+    public Slider withMetric(SliderMetric m) { this.metric = m; return this; }
+
+    public void applyIfMatch(SliderMetric m, float value) {
+        if (metric != null && metric == m) liveValue = value;
+    }
+
+    public float liveValueOrZero() { return liveValue != null ? liveValue : 0f; }
 
     // ── Instance API ───────────────────────────────────────────────────────────
 
@@ -95,11 +100,16 @@ public class Slider {
 
     /**
      * Current pixel Y of the slider thumb.
-     * Default: returns the internally tracked position, updated after each {@link #moveTo}.
-     * Override to derive from live observed metrics instead — used by devices that re-read
-     * the current position from the device display rather than tracking it as state.
+     * For live sliders (metric != null): returns targetThumbY(liveValue) when a live
+     * value is known, else targetThumbY(0) — matching the pre-live-data neutral position.
+     * For non-live sliders: returns the internally tracked thumbY.
+     * Override when additional guards are needed (e.g. resistance level must be >= 1).
      */
-    protected int currentThumbY(MetricSnapshot current) { return thumbY; }
+    protected int currentThumbY() {
+        if (liveValue != null) return targetThumbY(liveValue);
+        if (metric != null) return targetThumbY(0.0);
+        return thumbY;
+    }
 
     /**
      * Snap {@code value} to the nearest position this slider can physically reach.
@@ -120,11 +130,9 @@ public class Slider {
 
     /**
      * Swipe the slider thumb from its current position to the position for {@code value}.
-     * The device's own {@code lastSnapshot} is used to determine the starting thumb position
-     * for devices that derive it from live metrics rather than tracking it as state.
      */
     public void moveTo(double value, Device device) {
-        int fromY  = currentThumbY(device.lastSnapshot);
+        int fromY  = currentThumbY();
         int toY    = targetThumbY(value);
         int h      = hysteresisPixels(fromY, toY);
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;

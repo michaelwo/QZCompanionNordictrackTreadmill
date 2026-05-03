@@ -21,7 +21,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerServ
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import static org.junit.Assert.*;
 
@@ -83,7 +83,7 @@ public class CommandListenerServiceTest {
         // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
         // Expected: input swipe 1205 600 1205 447 200
         X11iDevice x11i = new X11iDevice();
-        x11i.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
+        x11i.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = x11i;
@@ -101,7 +101,7 @@ public class CommandListenerServiceTest {
     public void bike_udpMessage_producesExpectedSwipe() throws Exception {
         // S15i: resistance level 10 from a stopped device
         // Expected: input swipe 1845 790 1845 559 200
-        S15iDevice s15i = new S15iDevice();  // lastSnapshot defaults to empty (stopped)
+        S15iDevice s15i = new S15iDevice();
         CountDownLatch latch = new CountDownLatch(1);
         s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = s15i;
@@ -136,7 +136,7 @@ public class CommandListenerServiceTest {
     public void sentinel_message_noCommandProduced() throws Exception {
         // "-1;-100" is the all-sentinel message — no values to apply.
         X11iDevice x11i2 = new X11iDevice();
-        x11i2.lastSnapshot = new MetricSnapshot.Builder().speedKmh(5.0f).build();
+        x11i2.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i2.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
         Device.instance = x11i2;

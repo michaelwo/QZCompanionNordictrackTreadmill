@@ -12,5 +12,5 @@ public interface MetricReader {
      * new metric arrives, allowing the service to skip the poll loop entirely.
      * Returns {@code true} if accepted; {@code false} for pull-based readers (default).
      */
-    default boolean subscribe(Consumer<MetricSnapshot> listener) { return false; }
+    default boolean subscribe(Consumer<QZMetricPacket> listener) { return false; }
 }

@@ -2,7 +2,6 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
 
 public class ProformCarbonE7Device extends BikeDevice {
 

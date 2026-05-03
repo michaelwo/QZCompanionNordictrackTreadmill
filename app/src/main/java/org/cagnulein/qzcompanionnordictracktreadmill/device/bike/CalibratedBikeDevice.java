@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 /**
  * Bike device whose swipe formulas are loaded at runtime from DeviceCalibration
@@ -34,7 +34,7 @@ public class CalibratedBikeDevice extends BikeDevice {
     private static Slider buildInclineSlider() {
         DeviceCalibration cal = DeviceCalibration.current;
         int initial = cal != null ? cal.neutralY : S22I_DEFAULT_NEUTRAL_Y;
-        return new Slider(initial) {
+        return (new Slider(initial) {
 
             @Override
             public int trackX() {
@@ -64,10 +64,10 @@ public class CalibratedBikeDevice extends BikeDevice {
             }
 
             @Override
-            protected int currentThumbY(MetricSnapshot s) {
-                return s.inclinePct != null ? targetThumbY(s.inclinePct) : thumbY();
+            protected int currentThumbY() {
+                return liveValue != null ? targetThumbY(liveValue) : thumbY();
             }
-        };
+        }).withMetric(SliderMetric.GRADE);
     }
 
     // ── resistance ────────────────────────────────────────────────────────────
@@ -76,7 +76,7 @@ public class CalibratedBikeDevice extends BikeDevice {
         DeviceCalibration cal = DeviceCalibration.current;
         if (cal == null || cal.resistanceOrigin == null) return null;
         int initY = (int) cal.resistanceOrigin.doubleValue();
-        return new Slider(initY) {
+        return (new Slider(initY) {
 
             @Override
             public int trackX() {
@@ -99,10 +99,10 @@ public class CalibratedBikeDevice extends BikeDevice {
             }
 
             @Override
-            protected int currentThumbY(MetricSnapshot s) {
-                return (s.resistanceLvl != null && s.resistanceLvl >= 1)
-                        ? targetThumbY(s.resistanceLvl) : thumbY();
+            protected int currentThumbY() {
+                return (liveValue != null && liveValue >= 1)
+                        ? targetThumbY(liveValue) : thumbY();
             }
-        };
+        }).withMetric(SliderMetric.RESISTANCE);
     }
 }

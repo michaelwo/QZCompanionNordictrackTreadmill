@@ -5,7 +5,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,9 +30,9 @@ public class CommandDispatcherTest {
         return new CommandDispatcher(() -> time[0]);
     }
 
-    /** Pre-populate a device's lastSnapshot so the treadmill speed gate passes. */
+    /** Pre-populate a device's live speed so the treadmill speed gate passes. */
     private static void setMoving(Device device) {
-        device.updateSnapshot(new MetricSnapshot.Builder().speedKmh(5.0f).build());
+        device.applyMetric(SliderMetric.KPH, 5.0f);
     }
 
     @Before
