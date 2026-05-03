@@ -25,19 +25,20 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 
 | File | Tests | What it covers |
 |------|------:|----------------|
-| `MetricReaderTest` | 3 | `MonoStdoutMetricReader` stream parsing and push subscription; malformed lines |
-| `BikeDeviceTest` | 64 | All bike device subclasses: `targetY()` formula at representative values, throttle/cache, de-dup, null resistance slider, negative incline, hysteresis overshoot |
-| `TreadmillDeviceTest` | 142 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, throttle/cache, negative incline, cache overwrite |
+| `MetricReaderTest` | 4 | `MonoStdoutMetricReader` stream parsing and push subscription; malformed lines |
+| `BikeDeviceTest` | 64 | All bike device subclasses: `targetY()` formula at representative values, FIFO queue, de-dup, null resistance slider, negative incline, hysteresis overshoot, `decodeCommands` sentinel/boundary cases |
+| `TreadmillDeviceTest` | 142 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, FIFO queue, negative incline, `decodeCommands` sentinel/boundary cases |
 | `QZCommandPacketTest` | 23 | `QZCommandPacket` parsing: all command types, malformed input, locale separators, boundary values |
 | `QZMetricPacketTest` | 29 | `QZMetricPacket`: serialize, parse, round-trip, wire-format identity |
-| `CommandDispatcherTest` | 16 | Full pipeline from raw UDP string → `decodeCommand` → `applyCommand` → captured swipe; throttle, cache, locale mismatch |
+| `CommandDispatcherTest` | 17 | Full pipeline from raw UDP string → `decodeCommands` → `applyCommand` → captured swipe; throttle, FIFO queue, passive drain, sentinel flush, locale mismatch |
+| `DeviceCalibrationRegressionTest` | 13 | `DeviceCalibration` JSON loading, formula application, and regression against known-good calibration values |
 | `UdpPipelineTest` | 5 | End-to-end with real UDP sockets: datagram received by `CommandListenerService` → `CommandDispatcher` → device swipe captured |
 | `ZwiftRideSimulationTest` | 10 | Scenario replay against S22i: synthetic Zwift grade sequence through the full pipeline; time-injected throttle; verifies y1→y2 state chain across calls |
 | `HillyRouteReplayTest` | 1 | Parameterised replay of a recorded Hilly Route (31 intervals) against S22i; verifies de-dup fires correctly on repeated grades |
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `CommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `CommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
 | `MetricReaderUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
-| **Total** | **310** | |
+| **Total** | **325** | |
 
 ---
 
@@ -63,6 +64,34 @@ Expected Y values are derived analytically from the device's `targetY()` formula
 `CommandDispatcher` tests inject a `Clock` lambda (`() -> time[0]`) and advance `time[0]` directly — no `Thread.sleep()` anywhere in the test suite.
 
 `MonoStdoutMetricReader` tests inject a fake `ProcessFactory` that returns a process backed by a `ByteArrayInputStream`, then call `reader.awaitCurrentStream()` to drain the daemon thread before asserting on the snapshot.
+
+---
+
+## CommandDispatcher Queue and Sentinel Pattern
+
+`CommandDispatcher` drains its queue **passively** — only when `dispatch()` is called, and only one Command per call when the throttle window is open. There is no background timer. This is by design: Zwift's continuous UDP stream drives draining naturally during a ride, and the sentinel flood at ride end (`"-1;-100"` packets) provides a free flush mechanism.
+
+**Sentinels as flush pulses:** A sentinel message decodes to an empty `List<Command>` (no new Commands enqueued), but the drain check still runs. So each sentinel call removes exactly one item from the queue — making it the standard tool for flushing queued state in tests:
+
+```java
+// Queue a Command during the throttle window:
+time[0] += 100;
+d.dispatch("12.0", device);   // throttled → queued
+
+// Flush it with a sentinel once the window re-opens:
+time[0] += CommandDispatcher.SWIPE_THROTTLE_MS;
+d.dispatch("-1", device);     // empty decode → drains "12.0" from queue
+```
+
+When writing dispatcher tests that need to drain multiple queued Commands, dispatch one sentinel per Command:
+
+```java
+d.dispatch("-1", device);  // drains queued Command 1
+time[0] += CommandDispatcher.SWIPE_THROTTLE_MS;
+d.dispatch("-1", device);  // drains queued Command 2
+```
+
+The test `sentinel_drainsOneCommandPerCall` in `CommandDispatcherTest` explicitly documents and verifies this behaviour.
 
 ---
 

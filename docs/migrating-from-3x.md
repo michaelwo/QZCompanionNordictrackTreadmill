@@ -20,9 +20,9 @@ There were **zero tests**. De-duplication had a latent bug (using `!=` on boxed 
 The 4.x refactor broke both files apart along their natural seams:
 
 - **Device knowledge** (pixel constants, quantization, hysteresis) moved into individual device classes — one file per device.
-- **Dispatch policy** (throttle, cache, de-dup) moved onto the `Device` class hierarchy, owned by the type that knows what's physically applied.
-- **Command routing** (`CommandDispatcher`) became a thin, pure-Java, Android-free class with no device-specific knowledge.
-- **Metric state** (`MetricSnapshot`) became a typed value object replacing a bag of static floats.
+- **Dispatch policy** (throttle, FIFO queue) moved into `CommandDispatcher`; de-dup and the treadmill speed gate remain in the device classes.
+- **Command routing** (`CommandDispatcher`) became a pure-Java, Android-free class that throttles, queues, and routes — testable without a device or emulator.
+- **Metric state** moved out of static fields and into per-`Slider` live-metric values; `SliderMetric`-keyed `applyMetric()` calls on `Device` replace the old static float bag.
 - **Service files** became thin Android glue — the business logic inside them is now independently testable.
 
 The result is ~200 pure JVM tests, a much smaller diff when adding a new device, and dispatch bugs that are reproducible without hardware.
@@ -39,7 +39,7 @@ The two main service files were renamed to say what they actually do:
 | `QZService` | `MetricReaderUnicastingService` |
 | `MyAccessibilityService` | `MyAccessibilityService` *(unchanged)* |
 
-If you're searching the codebase for something that lived in `QZService` in 3.x, look in `MetricReaderUnicastingService` first, then `Device` (metric snapshot state moved there).
+If you're searching the codebase for something that lived in `QZService` in 3.x, look in `MetricReaderUnicastingService` first, then `Device` and its `Slider` instances (metric values live there now).
 
 ---
 
@@ -51,8 +51,8 @@ If you're searching the codebase for something that lived in `QZService` in 3.x,
 | `UDPListenerService.setDevice()` switch | `DeviceRegistry.DEVICES` EnumMap |
 | Per-device pixel constants in `setDevice()` | Inside each device class (`device/bike/`, `device/treadmill/`) |
 | Per-device dispatch `if/else` chains | `BikeDevice.applyCommand()` / `TreadmillDevice.applyCommand()` |
-| `static long lastSwipeMs` | `Device.lastCommandMs` (instance field) |
-| `static float lastSpeedFloat` etc. | `device.lastSnapshot` (`MetricSnapshot`) |
+| `static long lastSwipeMs` | `CommandDispatcher.lastExecutedMs` (private, injectable-clock) |
+| `static float lastSpeedFloat` etc. | Per-`Slider` live-metric values; `Device.applyMetric(SliderMetric, float)` updates them |
 | `static boolean ifit_v2` | `MetricReader.forIfitV2()` — no flag; format adaptation is on the reader |
 | OCR-based calibration in `QZService` + `CalibrationActivity` | Removed — calibration is now done by `tools/discover-device.py` (ADB sweep); `DeviceCalibration` loads the resulting `qz-calibration.json` at startup |
 | Device selection in `MainActivity` (RadioGroup) | `DeviceAdapter` (RecyclerView, sectioned by type) |
@@ -208,15 +208,7 @@ static float lastResistanceFloat = 0;
 
 Any class that needed current speed or incline imported `QZService` and read these directly. This made the coupling invisible and the state globally mutable.
 
-**4.x:** Metric values are a `MetricSnapshot` on `Device.instance`:
-
-```java
-MetricSnapshot snap = Device.instance.lastSnapshot;
-float speed   = snap.speed();
-float incline = snap.incline();
-```
-
-`MetricSnapshot` is an immutable value object. `updateSnapshot()` replaces the whole object atomically. The speed gate in `TreadmillDevice` reads `lastSnapshot.speed()` — no cross-service import needed.
+**4.x:** Metric values are tracked inside each `Slider` as a live float, updated via `Device.applyMetric(SliderMetric, float)`. `Slider` subclasses that override `currentThumbY()` read back this live value before each swipe to correct drift. The speed gate in `TreadmillDevice` reads `lastKnownKph` (set by `applyMetric`) — no cross-service import needed.
 
 ---
 

@@ -16,6 +16,16 @@ import java.util.List;
  * When the window opens and the queue is empty (e.g. a sentinel message), applyCommand() is
  * still called with an all-null Command so TreadmillDevice's belt-gate flush fires if needed.
  *
+ * <h3>Passive drain design</h3>
+ * The queue drains only when dispatch() is called — there is no background timer or drain
+ * thread.  This is intentional: Zwift sends UDP packets continuously during a ride (~1 per
+ * second), so any burst-induced backlog clears itself within a few seconds as incoming packets
+ * each trigger one drain tick.  At ride end, Zwift floods "-1;-100" sentinel packets; these
+ * decode to an empty list (no new Commands enqueued) but still trigger the drain check, acting
+ * as a free flush pulse — one queued Command per sentinel.  The queue cap of QUEUE_CAPACITY
+ * bounds worst-case stale Commands to a small, finite number that survive until the next
+ * incoming packet.
+ *
  * Device subclasses via applyCommand() are pure executors — no throttle logic there.
  *
  * Extracted as a plain Java class so it can be tested without Android dependencies.

@@ -179,7 +179,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 ## Treadmills
 
-Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gated: no swipe fires while `lastSnapshot.speed <= 0` (belt stopped).
+Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gated: no swipe fires while `lastKnownKph <= 0` (belt stopped); the pending speed is held in a one-slot cache and applied once the belt moves.
 
 ### X9i (`x9i`)
 

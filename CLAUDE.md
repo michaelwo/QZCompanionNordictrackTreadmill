@@ -26,7 +26,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │                     DeviceCalibration
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
-└── reader/           MetricReader hierarchy, MetricSnapshot, QZMetricPacket,
+└── reader/           MetricReader hierarchy, QZMetricPacket,
                       MetricReaderUnicastingService
 ```
 

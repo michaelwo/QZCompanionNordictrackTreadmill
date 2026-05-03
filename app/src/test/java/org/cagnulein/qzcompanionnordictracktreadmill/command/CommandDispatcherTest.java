@@ -10,6 +10,9 @@ import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Integration tests for CommandDispatcher.
@@ -241,5 +244,48 @@ public class CommandDispatcherTest {
         CommandDispatcher d = dispatcher();
         d.dispatch("8,0;3,0", device);
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
+    }
+
+    // ── Sentinel as passive drain driver ──────────────────────────────────────
+
+    /**
+     * Verifies that the queue drains exactly one Command per dispatch() call and does
+     * not drain passively between calls.
+     *
+     * Three resistance Commands arrive in a burst (within the throttle window) and queue.
+     * Each sentinel call (empty decode → no new Commands enqueued) drains one — confirming
+     * that it takes N sentinel calls to clear N queued Commands. This is the intended
+     * mechanism: Zwift's continuous UDP stream (and the sentinel flood at ride end) drives
+     * draining; there is no background timer.
+     *
+     * S15i: resistanceY(12)=513, resistanceY(14)=466, resistanceY(16)=420
+     */
+    @Test
+    public void sentinel_drainsOneCommandPerCall() {
+        List<String> commands = new ArrayList<>();
+        S15iDevice device = new S15iDevice();
+        device.commandExecutor = commands::add;
+        CommandDispatcher d = dispatcher();
+
+        d.dispatch("10.0", device);                      // t=1000: window open → drained immediately
+        time[0] += 100; d.dispatch("12.0", device);     // t=1100: window closed → queued
+        time[0] += 100; d.dispatch("14.0", device);     // t=1200: window closed → queued
+        time[0] += 100; d.dispatch("16.0", device);     // t=1300: window closed → queued
+        assertEquals("only the initial dispatch fires during the burst", 1, commands.size());
+
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=1800: window open
+        d.dispatch("-1", device);                        // sentinel 1 → drains 12.0
+        assertEquals(2, commands.size());
+        assertEquals("input swipe 1845 790 1845 513 200", commands.get(1));
+
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=2300: window open
+        d.dispatch("-1", device);                        // sentinel 2 → drains 14.0
+        assertEquals(3, commands.size());
+        assertEquals("input swipe 1845 790 1845 466 200", commands.get(2));
+
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=2800: window open
+        d.dispatch("-1", device);                        // sentinel 3 → drains 16.0
+        assertEquals(4, commands.size());
+        assertEquals("input swipe 1845 790 1845 420 200", commands.get(3));
     }
 }

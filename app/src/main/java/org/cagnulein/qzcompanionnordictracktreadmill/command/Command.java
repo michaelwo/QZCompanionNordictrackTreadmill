@@ -3,9 +3,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.command;
 /**
  * A requested change to a device — decoded from a single UDP message.
  *
- * null means "not requested this message". Distinct from {@link
- * org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot},
- * which represents what the device is currently doing.
+ * null means "not requested this message". Distinct from live metric values
+ * tracked per-Slider, which represent what the device is currently doing.
  */
 public class Command {
     public Float speedKmh      = null;
