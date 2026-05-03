@@ -4,18 +4,18 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+
 /**
  * Integration tests for CommandDispatcher.
  *
  * Each test exercises the full pipeline from a raw UDP message string through
- * decodeCommand, throttle/cache logic, and apply*, down to the final "input swipe"
+ * decodeCommand, queue/throttle logic, and apply*, down to the final "input swipe"
  * shell command — using real device instances with a capturing CommandExecutor.
  *
  * Time is injected via a mutable long[] so throttle behaviour can be tested
@@ -49,7 +49,9 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_speedAndIncline_appliesSpeedSwipe() {
-        // X11i: speedX=1207, initialSpeedY=600, targetSpeedY(8.0)=(int)(621.997-174.28)=447
+        // Speed and incline are decoded as two separate Commands and enqueued.
+        // Only the first (speed) is drained immediately; incline stays queued.
+        // X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
@@ -58,34 +60,38 @@ public class CommandDispatcherTest {
     }
 
     @Test
-    public void treadmill_speedAndIncline_inclineThrottledInSameDispatch() {
-        // Speed is applied first, updating lastSwipeMs=now, so the incline check
-        // (lastSwipeMs + 500 < now) is false in the same dispatch — incline is cached.
+    public void treadmill_secondDispatchWithinWindow_isQueued() {
+        // First dispatch: speed drained, incline queued.
+        // A second dispatch within the throttle window enqueues both its Commands — no additional drain.
         int[] count = {0};
         X11iDevice device = new X11iDevice();
         device.commandExecutor = cmd -> { lastCommand = cmd; count[0]++; };
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device);
+        d.dispatch("8.0;3.0", device); // speed drained (count=1), incline queued
 
-        // Only one swipe (speed). Incline was cached.
-        assertEquals(1, count[0]);
-        assertTrue(lastCommand.contains("1205")); // speedX, not inclineX (75)
+        int countAfterFirst = count[0]; // 1
+        time[0] += 200;                 // still within window
+        d.dispatch("9.0;4.0", device); // queued — no additional drain
+        assertEquals("second dispatch within window must not produce additional swipes",
+                countAfterFirst, count[0]);
     }
 
     @Test
-    public void treadmill_incline_appliedOnNextDispatchAfterThrottleWindow() {
-        // Incline is cached on first dispatch (speed takes the throttle slot).
-        // After the throttle window, a second dispatch applies the cached incline.
-        // X11i: inclineX=75, initialInclineY=557, targetInclineY(3.0)=(int)(565.491-25.32)=540
+    public void treadmill_queuedMessage_drainedAfterThrottleWindow() {
+        // A message queued during the throttle window executes once the window re-opens.
+        // X11i targetSpeedY(9.0) = (int)(621.997 - 21.785*9.0) = 425; fromY=447 (after 8.0)
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device); // speed applied, incline cached
+        d.dispatch("8.0;-100", device); // speed 8.0 applied (y: 600→447)
 
-        time[0] += Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", device); // sentinels: flush cached incline
-        assertEquals("input swipe 75 557 75 540 200", lastCommand);
+        time[0] += 200;                              // within window
+        d.dispatch("9.0;-100", device);             // queued
+
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS;
+        d.dispatch("-1;-100", device);              // window open: drains "9.0;-100"
+        assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
     @Test
@@ -106,7 +112,7 @@ public class CommandDispatcherTest {
         assertNull(lastCommand);
 
         setMoving(device); // device now reports speed > 0
-        time[0] += Device.SWIPE_THROTTLE_MS + 100;
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         d.dispatch("-1;-100", device); // flush cached 8.0
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
@@ -134,10 +140,10 @@ public class CommandDispatcherTest {
         d.dispatch("8.0;-100", device); // speed 8.0 applied, y 600→447
 
         time[0] += 200;
-        d.dispatch("9.0;-100", device); // throttled → cached
+        d.dispatch("9.0;-100", device); // throttled → queued
 
-        time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", device); // flush cached 9.0, y 447→425
+        time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        d.dispatch("-1;-100", device); // flush queued 9.0, y 447→425
         assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
@@ -150,6 +156,7 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_commaLocale_parsesCorrectly() {
+        // "8.0;3.0" — dot separator: speed field parses correctly and speed swipe fires first.
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();
@@ -183,7 +190,7 @@ public class CommandDispatcherTest {
         d.dispatch("10.0", device); // applied
         lastCommand = null;
 
-        time[0] += Device.SWIPE_THROTTLE_MS + 100;
+        time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         d.dispatch("10.0", device); // same value — skipped
         assertNull(lastCommand);
     }
@@ -209,11 +216,11 @@ public class CommandDispatcherTest {
 
         time[0] += 200;
         lastCommand = null;
-        d.dispatch("12.0", device); // throttled → cached
+        d.dispatch("12.0", device); // throttled → queued
         assertNull(lastCommand);
 
-        time[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1", device); // sentinel: flush cached 12.0
+        time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        d.dispatch("-1", device); // sentinel: flush queued 12.0
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
@@ -228,8 +235,7 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_commaInValueWithDotSeparator_fallbackParsesCorrectly() {
-        // "8,0;3,0" — parseField fallback replaces ',' with '.'
-        // X11i targetSpeedY(8.0) = (int)(621.997 - 21.785*8.0) = (int)447.117 = 447
+        // "8,0;3,0" — parseField fallback replaces ',' with '.'; speed field parses and swipe fires.
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
         CommandDispatcher d = dispatcher();

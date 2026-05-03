@@ -204,9 +204,9 @@ public class ZwiftRideRobolectricTest {
     }
 
     /**
-     * Treadmill (X11i) through the service: one speed+incline message, device must
-     * be moving (speed > 0) for the speed gate to allow through.
-     * Expected: input swipe 1205 600 1205 447 200
+     * Treadmill (X11i) through the service: speed+incline message decoded as two Commands.
+     * Speed drains first; incline stays queued. Only the speed swipe fires here.
+     * X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
      */
     @Test
     public void x11i_speedMessage_producesExpectedSwipe() throws Exception {
@@ -227,6 +227,6 @@ public class ZwiftRideRobolectricTest {
 
         assertTrue("swipe should arrive within 3s", latch.await(3, TimeUnit.SECONDS));
         assertEquals(1, commands.size());
-        assertEquals("input swipe 1205 600 1205 447 200", commands.get(0));
+        assertEquals("input swipe 1205 600 1205 447 200", commands.get(0)); // speed
     }
 }

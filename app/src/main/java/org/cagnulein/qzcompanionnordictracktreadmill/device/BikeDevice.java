@@ -4,12 +4,13 @@ import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
+import java.util.Collections;
+import java.util.List;
+
 public abstract class BikeDevice extends Device {
 
     private final Slider incline;
     private final Slider resistance;  // null if this device has no resistance control
-    private final Command cached = new Command();
-
     protected BikeDevice(Slider incline, Slider resistance) {
         this.incline    = incline;
         this.resistance = resistance;
@@ -31,62 +32,48 @@ public abstract class BikeDevice extends Device {
     }
 
     @Override
-    public final void applyCommand(Command cmd, long now) {
-        // incline (2-part message)
-        Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
-        if (inclineVal != null) {
-            float quantized = incline.quantize(inclineVal);
+    public final void applyCommand(Command cmd) {
+        if (cmd.inclinePct != null) {
+            float quantized = incline.quantize(cmd.inclinePct);
             Float last = incline.lastApplied();
-            logger.log("QZ:Dispatch", "requestIncline(bike): " + inclineVal + " quantized=" + quantized + " last=" + last);
-            if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                if (last == null || quantized != last) {
-                    applyIncline(quantized);
-                    logger.log("QZ:Dispatch", "applyIncline(bike): " + quantized);
-                    lastCommandMs = now;
-                    cached.inclinePct = null;
-                } else {
-                    logger.log("QZ:Dispatch", "de-dup: skipping incline " + inclineVal + " (quantized=" + quantized + " already at " + last + ")");
-                }
+            logger.log("QZ:Dispatch", "requestIncline(bike): " + cmd.inclinePct + " quantized=" + quantized + " last=" + last);
+            if (last == null || quantized != last) {
+                applyIncline(quantized);
+                logger.log("QZ:Dispatch", "applyIncline(bike): " + quantized);
             } else {
-                logger.log("QZ:Dispatch", "throttle: cached incline " + inclineVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.inclinePct = inclineVal;
+                logger.log("QZ:Dispatch", "de-dup: skipping incline " + cmd.inclinePct + " (quantized=" + quantized + " already at " + last + ")");
             }
         }
-
-        // resistance (1-part message)
-        Float resistanceVal = cmd.resistanceLvl != null ? cmd.resistanceLvl : cached.resistanceLvl;
-        if (resistanceVal != null && resistance != null) {
+        if (cmd.resistanceLvl != null && resistance != null) {
             Float last = resistance.lastApplied();
-            logger.log("QZ:Dispatch", "requestResistance(bike): " + resistanceVal + " last=" + last);
-            if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                if (last == null || !resistanceVal.equals(last)) {
-                    applyResistance(resistanceVal);
-                    logger.log("QZ:Dispatch", "applyResistance(bike): " + resistanceVal);
-                    lastCommandMs = now;
-                    cached.resistanceLvl = null;
-                } else {
-                    logger.log("QZ:Dispatch", "de-dup: skipping resistance " + resistanceVal + " (already at " + last + ")");
-                }
+            logger.log("QZ:Dispatch", "requestResistance(bike): " + cmd.resistanceLvl + " last=" + last);
+            if (last == null || !cmd.resistanceLvl.equals(last)) {
+                applyResistance(cmd.resistanceLvl);
+                logger.log("QZ:Dispatch", "applyResistance(bike): " + cmd.resistanceLvl);
             } else {
-                logger.log("QZ:Dispatch", "throttle: cached resistance " + resistanceVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.resistanceLvl = resistanceVal;
+                logger.log("QZ:Dispatch", "de-dup: skipping resistance " + cmd.resistanceLvl + " (already at " + last + ")");
             }
         }
     }
 
     @Override
-    public Command decodeCommand(QZCommandPacket pkt) {
-        Command cmd = new Command();
+    public List<Command> decodeCommands(QZCommandPacket pkt) {
         if (pkt.fieldCount() == 2) {
-            if (QZCommandPacket.END_OF_RIDE.equals(pkt.raw())) return cmd;
+            if (QZCommandPacket.END_OF_RIDE.equals(pkt.raw())) return Collections.emptyList();
             Float v = QZCommandPacket.parseField(pkt.rawField(0));
-            if (v != null && v != QZCommandPacket.NO_COMMAND) cmd.inclinePct = QZCommandPacket.roundToOneDecimal(v);
+            if (v == null || v == QZCommandPacket.NO_COMMAND) return Collections.emptyList();
+            Command cmd = new Command();
+            cmd.inclinePct = QZCommandPacket.roundToOneDecimal(v);
+            return Collections.singletonList(cmd);
         }
         if (pkt.fieldCount() == 1) {
             Float v = QZCommandPacket.parseField(pkt.rawField(0));
-            if (v != null && v != QZCommandPacket.NO_RESISTANCE && v != QZCommandPacket.NO_COMMAND)
-                cmd.resistanceLvl = QZCommandPacket.roundToOneDecimal(v);
+            if (v == null || v == QZCommandPacket.NO_RESISTANCE || v == QZCommandPacket.NO_COMMAND)
+                return Collections.emptyList();
+            Command cmd = new Command();
+            cmd.resistanceLvl = QZCommandPacket.roundToOneDecimal(v);
+            return Collections.singletonList(cmd);
         }
-        return cmd;
+        return Collections.emptyList();
     }
 }

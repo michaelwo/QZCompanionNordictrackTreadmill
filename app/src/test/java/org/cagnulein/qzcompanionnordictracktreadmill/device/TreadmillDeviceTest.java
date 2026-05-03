@@ -1124,32 +1124,38 @@ public class TreadmillDeviceTest {
         X11iDevice device = dev(new X11iDevice());
         device.applyMetric(SliderMetric.KPH, 5.0f); // was moving
         device.applyMetric(SliderMetric.KPH, 0.0f); // now stopped
-        CommandDispatcher d = new CommandDispatcher(() -> 1_000L + Device.SWIPE_THROTTLE_MS + 100);
+        CommandDispatcher d = new CommandDispatcher(() -> 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100);
         d.dispatch("8.0;-100", device);
         assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
     }
 
     @Test
-    public void treadmill_cachedSpeedOverwrite_latestThrottledValueWins() {
-        // Two successive throttled speeds — only the last one should be applied after the window.
-        // X11i targetSpeedY(10.0)=(int)(621.997-21.785*10)=(int)404.147=404; fromY=447 (after 8.0)
+    public void treadmill_queueFIFO_olderThrottledValueAppliedFirst() {
+        // Two successive throttled speeds are held in a FIFO queue;
+        // 9.0 drains before 10.0 when the window re-opens.
+        // X11i targetSpeedY(9.0)=425; targetSpeedY(10.0)=404; fromY=447 (after 8.0)
         final long[] t = {1_000L};
         X11iDevice device = dev(new X11iDevice());
         CommandDispatcher d = new CommandDispatcher(() -> t[0]);
 
         device.applyMetric(SliderMetric.KPH, 5.0f);
-        d.dispatch("8.0;-100", device);  // applied at t=1000; currentSpeedY → 447
+        d.dispatch("8.0;-100", device);  // applied at t=1000 (speedY: 600→447)
 
         t[0] += 200;
-        d.dispatch("9.0;-100", device);  // throttled → cached as 9.0
+        d.dispatch("9.0;-100", device);  // throttled → queue=[9.0]
 
         t[0] += 100;
-        d.dispatch("10.0;-100", device); // still throttled → overwrites 9.0 → cached as 10.0
+        d.dispatch("10.0;-100", device); // throttled → queue=[9.0, 10.0]
 
-        t[0] = 1_000L + Device.SWIPE_THROTTLE_MS + 100;
+        t[0] = 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1;-100", device);   // flush → must apply 10.0
-        assertEquals("input swipe 1205 447 1205 404 200", lastCommand);
+        d.dispatch("-1;-100", device);   // drains 9.0 first → y:447→425
+        assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
+
+        t[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        lastCommand = null;
+        d.dispatch("-1;-100", device);   // drains 10.0 next → y:425→404
+        assertEquals("input swipe 1205 425 1205 404 200", lastCommand);
     }
 
     // ── T95sDevice ────────────────────────────────────────────────────────────
@@ -1164,69 +1170,63 @@ public class TreadmillDeviceTest {
         assertEquals("T9.5s Treadmill", new T95sDevice().displayName());
     }
 
-    // ── TreadmillDevice.decodeCommand ─────────────────────────────────────────
+    // ── TreadmillDevice.decodeCommands ───────────────────────────────────────
 
     @Test
-    public void decodeCommand_twoParts_setsBothFields() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0;5.0"));
-        assertEquals(8.0f, cmd.speedKmh,   0.001f);
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
+    public void decodeCommands_twoParts_setsBothFields() {
+        java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.0;5.0"));
+        assertEquals(2, cmds.size());
+        assertEquals(8.0f, cmds.get(0).speedKmh,   0.001f);
+        assertEquals(5.0f, cmds.get(1).inclinePct, 0.001f);
     }
 
     @Test
-    public void decodeCommand_roundsToOneDecimal() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.25;5.14"));
-        assertEquals(8.3f, cmd.speedKmh,   0.001f);
-        assertEquals(5.1f, cmd.inclinePct, 0.001f);
+    public void decodeCommands_roundsToOneDecimal() {
+        java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.25;5.14"));
+        assertEquals(2, cmds.size());
+        assertEquals(8.3f, cmds.get(0).speedKmh,   0.001f);
+        assertEquals(5.1f, cmds.get(1).inclinePct, 0.001f);
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOneHundred_speed_returnsNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-100;5.0"));
-        assertNull(cmd.speedKmh);
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
+    public void decodeCommands_sentinelMinusOneHundred_speed_returnsInclineOnly() {
+        java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("-100;5.0"));
+        assertEquals(1, cmds.size());
+        assertEquals(5.0f, cmds.get(0).inclinePct, 0.001f);
+        assertNull(cmds.get(0).speedKmh);
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOneHundred_incline_returnsNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0;-100"));
-        assertEquals(8.0f, cmd.speedKmh, 0.001f);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_sentinelMinusOneHundred_incline_returnsSpeedOnly() {
+        java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.0;-100"));
+        assertEquals(1, cmds.size());
+        assertEquals(8.0f, cmds.get(0).speedKmh, 0.001f);
+        assertNull(cmds.get(0).inclinePct);
     }
 
     @Test
-    public void decodeCommand_bothSentinels_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-100;-100"));
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_bothSentinels_returnsEmpty() {
+        assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("-100;-100")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOne_speed_returnsNull() {
+    public void decodeCommands_sentinelMinusOne_speed_returnsEmpty() {
         // -1 is the QZ no-op speed flush sentinel; it must not produce a speed command.
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("-1;-100"));
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
+        assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("-1;-100")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_onePart_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("8.0"));
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_onePart_returnsEmpty() {
+        assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("8.0")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_zeroParts_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse(""));
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_zeroParts_returnsEmpty() {
+        assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_threeParts_returnsAllNull() {
-        Command cmd = new X22iDevice().decodeCommand(QZCommandPacket.parse("1.0;2.0;3.0"));
-        assertNull(cmd.speedKmh);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_threeParts_returnsEmpty() {
+        assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("1.0;2.0;3.0")).isEmpty());
     }
 }

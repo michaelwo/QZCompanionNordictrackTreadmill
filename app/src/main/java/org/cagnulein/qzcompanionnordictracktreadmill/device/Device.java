@@ -7,24 +7,23 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
+import java.util.List;
+
 public abstract class Device {
     /** The currently active device. Set by MainActivity when the user selects one. */
     public static volatile Device instance = null;
-
-    /** Throttle window — commands within this window of the last apply are cached, not sent. */
-    public static final int SWIPE_THROTTLE_MS = 500;
 
     /** Duration of each AccessibilityService swipe gesture, in ms. */
     public static final int SWIPE_DURATION_MS = 200;
 
     /**
-     * Applies a parsed command to this device, honouring the throttle window and
-     * any device-specific de-dup or gating rules.
+     * Applies a parsed command to this device immediately.
+     * Throttling is handled by CommandDispatcher; device subclasses apply device-specific
+     * de-dup or safety-gate logic only.
      *
-     * @param cmd     parsed command snapshot (non-null fields = requested values)
-     * @param now current timestamp in ms (injected by CommandDispatcher)
+     * @param cmd parsed command snapshot (non-null fields = requested values)
      */
-    public abstract void applyCommand(Command cmd, long now);
+    public abstract void applyCommand(Command cmd);
 
     /** Routes a live slider metric update to the matching Slider(s) on this device. */
     public abstract void applyMetric(SliderMetric metric, float value);
@@ -49,18 +48,12 @@ public abstract class Device {
     /** Returns true if this device sends commands via the Android AccessibilityService. */
     public boolean requiresAccessibility() { return true; }
 
-    /** Interprets a parsed QZ UDP packet for this device type. */
-    public abstract Command decodeCommand(QZCommandPacket pkt);
+    /** Interprets a parsed QZ UDP packet and returns one Command per actionable field. */
+    public abstract List<Command> decodeCommands(QZCommandPacket pkt);
 
     public MetricReader defaultMetricReader() {
         return new MonoStdoutMetricReader();
     }
-
-    /**
-     * Timestamp (ms) of the last command sent to this device.
-     * Owned here so CommandDispatcher can throttle per-device without holding device state itself.
-     */
-    public long lastCommandMs = 0;
 
     protected void swipe(int x, int y1, int y2) {
         String cmd = "input swipe " + x + " " + y1 + " " + x + " " + y2 + " " + SWIPE_DURATION_MS;

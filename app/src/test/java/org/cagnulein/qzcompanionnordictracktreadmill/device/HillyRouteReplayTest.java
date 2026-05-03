@@ -19,9 +19,9 @@ import java.util.List;
  * Pipeline per interval:
  *   actualGrade × 0.5  →  roundToOneDecimal  →  quantize (0.5% steps)  →  targetThumbY swipe
  *
- * Time is synthetic: each interval advances 'now' by 2000ms, well above
- * SWIPE_THROTTLE_MS (500ms), so no throttling fires and every dispatch
- * decision is driven purely by de-dup logic.
+ * Each interval is dispatched directly via applyCommand() — throttle logic
+ * lives in CommandDispatcher, not in the device, so de-dup logic is exercised
+ * in isolation here.
  *
  * Expected result: 30 dispatches — interval 30 is de-duped because
  *   -2.19% × 0.5 = -1.095 → -1.1% → quantize = -1.0  (same as interval 29).
@@ -80,13 +80,11 @@ public class HillyRouteReplayTest {
         S22iDevice dev = new S22iDevice();
         dev.commandExecutor = cmd -> dispatched.add(cmd);
 
-        long now = 1000L;
         for (int i = 0; i < ACTUAL_GRADES.length; i++) {
             int sizeBefore = dispatched.size();
             Command cmd = new Command();
             cmd.inclinePct = QZCommandPacket.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f);
-            dev.applyCommand(cmd, now);
-            now += 2000L;
+            dev.applyCommand(cmd);
 
             if (EXPECTED[i] == null) {
                 assertEquals("interval " + (i + 1) + " should be de-duped — no command expected",

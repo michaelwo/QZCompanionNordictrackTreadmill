@@ -4,6 +4,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public abstract class TreadmillDevice extends Device {
 
     protected static final double KMH_TO_MPH = 0.621371;
@@ -34,52 +37,45 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
-    public final void applyCommand(Command cmd, long now) {
-        // speed (2-part message, first field)
+    public final void applyCommand(Command cmd) {
+        // speed: belt-gate cache provides fallback if this message has no speed field
         Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
         if (speedVal != null) {
             logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cached.speedKmh);
             if (lastKnownKph <= 0) {
                 logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
                 cached.speedKmh = speedVal;
-            } else if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
+            } else {
                 applySpeed(speedVal);
                 logger.log("QZ:Dispatch", "applySpeed: " + speedVal);
-                lastCommandMs = now;
                 cached.speedKmh = null;
-            } else {
-                logger.log("QZ:Dispatch", "throttle: cached speed " + speedVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.speedKmh = speedVal;
             }
         }
 
-        // incline (2-part message, second field)
-        Float inclineVal = cmd.inclinePct != null ? cmd.inclinePct : cached.inclinePct;
-        if (inclineVal != null) {
-            logger.log("QZ:Dispatch", "requestInclination: " + inclineVal + " cached=" + cached.inclinePct);
-            if (lastCommandMs + SWIPE_THROTTLE_MS < now) {
-                applyIncline(inclineVal);
-                logger.log("QZ:Dispatch", "applyIncline: " + inclineVal);
-                lastCommandMs = now;
-                cached.inclinePct = null;
-            } else {
-                logger.log("QZ:Dispatch", "throttle: cached incline " + inclineVal + " (window open in " + (lastCommandMs + SWIPE_THROTTLE_MS - now) + "ms)");
-                cached.inclinePct = inclineVal;
-            }
+        if (cmd.inclinePct != null) {
+            logger.log("QZ:Dispatch", "requestInclination: " + cmd.inclinePct);
+            applyIncline(cmd.inclinePct);
+            logger.log("QZ:Dispatch", "applyIncline: " + cmd.inclinePct);
         }
     }
 
     @Override
-    public Command decodeCommand(QZCommandPacket pkt) {
-        Command cmd = new Command();
+    public List<Command> decodeCommands(QZCommandPacket pkt) {
+        List<Command> cmds = new ArrayList<>();
         if (pkt.fieldCount() == 2) {
             Float s = QZCommandPacket.parseField(pkt.rawField(0));
             Float i = QZCommandPacket.parseField(pkt.rawField(1));
-            if (s != null && s != QZCommandPacket.NO_COMMAND && s != QZCommandPacket.NO_RESISTANCE)
-                cmd.speedKmh   = QZCommandPacket.roundToOneDecimal(s);
-            if (i != null && i != QZCommandPacket.NO_COMMAND)
-                cmd.inclinePct = QZCommandPacket.roundToOneDecimal(i);
+            if (s != null && s != QZCommandPacket.NO_COMMAND && s != QZCommandPacket.NO_RESISTANCE) {
+                Command c = new Command();
+                c.speedKmh = QZCommandPacket.roundToOneDecimal(s);
+                cmds.add(c);
+            }
+            if (i != null && i != QZCommandPacket.NO_COMMAND) {
+                Command c = new Command();
+                c.inclinePct = QZCommandPacket.roundToOneDecimal(i);
+                cmds.add(c);
+            }
         }
-        return cmd;
+        return cmds;
     }
 }

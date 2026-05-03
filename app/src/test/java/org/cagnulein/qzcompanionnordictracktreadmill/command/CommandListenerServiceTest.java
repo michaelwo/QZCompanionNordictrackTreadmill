@@ -80,8 +80,9 @@ public class CommandListenerServiceTest {
 
     @Test
     public void treadmill_udpMessage_producesExpectedSwipe() throws Exception {
-        // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
-        // Expected: input swipe 1205 600 1205 447 200
+        // X11i: "8.0;3.0" — speed and incline decoded as separate Commands.
+        // Speed drains first; incline stays queued. Latch fires on the speed swipe.
+        // X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
         X11iDevice x11i = new X11iDevice();
         x11i.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);

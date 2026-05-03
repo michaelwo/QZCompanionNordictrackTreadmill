@@ -99,8 +99,9 @@ public class UdpPipelineTest {
 
     @Test
     public void treadmill_speedMessage_producesExpectedSwipe() throws Exception {
-        // X11i: speed 8.0 km/h from a moving device (5.0 km/h current)
-        // Expected: input swipe 1205 600 1205 447 200
+        // X11i: "8.0;3.0" — speed and incline decoded as separate Commands.
+        // Speed drains first; incline stays queued. lastCommand = speed swipe.
+        // X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
         CountDownLatch latch = new CountDownLatch(1);
         startReceiver(dev(new X11iDevice()), 5.0f, latch);
 
@@ -151,7 +152,7 @@ public class UdpPipelineTest {
         sendUdp("8.0;3.0");
 
         assertTrue("dispatch should complete within 2 s", latch.await(2, TimeUnit.SECONDS));
-        assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
+        assertEquals("input swipe 1205 600 1205 447 200", lastCommand); // speed drains first
     }
 
     // ── bike tests ────────────────────────────────────────────────────────────

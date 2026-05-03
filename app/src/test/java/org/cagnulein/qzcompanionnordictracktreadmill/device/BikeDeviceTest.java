@@ -429,25 +429,31 @@ public class BikeDeviceTest {
     }
 
     @Test
-    public void bikeDevice_throttleCacheOverwrite_latestValueAppliedAfterWindow() {
-        // When two resistance commands are throttled back-to-back, the second
-        // overwrites the first in the cache; after the window only the latest fires.
-        // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
+    public void bikeDevice_queueFIFO_olderThrottledValueAppliedFirst() {
+        // Two resistance commands throttled back-to-back are held in a FIFO queue;
+        // 11.0 drains before 12.0 when the window re-opens.
+        // S15i resistanceY: 10→559, 11→536, 12→513
         final long[] t = {1_000L};
         S15iDevice device = dev(new S15iDevice());
         CommandDispatcher d = new CommandDispatcher(() -> t[0]);
 
-        d.dispatch("10.0", device);  // applied at t=1000
+        d.dispatch("10.0", device);  // applied at t=1000 (resistanceY: 790→559)
 
         t[0] += 200;
-        d.dispatch("11.0", device);  // throttled → cache=11.0
+        d.dispatch("11.0", device);  // throttled → queue=[11.0]
 
         t[0] += 100;
-        d.dispatch("12.0", device);  // still throttled → overwrites cache=12.0
+        d.dispatch("12.0", device);  // throttled → queue=[11.0, 12.0]
 
-        t[0] = 1000 + Device.SWIPE_THROTTLE_MS + 100;
+        t[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1", device);    // flush → must apply 12.0, not 11.0
+        d.dispatch("-1", device);    // drains 11.0 first
+        // S15i uses resistanceLive slider — fromY is always targetThumbY(0)=790 when no live metric
+        assertEquals("input swipe 1845 790 1845 536 200", lastCommand);
+
+        t[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
+        lastCommand = null;
+        d.dispatch("-1", device);    // drains 12.0 next
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
@@ -491,79 +497,72 @@ public class BikeDeviceTest {
         assertEquals("input swipe 75 482 75 419 200", lastCommand);
     }
 
-    // ── BikeDevice.decodeCommand ──────────────────────────────────────────────
+    // ── BikeDevice.decodeCommands ─────────────────────────────────────────────
 
     @Test
-    public void decodeCommand_onePart_setsResistanceLvl() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("8.0"));
-        assertEquals(8.0f, cmd.resistanceLvl, 0.001f);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_onePart_setsResistanceLvl() {
+        java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.0"));
+        assertEquals(1, cmds.size());
+        assertEquals(8.0f, cmds.get(0).resistanceLvl, 0.001f);
+        assertNull(cmds.get(0).inclinePct);
     }
 
     @Test
-    public void decodeCommand_twoParts_setsInclinePct() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("5.0;unused"));
-        assertEquals(5.0f, cmd.inclinePct, 0.001f);
-        assertNull(cmd.resistanceLvl);
+    public void decodeCommands_twoParts_setsInclinePct() {
+        java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("5.0;unused"));
+        assertEquals(1, cmds.size());
+        assertEquals(5.0f, cmds.get(0).inclinePct, 0.001f);
+        assertNull(cmds.get(0).resistanceLvl);
     }
 
     @Test
-    public void decodeCommand_roundsToOneDecimal() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("8.25"));
-        assertEquals(8.3f, cmd.resistanceLvl, 0.001f);
+    public void decodeCommands_roundsToOneDecimal() {
+        java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.25"));
+        assertEquals(1, cmds.size());
+        assertEquals(8.3f, cmds.get(0).resistanceLvl, 0.001f);
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOne_resistance_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("-1"));
-        assertNull(cmd.resistanceLvl);
+    public void decodeCommands_sentinelMinusOne_resistance_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("-1")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_sentinelMinusOneHundred_resistance_returnsNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("-100"));
-        assertNull(cmd.resistanceLvl);
+    public void decodeCommands_sentinelMinusOneHundred_resistance_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("-100")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_endOfRideSentinel_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("-1;-100"));
-        assertNull(cmd.inclinePct);
-        assertNull(cmd.resistanceLvl);
+    public void decodeCommands_endOfRideSentinel_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("-1;-100")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_negativeOnePercent_incline_parsesCorrectly() {
+    public void decodeCommands_negativeOnePercent_incline_parsesCorrectly() {
         // "-1.0;0" is a legitimate Zwift grade, not the sentinel; must not be swallowed.
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("-1.0;0"));
-        assertEquals(-1.0f, cmd.inclinePct, 0.001f);
+        java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("-1.0;0"));
+        assertEquals(1, cmds.size());
+        assertEquals(-1.0f, cmds.get(0).inclinePct, 0.001f);
     }
 
     @Test
-    public void decodeCommand_heartbeat_incline_returnsNull() {
+    public void decodeCommands_heartbeat_incline_returnsEmpty() {
         // "-100;N" is QZ's "no grade" heartbeat (Zwift paused/loading).
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("-100;16"));
-        assertNull(cmd.inclinePct);
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("-100;16")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_unparseable_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("abc"));
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_unparseable_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("abc")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_zeroParts_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse(""));
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_zeroParts_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("")).isEmpty());
     }
 
     @Test
-    public void decodeCommand_threeParts_returnsAllNull() {
-        Command cmd = new S22iDevice().decodeCommand(QZCommandPacket.parse("1.0;2.0;3.0"));
-        assertNull(cmd.resistanceLvl);
-        assertNull(cmd.inclinePct);
+    public void decodeCommands_threeParts_returnsEmpty() {
+        assertTrue(new S22iDevice().decodeCommands(QZCommandPacket.parse("1.0;2.0;3.0")).isEmpty());
     }
 }

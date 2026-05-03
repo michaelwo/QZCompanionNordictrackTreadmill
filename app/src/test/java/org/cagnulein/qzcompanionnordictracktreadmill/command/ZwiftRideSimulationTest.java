@@ -106,32 +106,30 @@ public class ZwiftRideSimulationTest {
         }
     }
 
-    // ── test 2: throttle — rapid messages cache last value ────────────────────
+    // ── test 2: throttle — FIFO queue drains oldest first ────────────────────
 
     /**
      * Three grade changes fired within the 500ms throttle window:
-     * only the first should fire immediately; the last cached value fires
-     * when the next message arrives after the window opens.
+     * only the first fires immediately; the queue drains FIFO — 8f before 10f.
      */
     @Test
-    public void throttle_rapidMessages_onlyFirstAndCachedFire() {
+    public void throttle_rapidMessages_fifoQueueDrains() {
         CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
 
         // All three within the 500ms window: t=1100, t=1200, t=1300
-        send(d, bike, 5f,  100);  // fires (window fresh)
-        send(d, bike, 8f,  100);  // throttled, cached
-        send(d, bike, 10f, 100);  // throttled, overwrites cache
+        send(d, bike, 5f,  100);  // fires immediately (window fresh)
+        send(d, bike, 8f,  100);  // throttled → queue=[8f]
+        send(d, bike, 10f, 100);  // throttled → queue=[8f, 10f]
 
-        // First message fires immediately
         assertEquals(1, commands.size());
         assertEquals(swipe(622, dispatchY(622, targetThumbY(5f))), commands.get(0));
 
-        // Advance past throttle window and send another message
-        send(d, bike, 10f, 600);  // t=1900, window open — fires (10f != 5f)
+        // Advance past throttle window — oldest queued (8f) drains first
+        send(d, bike, 10f, 600);  // t=1900, window open → drains 8f
 
         assertEquals(2, commands.size());
-        assertEquals(swipe(targetThumbY(5f), dispatchY(targetThumbY(5f), targetThumbY(10f))), commands.get(1));
+        assertEquals(swipe(targetThumbY(5f), dispatchY(targetThumbY(5f), targetThumbY(8f))), commands.get(1));
     }
 
     // ── test 3: de-dup — same grade twice produces only one swipe ─────────────
