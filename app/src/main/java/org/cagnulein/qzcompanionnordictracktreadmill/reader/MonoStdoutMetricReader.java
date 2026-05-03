@@ -18,6 +18,10 @@ public class MonoStdoutMetricReader implements MetricReader {
 
     private static final String OWN_LOG_TAG = "QZ:Service";
 
+    private static final String[] KPH_KEYWORDS   = { "Changed KPH", "Changed Actual KPH" };
+    private static final String[] GRADE_KEYWORDS  = { "Changed Grade", "Changed Actual Grade",
+                                                       "Changed Actual Incline", "Grade changed" };
+
     @FunctionalInterface
     public interface ProcessFactory { Process launch() throws IOException; }
 
@@ -26,11 +30,11 @@ public class MonoStdoutMetricReader implements MetricReader {
 
     /** Called when {@link #streamLoop()} catches an IOException. Default is a no-op so tests
      *  can run without Android. The service overrides this to log via {@code Log.e()}. */
-    public static Consumer<Exception> onError = e -> {};
+    public static volatile Consumer<Exception> onError = e -> {};
 
     /** Called for each raw logcat line that produced a snapshot update. No-op by default;
      *  the service sets this to a logger when verbose mode is on. */
-    public static Consumer<String> onLine = s -> {};
+    public static volatile Consumer<String> onLine = s -> {};
 
     private volatile MetricSnapshot latest = new MetricSnapshot();
     private volatile Consumer<MetricSnapshot> listener;
@@ -82,10 +86,9 @@ public class MonoStdoutMetricReader implements MetricReader {
 
     private void parseLine(String line) {
         MetricSnapshot updated = null;
-        if (line.contains("Changed KPH") || line.contains("Changed Actual KPH")) {
+        if (containsAny(line, KPH_KEYWORDS)) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).speedKmh(v).build();
-        } else if (line.contains("Changed Grade") || line.contains("Changed Actual Grade")
-                || line.contains("Changed Actual Incline") || line.contains("Grade changed")) {
+        } else if (containsAny(line, GRADE_KEYWORDS)) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).inclinePct(v).build();
         } else if (line.contains("Changed Watts")) {
             Float v = lastFloat(line); if (v != null) updated = copyOf(latest).watts(v).build();
@@ -111,6 +114,11 @@ public class MonoStdoutMetricReader implements MetricReader {
                 .speedKmh(s.speedKmh).inclinePct(s.inclinePct).watts(s.watts)
                 .cadenceRpm(s.cadenceRpm).gearLevel(s.gearLevel)
                 .resistanceLvl(s.resistanceLvl).heartRate(s.heartRate);
+    }
+
+    private static boolean containsAny(String line, String[] keywords) {
+        for (String kw : keywords) if (line.contains(kw)) return true;
+        return false;
     }
 
     private static Float lastFloat(String line) {

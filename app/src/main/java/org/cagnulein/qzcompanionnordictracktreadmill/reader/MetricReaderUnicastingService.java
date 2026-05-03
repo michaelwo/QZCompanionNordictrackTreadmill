@@ -37,10 +37,13 @@ public class MetricReaderUnicastingService extends Service {
     private MetricReader cachedReader = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
-    private static MetricReaderUnicastingService instance;
+    private static volatile MetricReaderUnicastingService instance;
 
     /** LAN broadcast address computed once at startup; used when QZ has not yet been discovered. */
     private static InetAddress broadcastAddress = null;
+
+    /** Persistent send socket — reused across all unicast/broadcast sends. Null forces re-creation. */
+    private static volatile DatagramSocket persistentSocket = null;
 
     @Override
     public void onCreate() {
@@ -104,7 +107,7 @@ public class MetricReaderUnicastingService extends Service {
     }
 
     private static void logMetric(String msg) {
-        if (MainActivity.prefs().getBoolean("debugLog", false)) {
+        if (MainActivity.isDebugLog()) {
             MainActivity.writeLog(msg);
             Log.i(LOG_TAG, msg);
         }
@@ -126,13 +129,22 @@ public class MetricReaderUnicastingService extends Service {
 
         StrictMode.setThreadPolicy(PERMIT_ALL);
 
-        try (DatagramSocket s = new DatagramSocket()) {
-            if (!qzActive) s.setBroadcast(true);
+        try {
+            DatagramSocket s = getSocket();
             byte[] sendData = messageStr.getBytes();
             s.send(new DatagramPacket(sendData, sendData.length, dest, UNICAST_PORT));
         } catch (IOException e) {
             Log.e(LOG_TAG, "IOException: " + e.getMessage());
+            persistentSocket = null;
         }
+    }
+
+    private static synchronized DatagramSocket getSocket() throws java.net.SocketException {
+        if (persistentSocket == null || persistentSocket.isClosed()) {
+            persistentSocket = new DatagramSocket();
+            persistentSocket.setBroadcast(true);
+        }
+        return persistentSocket;
     }
 
     @Override
@@ -162,7 +174,7 @@ public class MetricReaderUnicastingService extends Service {
     }
 
     private static void writeLog(String msg) {
-        if (MainActivity.prefs().getBoolean("debugLog", false)) {
+        if (MainActivity.isDebugLog()) {
             MainActivity.writeLog(msg);
             Log.i(LOG_TAG, msg);
             sendUnicast(msg);

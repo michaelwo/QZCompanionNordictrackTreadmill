@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static BufferedWriter logFileWriter = null;
 
     private DeviceAdapter deviceAdapter;
-    static SharedPreferences sharedPreferences;
+    private static SharedPreferences sharedPreferences;
 
     private final android.os.Handler heartbeatHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -87,7 +87,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public static final String PREF_DEVICE_ID = "deviceId";
+    public static final String PREF_DEBUG_LOG = "debugLog";
+
     public static SharedPreferences prefs() { return sharedPreferences; }
+    public static boolean isDebugLog() { return sharedPreferences != null && sharedPreferences.getBoolean(PREF_DEBUG_LOG, false); }
 
     public static void writeLog(String command) {
         String line = new Timestamp(new Date().getTime()) + " " + command;
@@ -125,11 +129,11 @@ public class MainActivity extends AppCompatActivity {
         if (calFile.exists()) {
             try {
                 DeviceCalibration.current = DeviceCalibration.loadFromJson(calFile);
-                String savedId = sharedPreferences.getString("deviceId",
+                String savedId = sharedPreferences.getString(PREF_DEVICE_ID,
                         DeviceRegistry.DeviceId.other.name());
                 if (DeviceRegistry.DeviceId.other.name().equals(savedId)) {
                     sharedPreferences.edit()
-                            .putString("deviceId", DeviceRegistry.DeviceId.custom_calibrated.name())
+                            .putString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.custom_calibrated.name())
                             .apply();
                 }
                 Log.i("QZ:Main", "Loaded calibration from qz-calibration.json");
@@ -158,14 +162,14 @@ public class MainActivity extends AppCompatActivity {
             }
             selectDevice(DeviceRegistry.forId(id));
             SharedPreferences.Editor myEdit = sharedPreferences.edit();
-            myEdit.putString("deviceId", id.name());
-            myEdit.commit();
+            myEdit.putString(PREF_DEVICE_ID, id.name());
+            myEdit.apply();
         });
         deviceList.setAdapter(deviceAdapter);
     }
 
     private void restoreDeviceSelection() {
-        String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
+        String savedId = sharedPreferences.getString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.other.name());
         try {
             DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(savedId);
             deviceAdapter.setSelectedId(id);
@@ -174,8 +178,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startServices() {
-        AlarmReceiver alarm = new AlarmReceiver();
-        //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
         Intent inServer = new Intent(getApplicationContext(), CommandListenerService.class);
         getApplicationContext().startService(inServer);
         Intent in = new Intent(getApplicationContext(), MetricReaderUnicastingService.class);
@@ -232,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         menu.findItem(R.id.menu_verbose_logging).setChecked(
-                sharedPreferences.getBoolean("debugLog", false));
+                sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
         return true;
     }
 
@@ -242,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.menu_verbose_logging) {
             boolean next = !item.isChecked();
             item.setChecked(next);
-            sharedPreferences.edit().putBoolean("debugLog", next).apply();
+            sharedPreferences.edit().putBoolean(PREF_DEBUG_LOG, next).apply();
             new androidx.appcompat.app.AlertDialog.Builder(this)
                     .setTitle("Settings Saved")
                     .setMessage("Restart the app to apply logging changes.")

@@ -5,19 +5,14 @@ import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
-import android.net.DhcpInfo;
-import android.net.wifi.WifiManager;
 import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
-import android.widget.TextView;
 
 /*
  * Linux command to send UDP:
@@ -26,7 +21,7 @@ import android.widget.TextView;
 public class CommandListenerService extends Service {
     private static final String LOG_TAG = "QZ:CommandListenerService";
 
-    static String UDP_BROADCAST = "UDPBroadcast";
+    private static final String CALSWIPE_PREFIX = "CALSWIPE:";
 
     /** Wall-clock ms of the last -100;N heartbeat packet from QZ. 0 = never received. */
     public static volatile long lastQzHeartbeatMs = 0;
@@ -48,7 +43,7 @@ public class CommandListenerService extends Service {
     private PowerManager.WakeLock wakeLock;
 
     private void writeLog(String command) {
-        if (MainActivity.prefs().getBoolean("debugLog", false)) {
+        if (MainActivity.isDebugLog()) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
             MetricReaderUnicastingService.sendUnicast(command);
@@ -71,7 +66,7 @@ public class CommandListenerService extends Service {
             String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
             Log.i(LOG_TAG, "rx: " + msg);
 
-            if (msg.startsWith("CALSWIPE:")) {
+            if (msg.startsWith(CALSWIPE_PREFIX)) {
                 handleCalibrationSwipe(msg);
                 return;
             }
@@ -113,34 +108,8 @@ public class CommandListenerService extends Service {
         }
     }
 
-    private void broadcastIntent(String senderIP, String message) {
-        Intent intent = new Intent(CommandListenerService.UDP_BROADCAST);
-        intent.putExtra("sender", senderIP);
-        intent.putExtra("message", message);
-        sendBroadcast(intent);
-    }
-
-    Thread UDPListenerThread;
-
-    InetAddress getBroadcastAddress() throws IOException {
-        WifiManager wifi = (WifiManager)    getApplicationContext().getSystemService(Context.WIFI_SERVICE);
-        DhcpInfo dhcp = null;
-        try {
-            dhcp = wifi.getDhcpInfo();
-            int broadcast = (dhcp.ipAddress & dhcp.netmask) | ~dhcp.netmask;
-            byte[] quads = new byte[4];
-            for (int k = 0; k < 4; k++)
-                quads[k] = (byte) ((broadcast >> k * 8) & 0xFF);
-            return InetAddress.getByAddress(quads);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "IOException: " + e.getMessage());
-        }
-        byte[] quads = new byte[4];
-        return InetAddress.getByAddress(quads);
-    }
-
     void startListenForUDP() {
-        UDPListenerThread = new Thread(() -> {
+        new Thread(() -> {
             int port = LISTEN_PORT;
             while (shouldRestartSocketListen) {
                 try {
@@ -149,8 +118,7 @@ public class CommandListenerService extends Service {
                     Log.e(LOG_TAG, "UDP receive error, continuing: " + e.getMessage());
                 }
             }
-        });
-        UDPListenerThread.start();
+        }).start();
     }
 
     private volatile boolean shouldRestartSocketListen = true;
