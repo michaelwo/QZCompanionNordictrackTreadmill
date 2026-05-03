@@ -119,6 +119,10 @@ public class MyAccessibilityService extends AccessibilityService {
             } catch (NumberFormatException ignored) {}
         }
         return new IfitConsoleSnapshot(
-                partNumber, machineType, maxKph, maxIncline, minIncline, maxResistance);
+                partNumber, machineType,
+                IfitConsoleSnapshot.parseNullable(maxKph),
+                IfitConsoleSnapshot.parseNullable(maxIncline),
+                IfitConsoleSnapshot.parseNullable(minIncline),
+                IfitConsoleSnapshot.parseNullable(maxResistance));
     }
 }

@@ -14,6 +14,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
  * (preferred for simple sliders) or by overriding {@link #targetThumbY} in a subclass
  * (required when {@link #currentThumbY}, {@link #quantize}, or {@link #hysteresisPixels}
  * also need overriding).
+ *
+ * Factory methods (linear, inclineLive, speedLive, resistanceLive, gearLive) cover the
+ * most common patterns and eliminate boilerplate anonymous subclasses in device classes.
  */
 public class Slider {
 
@@ -41,6 +44,48 @@ public class Slider {
     protected Slider(int initialThumbY) {
         this(0, initialThumbY, null);
     }
+
+    // ── Static factory methods ─────────────────────────────────────────────────
+
+    /** Creates a Slider with targetThumbY = origin - (int)(scale * v). */
+    public static Slider linear(int trackX, int origin, double scale) {
+        return new Slider(trackX, origin, v -> origin - (int)(scale * v));
+    }
+
+    /** Creates a Slider with targetThumbY = origin - (int)(scale * (v + shift)). */
+    public static Slider linear(int trackX, int origin, double scale, double shift) {
+        return new Slider(trackX, origin, v -> origin - (int)(scale * (v + shift)));
+    }
+
+    /** Creates a Slider that derives currentThumbY from the live incline metric. */
+    public static Slider inclineLive(int trackX, int initialY, ThumbYFormula formula) {
+        return new Slider(trackX, initialY, formula) {
+            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.incline()); }
+        };
+    }
+
+    /** Creates a Slider that derives currentThumbY from the live speed metric. */
+    public static Slider speedLive(int trackX, int initialY, ThumbYFormula formula) {
+        return new Slider(trackX, initialY, formula) {
+            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.speed()); }
+        };
+    }
+
+    /** Creates a Slider that derives currentThumbY from the live resistance metric. */
+    public static Slider resistanceLive(int trackX, int initialY, ThumbYFormula formula) {
+        return new Slider(trackX, initialY, formula) {
+            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.resistance()); }
+        };
+    }
+
+    /** Creates a Slider that derives currentThumbY from the live gear metric. */
+    public static Slider gearLive(int trackX, int initialY, ThumbYFormula formula) {
+        return new Slider(trackX, initialY, formula) {
+            @Override protected int currentThumbY(MetricSnapshot s) { return targetThumbY(s.gear()); }
+        };
+    }
+
+    // ── Instance API ───────────────────────────────────────────────────────────
 
     /** Fixed horizontal pixel coordinate of this slider's track on screen. */
     public int trackX() { return trackX; }

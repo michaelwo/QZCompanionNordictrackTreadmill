@@ -12,7 +12,7 @@ public abstract class Device {
     public static volatile Device instance = null;
 
     /** Latest observed metrics from the fitness device. Written by MetricReaderUnicastingService. */
-    public MetricSnapshot lastSnapshot = new MetricSnapshot();
+    public volatile MetricSnapshot lastSnapshot = new MetricSnapshot();
 
     /** Throttle window — commands within this window of the last apply are cached, not sent. */
     public static final int SWIPE_THROTTLE_MS = 500;
@@ -29,19 +29,20 @@ public abstract class Device {
      */
     public abstract void applyCommand(Command cmd, long now);
 
-    /** Merges non-null fields from {@code m} into {@link #lastSnapshot}. */
+    /** Merges non-null fields from {@code m} into {@link #lastSnapshot} via atomic object swap. */
     public void updateSnapshot(MetricSnapshot m) {
-        if (m.speedKmh      != null) lastSnapshot.speedKmh      = m.speedKmh;
-        if (m.inclinePct    != null) {
-            if (!m.inclinePct.equals(lastSnapshot.inclinePct))
-                logger.log("QZ:Snapshot", String.format("incline %.1f%%", m.inclinePct));
-            lastSnapshot.inclinePct = m.inclinePct;
-        }
-        if (m.resistanceLvl != null) lastSnapshot.resistanceLvl = m.resistanceLvl;
-        if (m.cadenceRpm    != null) lastSnapshot.cadenceRpm    = m.cadenceRpm;
-        if (m.watts         != null) lastSnapshot.watts         = m.watts;
-        if (m.gearLevel     != null) lastSnapshot.gearLevel     = m.gearLevel;
-        if (m.heartRate     != null) lastSnapshot.heartRate     = m.heartRate;
+        MetricSnapshot old = this.lastSnapshot;
+        MetricSnapshot n = new MetricSnapshot();
+        n.speedKmh      = m.speedKmh      != null ? m.speedKmh      : old.speedKmh;
+        n.inclinePct    = m.inclinePct    != null ? m.inclinePct    : old.inclinePct;
+        n.resistanceLvl = m.resistanceLvl != null ? m.resistanceLvl : old.resistanceLvl;
+        n.cadenceRpm    = m.cadenceRpm    != null ? m.cadenceRpm    : old.cadenceRpm;
+        n.watts         = m.watts         != null ? m.watts         : old.watts;
+        n.gearLevel     = m.gearLevel     != null ? m.gearLevel     : old.gearLevel;
+        n.heartRate     = m.heartRate     != null ? m.heartRate     : old.heartRate;
+        if (m.inclinePct != null && !m.inclinePct.equals(old.inclinePct))
+            logger.log("QZ:Snapshot", String.format("incline %.1f%%", m.inclinePct));
+        this.lastSnapshot = n;
     }
 
     /** Functional interface so the executor can be set without Android imports. */

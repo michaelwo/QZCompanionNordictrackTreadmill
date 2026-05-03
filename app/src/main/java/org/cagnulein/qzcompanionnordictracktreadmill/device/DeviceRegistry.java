@@ -15,51 +15,59 @@ import java.util.Map;
  */
 public class DeviceRegistry {
 
+    public enum Category { BIKE, TREADMILL, OTHER }
+
     public enum DeviceId {
-        x11i,
-        nordictrack_2950,
-        other,
-        proform_2000,
-        s22i,
-        tdf10,
-        t85s,
-        s40,
-        exp7i,
-        x32i,
-        c1750,
-        t65s,
-        nordictrack_2950_maxspeed22,
-        t75s,
-        grand_tour_pro,
-        proform_studio_bike_pro22,
-        x32i_NTL39019,
-        x22i,
-        NTEX71021,
-        c1750_2021,
-        s22i_NTEX02121_5,
-        s22i_NTEX02117_2,
-        x32i_NTL39221,
-        c1750_2020,
-        elite1000,
-        x14i,
-        x9i,
-        nordictrack_2450,
-        c1750_2020_kph,
-        tdf10_inclination,
-        proform_carbon_t14,
-        x22i_v2,
-        s15i,
-        proform_pro_9000,
-        proform_carbon_e7,
-        t95s,
-        proform_carbon_c10,
-        elite900,
-        c1750_mph_minus3grade,
-        s27i,
-        c1750_NTL14122_2_MPH,
-        proform_pro_2000,
-        se9i_elliptical,
-        custom_calibrated,
+        // Bikes
+        s15i(Category.BIKE),
+        s22i(Category.BIKE),
+        s22i_NTEX02121_5(Category.BIKE),
+        s22i_NTEX02117_2(Category.BIKE),
+        s27i(Category.BIKE),
+        NTEX71021(Category.BIKE),
+        tdf10(Category.BIKE),
+        tdf10_inclination(Category.BIKE),
+        proform_studio_bike_pro22(Category.BIKE),
+        proform_carbon_e7(Category.BIKE),
+        proform_carbon_c10(Category.BIKE),
+        custom_calibrated(Category.BIKE),
+        // Treadmills
+        x9i(Category.TREADMILL),
+        x11i(Category.TREADMILL),
+        x14i(Category.TREADMILL),
+        x22i(Category.TREADMILL),
+        x22i_v2(Category.TREADMILL),
+        x32i(Category.TREADMILL),
+        x32i_NTL39019(Category.TREADMILL),
+        x32i_NTL39221(Category.TREADMILL),
+        c1750(Category.TREADMILL),
+        c1750_2020(Category.TREADMILL),
+        c1750_2020_kph(Category.TREADMILL),
+        c1750_mph_minus3grade(Category.TREADMILL),
+        c1750_NTL14122_2_MPH(Category.TREADMILL),
+        c1750_2021(Category.TREADMILL),
+        t65s(Category.TREADMILL),
+        t75s(Category.TREADMILL),
+        t85s(Category.TREADMILL),
+        t95s(Category.TREADMILL),
+        s40(Category.TREADMILL),
+        nordictrack_2450(Category.TREADMILL),
+        nordictrack_2950(Category.TREADMILL),
+        nordictrack_2950_maxspeed22(Category.TREADMILL),
+        proform_2000(Category.TREADMILL),
+        proform_carbon_t14(Category.TREADMILL),
+        proform_pro_9000(Category.TREADMILL),
+        proform_pro_2000(Category.TREADMILL),
+        elite900(Category.TREADMILL),
+        elite1000(Category.TREADMILL),
+        exp7i(Category.TREADMILL),
+        grand_tour_pro(Category.TREADMILL),
+        // Other
+        se9i_elliptical(Category.OTHER),
+        other(Category.OTHER);
+
+        public final Category category;
+        DeviceId(Category category) { this.category = category; }
     }
 
     private static final Map<DeviceId, Device> DEVICES;
@@ -76,10 +84,10 @@ public class DeviceRegistry {
         m.put(DeviceId.exp7i,                        new Exp7iDevice());
         m.put(DeviceId.x32i,                         new X32iDevice());
         m.put(DeviceId.c1750,                        new C1750Device());
-        m.put(DeviceId.t65s,                         new T65sDevice("T6.5s Treadmill"));
+        m.put(DeviceId.t65s,                         new T65sDevice());
         m.put(DeviceId.nordictrack_2950_maxspeed22,  new Nordictrack2950MaxSpeed22Device());
-        m.put(DeviceId.t75s,                         new T65sDevice("T7.5s Treadmill"));
-        m.put(DeviceId.grand_tour_pro,               new T65sDevice("Grand Tour Pro Treadmill"));
+        m.put(DeviceId.t75s,                         new T75sDevice());
+        m.put(DeviceId.grand_tour_pro,               new GrandTourProDevice());
         m.put(DeviceId.proform_studio_bike_pro22,    new ProformStudioBikePro22Device());
         m.put(DeviceId.x32i_NTL39019,               new X32iNtl39019Device());
         m.put(DeviceId.x22i,                         new X22iDevice());
@@ -89,7 +97,7 @@ public class DeviceRegistry {
         m.put(DeviceId.s22i_NTEX02117_2,            new S22iNtex02117Device());
         m.put(DeviceId.x32i_NTL39221,               new X32iNtl39221Device());
         m.put(DeviceId.c1750_2020,                   new C1750_2020Device());
-        m.put(DeviceId.elite1000,                    new Elite1000Device("Elite 1000 Treadmill"));
+        m.put(DeviceId.elite1000,                    new Elite1000Device());
         m.put(DeviceId.x14i,                         new X14iDevice());
         m.put(DeviceId.x9i,                          new X9iDevice());
         m.put(DeviceId.nordictrack_2450,             new Nordictrack2450Device());
@@ -106,7 +114,7 @@ public class DeviceRegistry {
         m.put(DeviceId.c1750_mph_minus3grade,        new C1750MphMinus3GradeDevice());
         m.put(DeviceId.s27i,                         new S27iDevice());
         m.put(DeviceId.c1750_NTL14122_2_MPH,        new C1750Ntl14122Device());
-        m.put(DeviceId.proform_pro_2000,             new Elite1000Device("ProForm Pro 2000 Treadmill"));
+        m.put(DeviceId.proform_pro_2000,             new ProformPro2000Device());
         m.put(DeviceId.se9i_elliptical,              new Se9iEllipticalDevice());
         m.put(DeviceId.custom_calibrated,            new CalibratedBikeDevice());
         DEVICES = Collections.unmodifiableMap(m);

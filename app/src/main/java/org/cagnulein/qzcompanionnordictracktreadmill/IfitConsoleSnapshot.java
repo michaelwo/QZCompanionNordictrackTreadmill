@@ -14,20 +14,20 @@ public class IfitConsoleSnapshot {
 
     public final int    partNumber;
     public final String machineType;
-    public final String maxKph;
-    public final String maxIncline;
-    public final String minIncline;
-    public final String maxResistance;
+    public final Float  maxKph;
+    public final Float  maxIncline;
+    public final Float  minIncline;
+    public final Float  maxResistance;
 
     public IfitConsoleSnapshot(int partNumber, String machineType,
-                        String maxKph, String maxIncline,
-                        String minIncline, String maxResistance) {
+                        Float maxKph, Float maxIncline,
+                        Float minIncline, Float maxResistance) {
         this.partNumber    = partNumber;
         this.machineType   = machineType != null ? machineType : "";
-        this.maxKph        = maxKph        != null ? maxKph        : "";
-        this.maxIncline    = maxIncline    != null ? maxIncline    : "";
-        this.minIncline    = minIncline    != null ? minIncline    : "";
-        this.maxResistance = maxResistance != null ? maxResistance : "";
+        this.maxKph        = maxKph;
+        this.maxIncline    = maxIncline;
+        this.minIncline    = minIncline;
+        this.maxResistance = maxResistance;
     }
 
     /** Returns true if the snapshot contains a meaningful part number. */
@@ -39,11 +39,16 @@ public class IfitConsoleSnapshot {
         prefs.edit()
              .putInt(PREF_PART_NUMBER,    partNumber)
              .putString(PREF_MACHINE_TYPE,   machineType)
-             .putString(PREF_MAX_KPH,        maxKph)
-             .putString(PREF_MAX_INCLINE,    maxIncline)
-             .putString(PREF_MIN_INCLINE,    minIncline)
-             .putString(PREF_MAX_RESISTANCE, maxResistance)
+             .putString(PREF_MAX_KPH,        maxKph        != null ? maxKph.toString()        : "")
+             .putString(PREF_MAX_INCLINE,    maxIncline    != null ? maxIncline.toString()    : "")
+             .putString(PREF_MIN_INCLINE,    minIncline    != null ? minIncline.toString()    : "")
+             .putString(PREF_MAX_RESISTANCE, maxResistance != null ? maxResistance.toString() : "")
              .apply();
+    }
+
+    static Float parseNullable(String s) {
+        if (s == null || s.isEmpty()) return null;
+        try { return Float.parseFloat(s); } catch (NumberFormatException e) { return null; }
     }
 
     /** Returns null if no valid snapshot has been saved yet. */
@@ -53,10 +58,10 @@ public class IfitConsoleSnapshot {
         return new IfitConsoleSnapshot(
             pn,
             prefs.getString(PREF_MACHINE_TYPE,   ""),
-            prefs.getString(PREF_MAX_KPH,        ""),
-            prefs.getString(PREF_MAX_INCLINE,    ""),
-            prefs.getString(PREF_MIN_INCLINE,    ""),
-            prefs.getString(PREF_MAX_RESISTANCE, "")
+            parseNullable(prefs.getString(PREF_MAX_KPH,        "")),
+            parseNullable(prefs.getString(PREF_MAX_INCLINE,    "")),
+            parseNullable(prefs.getString(PREF_MIN_INCLINE,    "")),
+            parseNullable(prefs.getString(PREF_MAX_RESISTANCE, ""))
         );
     }
 

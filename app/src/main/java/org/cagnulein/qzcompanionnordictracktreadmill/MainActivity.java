@@ -46,8 +46,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import androidx.appcompat.app.AlertDialog;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int MAX_LOG_LINES = 500;
-    private static final java.util.ArrayDeque<String> appLogBuffer = new java.util.ArrayDeque<>();
     private static final long MAX_LOG_FILE_BYTES = 1024 * 1024;
     private static BufferedWriter logFileWriter = null;
 
@@ -95,16 +93,12 @@ public class MainActivity extends AppCompatActivity {
 
     public static void writeLog(String command) {
         String line = new Timestamp(new Date().getTime()) + " " + command;
-        synchronized (appLogBuffer) {
-            if (appLogBuffer.size() >= MAX_LOG_LINES) appLogBuffer.removeFirst();
-            appLogBuffer.addLast(line);
-            if (logFileWriter != null) {
-                try {
-                    logFileWriter.write(line);
-                    logFileWriter.newLine();
-                    logFileWriter.flush();
-                } catch (IOException ignored) {}
-            }
+        if (logFileWriter != null) {
+            try {
+                logFileWriter.write(line);
+                logFileWriter.newLine();
+                logFileWriter.flush();
+            } catch (IOException ignored) {}
         }
     }
 
@@ -307,7 +301,7 @@ public class MainActivity extends AppCompatActivity {
         IfitConsoleSnapshot snap = IfitConsoleSnapshot.load(sharedPreferences);
         if (snap != null && snap.isValid()) {
             String detail = snap.machineType + "  ·  Part# " + snap.partNumber;
-            if (!snap.maxKph.isEmpty()) detail += "  ·  Max " + snap.maxKph + " kph";
+            if (snap.maxKph != null) detail += "  ·  Max " + snap.maxKph + " kph";
             addRequirementRow(list, true, "iFit Hardware", detail, null);
         } else {
             addRequirementRow(list, false,

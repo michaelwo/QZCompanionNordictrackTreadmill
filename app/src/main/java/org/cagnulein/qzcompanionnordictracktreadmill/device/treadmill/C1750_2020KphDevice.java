@@ -2,12 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-
 public class C1750_2020KphDevice extends TreadmillDevice {
-    private static final int ORIGIN_INCLINE_THUMBY = 525;
-    private static final int ORIGIN_SPEED_THUMBY   = 598;
-
     private static final double[][] INCLINE_TABLE = {
         {-3.0, 592}, {-2.5, 584}, {-2.0, 576}, {-1.5, 568}, {-1.0, 560},
         {-0.5, 544}, {0.0, 528}, {0.5, 520}, {1.0, 512}, {1.5, 504},
@@ -22,12 +17,8 @@ public class C1750_2020KphDevice extends TreadmillDevice {
     public C1750_2020KphDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(ScreenProfile.W1280.leftTrackX, ORIGIN_INCLINE_THUMBY, C1750_2020KphDevice::offsetInclineThumbY) {
-                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.incline()); }
-            },
-            new Slider(ScreenProfile.W1280.rightTrackX, ORIGIN_SPEED_THUMBY, C1750_2020KphDevice::offsetSpeedThumbY) {
-                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.speed()); }
-            }
+            Slider.inclineLive(ScreenProfile.W1280.leftTrackX,  525, C1750_2020KphDevice::offsetInclineThumbY),
+            Slider.speedLive(  ScreenProfile.W1280.rightTrackX, 598, C1750_2020KphDevice::offsetSpeedThumbY)
         );
     }
 

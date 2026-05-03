@@ -2,12 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSnapshot;
-
 public class X14iDevice extends TreadmillDevice {
-    private static final int ORIGIN_INCLINE_THUMBY = 645;
-    private static final int ORIGIN_SPEED_THUMBY   = 807;
-
     private static final double[][] INCLINE_TABLE = {
         {-6.0, 856}, {-5.5, 850}, {-5.0, 844}, {-4.5, 838}, {-4.0, 832},
         {-3.5, 826}, {-3.0, 820}, {-2.5, 814}, {-2.0, 808}, {-1.5, 802},
@@ -33,19 +28,14 @@ public class X14iDevice extends TreadmillDevice {
     public X14iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, X14iDevice::offsetInclineThumbY) {
-                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.incline()); }
-            },
-            new Slider(ScreenProfile.W1920.rightTrackX, ORIGIN_SPEED_THUMBY, X14iDevice::offsetSpeedThumbY) {
-                protected int currentThumbY(MetricSnapshot current) { return targetThumbY(current.speed()); }
-            }
+            Slider.inclineLive(ScreenProfile.W1920.leftTrackX,  645, X14iDevice::offsetInclineThumbY),
+            Slider.speedLive(  ScreenProfile.W1920.rightTrackX, 807, v -> 807 - (int)((v - 1.0) * 31))
         );
     }
 
     @Override public String displayName() { return "X14i Treadmill"; }
 
     private static int offsetInclineThumbY(double v) { return lookupStep(INCLINE_TABLE, v); }
-    private static int offsetSpeedThumbY(double v)   { return ORIGIN_SPEED_THUMBY - (int) ((v - 1.0) * 31); }
 
     private static int lookupStep(double[][] table, double value) {
         for (double[] row : table) if (value <= row[0]) return (int) row[1];
