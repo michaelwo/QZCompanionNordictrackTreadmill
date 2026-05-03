@@ -13,6 +13,7 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.IfitConsoleSnapshot;
+import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 
 import java.util.List;
 
@@ -78,7 +79,7 @@ public class MyAccessibilityService extends AccessibilityService {
         try {
             IfitConsoleSnapshot snap = scrape(root);
             if (snap != null && snap.isValid()) {
-                SharedPreferences prefs = getSharedPreferences("QZ", MODE_PRIVATE);
+                SharedPreferences prefs = MainActivity.prefs();
                 snap.save(prefs);
                 Log.i(TAG, "Console snapshot saved: " + snap);
             }

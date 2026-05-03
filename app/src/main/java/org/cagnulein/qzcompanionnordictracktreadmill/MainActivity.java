@@ -52,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static BufferedWriter logFileWriter = null;
 
     private DeviceAdapter deviceAdapter;
-    SharedPreferences sharedPreferences;
+    static SharedPreferences sharedPreferences;
 
     private final android.os.Handler heartbeatHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -87,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public static SharedPreferences prefs() { return sharedPreferences; }
+
     public static void writeLog(String command) {
         String line = new Timestamp(new Date().getTime()) + " " + command;
         synchronized (appLogBuffer) {
@@ -108,8 +110,17 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         checkPermissions();
         Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
+        sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
+        loadCalibration();
+        initLogFile();
+        initUi();
+        restoreDeviceSelection();
+        updateStatusChip();
+        rebindAccessibilityService();
+        startServices();
+    }
 
-        sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
+    private void loadCalibration() {
         File calFile = new File(Environment.getExternalStorageDirectory(), "qz-calibration.json");
         if (calFile.exists()) {
             try {
@@ -129,8 +140,9 @@ public class MainActivity extends AppCompatActivity {
         } else {
             DeviceCalibration.current = DeviceCalibration.load(sharedPreferences);
         }
-        initLogFile();
+    }
 
+    private void initUi() {
         if (getSupportActionBar() != null) {
             String buildId = BuildConfig.IS_CI_BUILD
                     ? "build " + BuildConfig.VERSION_CODE
@@ -150,27 +162,24 @@ public class MainActivity extends AppCompatActivity {
             myEdit.commit();
         });
         deviceList.setAdapter(deviceAdapter);
+    }
 
+    private void restoreDeviceSelection() {
         String savedId = sharedPreferences.getString("deviceId", DeviceRegistry.DeviceId.other.name());
         try {
             DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(savedId);
             deviceAdapter.setSelectedId(id);
             selectDevice(DeviceRegistry.forId(id));
         } catch (IllegalArgumentException ignored) {}
+    }
 
-        updateStatusChip();
-
-
-        rebindAccessibilityService();
-
+    private void startServices() {
         AlarmReceiver alarm = new AlarmReceiver();
         //alarm.setAlarm(this); // TODO RESTORE THIS IF POSSIBLE
         Intent inServer = new Intent(getApplicationContext(), CommandListenerService.class);
         getApplicationContext().startService(inServer);
         Intent in = new Intent(getApplicationContext(), MetricReaderUnicastingService.class);
         getApplicationContext().startService(in);
-
-
     }
 
     private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {

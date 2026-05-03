@@ -5,7 +5,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.DhcpInfo;
 import android.net.wifi.WifiManager;
 import android.os.IBinder;
@@ -31,8 +30,6 @@ public class MetricReaderUnicastingService extends Service {
     private static final StrictMode.ThreadPolicy PERMIT_ALL =
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-    static SharedPreferences sharedPreferences;
-
     /** Tracks the last value sent for each metric — only changed values are unicast. */
     private final MetricSnapshot unicastedSoFar = new MetricSnapshot();
 
@@ -48,7 +45,6 @@ public class MetricReaderUnicastingService extends Service {
     @Override
     public void onCreate() {
         instance = this;
-        sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
         broadcastAddress = computeBroadcastAddress();
         writeLog("Service onCreate");
         if (Device.instance != null) applyDeviceInternal(Device.instance);
@@ -108,7 +104,7 @@ public class MetricReaderUnicastingService extends Service {
     }
 
     private static void logMetric(String msg) {
-        if (sharedPreferences.getBoolean("debugLog", false)) {
+        if (MainActivity.prefs().getBoolean("debugLog", false)) {
             MainActivity.writeLog(msg);
             Log.i(LOG_TAG, msg);
         }
@@ -166,7 +162,7 @@ public class MetricReaderUnicastingService extends Service {
     }
 
     private static void writeLog(String msg) {
-        if (sharedPreferences.getBoolean("debugLog", false)) {
+        if (MainActivity.prefs().getBoolean("debugLog", false)) {
             MainActivity.writeLog(msg);
             Log.i(LOG_TAG, msg);
             sendUnicast(msg);

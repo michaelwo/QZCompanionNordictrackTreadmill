@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import android.content.SharedPreferences;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -45,13 +44,11 @@ public class CommandListenerService extends Service {
 
     static DatagramSocket socket;
 
-    static SharedPreferences sharedPreferences;
-
     private CommandDispatcher dispatcher;
     private PowerManager.WakeLock wakeLock;
 
     private void writeLog(String command) {
-        if (sharedPreferences.getBoolean("debugLog", false)) {
+        if (MainActivity.prefs().getBoolean("debugLog", false)) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
             MetricReaderUnicastingService.sendUnicast(command);
@@ -165,7 +162,6 @@ public class CommandListenerService extends Service {
 
     @Override
     public void onCreate() {
-        sharedPreferences = getSharedPreferences("QZ",MODE_PRIVATE);
         dispatcher = new CommandDispatcher();
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
