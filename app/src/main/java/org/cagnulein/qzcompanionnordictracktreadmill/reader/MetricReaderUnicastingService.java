@@ -12,7 +12,6 @@ import android.os.StrictMode;
 import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -29,11 +28,14 @@ public class MetricReaderUnicastingService extends Service {
     private static final StrictMode.ThreadPolicy PERMIT_ALL =
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-    /** Current reader; replaced on every device switch via {@link #applyDevice(Device)}. */
+    /** MonoStdout reader — started once in onCreate, runs for the lifetime of the service. */
     private MetricReader cachedReader = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
     private static volatile MetricReaderUnicastingService instance;
+
+    /** Subscriber that receives decoded slider metrics. Set by DeviceController via setSubscriber(). */
+    private volatile MetricSubscriber subscriber = null;
 
     /** LAN broadcast address computed once at startup; used when QZ has not yet been discovered. */
     private static InetAddress broadcastAddress = null;
@@ -46,7 +48,11 @@ public class MetricReaderUnicastingService extends Service {
         instance = this;
         broadcastAddress = computeBroadcastAddress();
         writeLog("Service onCreate");
-        if (Device.instance != null) applyDeviceInternal(Device.instance);
+        applyDeviceInternal();
+    }
+
+    public static void setSubscriber(MetricSubscriber s) {
+        if (instance != null) instance.subscriber = s;
     }
 
     private InetAddress computeBroadcastAddress() {
@@ -63,21 +69,12 @@ public class MetricReaderUnicastingService extends Service {
         }
     }
 
-    /**
-     * Called by {@link org.cagnulein.qzcompanionnordictracktreadmill.MainActivity} whenever the
-     * user selects a different device. Creates the MonoStdout reader and subscribes to its
-     * push notifications.
-     */
-    public static void applyDevice(Device device) {
-        if (instance != null) instance.applyDeviceInternal(device);
-    }
-
-    private void applyDeviceInternal(Device device) {
-        cachedReader = device.defaultMetricReader();
+    private void applyDeviceInternal() {
+        cachedReader = new MonoStdoutMetricReader();
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
         cachedReader.subscribe(this::applyAndUnicast);
-        writeLog("Device " + device.displayName() + ": streaming reader active");
+        writeLog("Metric reader: streaming active");
         try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
     }
 
@@ -85,19 +82,9 @@ public class MetricReaderUnicastingService extends Service {
         String msg = packet.serialize();
         logMetric(msg);
         sendUnicast(msg);
-        SliderMetric sliderMetric = toSliderMetric(packet.metric);
-        if (sliderMetric != null && Device.instance != null)
-            Device.instance.applyMetric(sliderMetric, packet.value);
-    }
-
-    private static SliderMetric toSliderMetric(QZMetricPacket.Metric m) {
-        switch (m) {
-            case KPH:          return SliderMetric.KPH;
-            case GRADE:        return SliderMetric.GRADE;
-            case RESISTANCE:   return SliderMetric.RESISTANCE;
-            case CURRENT_GEAR: return SliderMetric.CURRENT_GEAR;
-            default:           return null;
-        }
+        SliderMetric sliderMetric = SliderMetric.from(packet.metric);
+        if (sliderMetric != null && subscriber != null)
+            subscriber.onMetric(sliderMetric, packet.value);
     }
 
     private static void logMetric(String msg) {

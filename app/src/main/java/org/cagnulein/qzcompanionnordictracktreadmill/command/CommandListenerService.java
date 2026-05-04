@@ -2,12 +2,10 @@ package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.MainActivity;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -20,8 +18,6 @@ import android.util.Log;
  */
 public class CommandListenerService extends Service {
     private static final String LOG_TAG = "QZ:CommandListenerService";
-
-    private static final String CALSWIPE_PREFIX = "CALSWIPE:";
 
     /** Wall-clock ms of the last -100;N heartbeat packet from QZ. 0 = never received. */
     public static volatile long lastQzHeartbeatMs = 0;
@@ -39,8 +35,17 @@ public class CommandListenerService extends Service {
 
     static DatagramSocket socket;
 
-    private CommandDispatcher dispatcher;
+    /** Singleton pointer — set in onCreate, cleared in onDestroy. */
+    private static volatile CommandListenerService instance;
+
+    /** Subscriber that receives decoded packets and calibration swipes. */
+    private volatile PacketSubscriber subscriber = null;
+
     private PowerManager.WakeLock wakeLock;
+
+    public static void setSubscriber(PacketSubscriber s) {
+        if (instance != null) instance.subscriber = s;
+    }
 
     private void writeLog(String command) {
         if (MainActivity.isDebugLog()) {
@@ -66,14 +71,22 @@ public class CommandListenerService extends Service {
             String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
             Log.i(LOG_TAG, "rx: " + msg);
 
-            if (msg.startsWith(CALSWIPE_PREFIX)) {
-                handleCalibrationSwipe(msg);
+            if (subscriber == null) {
+                writeLog("Packet discarded: no subscriber");
                 return;
             }
 
-            Device currentDevice = Device.instance;
-            if (currentDevice == null) {
-                writeLog("Packet discarded: no device selected");
+            if (msg.startsWith(QZCommandPacket.CALSWIPE_PREFIX)) {
+                String[] parts = msg.split(":");
+                try {
+                    subscriber.onCalibrationSwipe(new CalibrationSwipeCommand(
+                            Float.parseFloat(parts[1]),
+                            Float.parseFloat(parts[2]),
+                            Float.parseFloat(parts[3])));
+                    Log.i(LOG_TAG, "CALSWIPE routed to subscriber");
+                } catch (Exception e) {
+                    Log.e(LOG_TAG, "CALSWIPE parse error: " + e.getMessage());
+                }
                 return;
             }
 
@@ -84,27 +97,9 @@ public class CommandListenerService extends Service {
                 lastQzHeartbeatMs = System.currentTimeMillis();
                 qzAddress = pkt.getAddress();
             }
-            dispatcher.dispatch(msg, currentDevice);
+            subscriber.onPacket(QZCommandPacket.parse(msg));
         } finally {
             if (wakeLock.isHeld()) wakeLock.release();
-        }
-    }
-
-    /** Dispatches a raw swipe via AccessibilityService. Format: CALSWIPE:<x>:<from_y>:<to_y> */
-    private void handleCalibrationSwipe(String msg) {
-        if (!MyAccessibilityService.isConnected()) {
-            Log.w(LOG_TAG, "CALSWIPE: accessibility service not connected");
-            return;
-        }
-        try {
-            String[] parts = msg.split(":");
-            float x     = Float.parseFloat(parts[1]);
-            float fromY = Float.parseFloat(parts[2]);
-            float toY   = Float.parseFloat(parts[3]);
-            MyAccessibilityService.performSwipe(x, fromY, x, toY, 200);
-            Log.i(LOG_TAG, "CALSWIPE x=" + (int)x + " " + (int)fromY + "→" + (int)toY);
-        } catch (Exception e) {
-            Log.e(LOG_TAG, "CALSWIPE parse error: " + e.getMessage());
         }
     }
 
@@ -130,21 +125,19 @@ public class CommandListenerService extends Service {
 
     @Override
     public void onCreate() {
-        dispatcher = new CommandDispatcher();
+        instance = this;
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
         Log.i(LOG_TAG, "QZCompanion v" + BuildConfig.VERSION_NAME
                 + " (" + BuildConfig.VERSION_CODE + ") starting");
         Log.i(LOG_TAG, "Listening on UDP port " + LISTEN_PORT);
-        Log.i(LOG_TAG, "Device: " + (Device.instance != null ? Device.instance.displayName() : "none selected"));
     }
 
     @Override
     public void onDestroy() {
         stopListen();
-        dispatcher.shutdown();
+        instance = null;
     }
-
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {

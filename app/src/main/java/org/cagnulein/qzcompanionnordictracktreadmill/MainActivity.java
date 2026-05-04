@@ -39,8 +39,9 @@ import java.io.IOException;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.MyAccessibilityService;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 
 import androidx.appcompat.app.AlertDialog;
@@ -50,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
     private static BufferedWriter logFileWriter = null;
 
     private DeviceAdapter deviceAdapter;
+    private DeviceController activeController = null;
     private static SharedPreferences sharedPreferences;
 
     private final android.os.Handler heartbeatHandler =
@@ -112,10 +114,10 @@ public class MainActivity extends AppCompatActivity {
         loadCalibration();
         initLogFile();
         initUi();
+        startServices();
         restoreDeviceSelection();
         updateStatusChip();
         rebindAccessibilityService();
-        startServices();
     }
 
     private void loadCalibration() {
@@ -265,10 +267,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void updateRequirementsCard() {
         LinearLayout list = findViewById(R.id.requirementsList);
-        if (list == null || Device.instance == null) return;
+        if (list == null || activeController == null) return;
         list.removeAllViews();
 
-        Device device = Device.instance;
+        Device device = activeController.device();
 
         boolean ok = isAccessibilityServiceEnabled(this, MyAccessibilityService.class);
         addRequirementRow(list, ok,
@@ -369,8 +371,8 @@ public class MainActivity extends AppCompatActivity {
     private void updateStatusChip() {
         TextView chip = findViewById(R.id.statusChip);
         if (chip == null) return;
-        String deviceName = Device.instance != null
-                ? Device.instance.displayName()
+        String deviceName = activeController != null
+                ? activeController.device().displayName()
                 : "No device selected";
         String ip = getLocalIpAddress();
         chip.setText("UDP " + CommandListenerService.LISTEN_PORT + "  ·  " + deviceName + "  ·  " + ip);
@@ -391,11 +393,13 @@ public class MainActivity extends AppCompatActivity {
         return "no IP";
     }
 
-    /** Selects {@code device} as the active device and wires up its logger. */
+    /** Selects {@code device} as the active device and wires it to both services. */
     private void selectDevice(Device device) {
         device.logger = (tag, msg) -> Log.i(tag, msg);
-        Device.instance = device;
-        MetricReaderUnicastingService.applyDevice(device);
+        if (activeController != null) activeController.shutdown();
+        activeController = new DeviceController(device);
+        CommandListenerService.setSubscriber(activeController);
+        MetricReaderUnicastingService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();
     }

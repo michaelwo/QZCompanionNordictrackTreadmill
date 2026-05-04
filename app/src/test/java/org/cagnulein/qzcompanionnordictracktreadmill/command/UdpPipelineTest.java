@@ -1,9 +1,9 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.junit.After;
@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * End-to-end pipeline tests using real UDP datagrams.
  *
  * These tests verify the complete chain:
- *   DatagramSocket.receive() → message string → CommandDispatcher.dispatch()
+ *   DatagramSocket.receive() → message string → DeviceController.onPacket()
  *   → Device.decodeCommand() → applySpeed/applyResistance → Device.commandExecutor
  *
  * The Android Service layer (PowerManager, WifiManager, lifecycle) is not involved;
@@ -35,13 +35,11 @@ public class UdpPipelineTest {
     private DatagramSocket serverSocket;
     private Thread         listenerThread;
     private String         lastCommand;
-    private CommandDispatcher dispatcher;
 
     @Before
     public void setUp() throws Exception {
-        lastCommand = null;
+        lastCommand  = null;
         serverSocket = new DatagramSocket(0);
-        dispatcher   = new CommandDispatcher();
     }
 
     @After
@@ -63,11 +61,13 @@ public class UdpPipelineTest {
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * Starts a background thread that receives one UDP packet, dispatches it, then
-     * signals the latch.  Mirrors the core of CommandListenerService.listenAndWaitAndThrowIntent
-     * without the Android PowerManager/WifiManager calls.
+     * Starts a background thread that receives one UDP packet, dispatches it via
+     * DeviceController, then signals the latch.  Mirrors the core of
+     * CommandListenerService.listenAndWaitAndThrowIntent without the Android
+     * PowerManager/WifiManager calls.
      */
     private void startReceiver(Device device, float speedKmh, CountDownLatch latch) {
+        DeviceController ctrl = new DeviceController(device);
         listenerThread = new Thread(() -> {
             try {
                 byte[] buf = new byte[1024];
@@ -75,7 +75,7 @@ public class UdpPipelineTest {
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 device.applyMetric(SliderMetric.KPH, speedKmh);
-                dispatcher.dispatch(message, device);
+                ctrl.onPacket(QZCommandPacket.parse(message));
                 latch.countDown();
             } catch (Exception e) {
                 // Socket closed by tearDown — normal shutdown path.
@@ -135,6 +135,7 @@ public class UdpPipelineTest {
 
         // Simulate a listener with comma as decimal separator.
         X11iDevice device = dev(new X11iDevice());
+        DeviceController ctrl = new DeviceController(device);
         listenerThread = new Thread(() -> {
             try {
                 byte[] buf = new byte[1024];
@@ -142,7 +143,7 @@ public class UdpPipelineTest {
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
                 device.applyMetric(SliderMetric.KPH, 5.0f);
-                dispatcher.dispatch(message, device);
+                ctrl.onPacket(QZCommandPacket.parse(message));
                 latch.countDown();
             } catch (Exception e) { /* closed */ }
         });

@@ -20,7 +20,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
@@ -54,7 +54,7 @@ public class ZwiftRideRobolectricTest {
 
     @After
     public void tearDown() {
-        Device.instance = null;
+        CommandListenerService.setSubscriber(null);
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
         }
@@ -110,9 +110,9 @@ public class ZwiftRideRobolectricTest {
         S22iDevice device = new S22iDevice();
         CountDownLatch latch = new CountDownLatch(3);
         device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
-        Device.instance = device;
 
         startService();
+        CommandListenerService.setSubscriber(new DeviceController(device));
 
         float[] grades = {5f, 10f, 0f};
         for (float g : grades) {
@@ -140,16 +140,16 @@ public class ZwiftRideRobolectricTest {
         S22iDevice device = new S22iDevice();
         CountDownLatch firstSwipe = new CountDownLatch(1);
         device.commandExecutor = cmd -> { commands.add(cmd); firstSwipe.countDown(); };
-        Device.instance = device;
 
         startService();
+        CommandListenerService.setSubscriber(new DeviceController(device));
 
         sendGrade(7f);
         assertTrue("first swipe should arrive", firstSwipe.await(3, TimeUnit.SECONDS));
 
         // Send the same grade again — should be de-duped
         CountDownLatch secondSwipe = new CountDownLatch(1);
-        Device.instance.commandExecutor = cmd -> { commands.add(cmd); secondSwipe.countDown(); };
+        device.commandExecutor = cmd -> { commands.add(cmd); secondSwipe.countDown(); };
         sendGrade(7f);
 
         assertFalse("duplicate grade should be suppressed by de-dup",
@@ -166,9 +166,9 @@ public class ZwiftRideRobolectricTest {
         S22iDevice device = new S22iDevice();
         CountDownLatch latch = new CountDownLatch(1);
         device.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
-        Device.instance = device;
 
         startService();
+        CommandListenerService.setSubscriber(new DeviceController(device));
         Thread.sleep(200);
 
         try (DatagramSocket sender = new DatagramSocket()) {
@@ -186,8 +186,7 @@ public class ZwiftRideRobolectricTest {
      */
     @Test
     public void noDevice_messageDiscarded() throws Exception {
-        Device.instance = null;
-        // No device selected — no executor to configure; any dispatch would be discarded.
+        // No setSubscriber() call — subscriber remains null
         CountDownLatch latch = new CountDownLatch(1);
 
         startService();
@@ -199,7 +198,7 @@ public class ZwiftRideRobolectricTest {
                     InetAddress.getLoopbackAddress(), 8003));
         }
 
-        assertFalse("no swipe expected when device is null", latch.await(500, TimeUnit.MILLISECONDS));
+        assertFalse("no swipe expected when subscriber is null", latch.await(500, TimeUnit.MILLISECONDS));
         assertTrue(commands.isEmpty());
     }
 
@@ -214,9 +213,9 @@ public class ZwiftRideRobolectricTest {
         x11i.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
-        Device.instance = x11i;
 
         startService();
+        CommandListenerService.setSubscriber(new DeviceController(x11i));
         Thread.sleep(200);
 
         try (DatagramSocket sender = new DatagramSocket()) {

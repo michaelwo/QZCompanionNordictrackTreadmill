@@ -17,8 +17,7 @@ import java.net.InetAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
@@ -29,7 +28,7 @@ import static org.junit.Assert.*;
  * End-to-end Robolectric tests for CommandListenerService.
  *
  * These tests exercise the full pipeline:
- *   real UDP datagram → service receive loop → CommandDispatcher → Device.execute()
+ *   real UDP datagram → service receive loop → DeviceController → Device.execute()
  *
  * Android framework classes (PowerManager, WifiManager, SharedPreferences) are
  * provided by Robolectric shadows — no physical device or emulator needed.
@@ -48,7 +47,7 @@ public class CommandListenerServiceTest {
 
     @After
     public void tearDown() {
-        Device.instance = null;
+        CommandListenerService.setSubscriber(null);
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
         }
@@ -87,10 +86,10 @@ public class CommandListenerServiceTest {
         x11i.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
-        Device.instance = x11i;
 
         controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
+        CommandListenerService.setSubscriber(new DeviceController(x11i));
 
         sendUdp("8.0;3.0");
 
@@ -105,10 +104,10 @@ public class CommandListenerServiceTest {
         S15iDevice s15i = new S15iDevice();
         CountDownLatch latch = new CountDownLatch(1);
         s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
-        Device.instance = s15i;
 
         controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
+        CommandListenerService.setSubscriber(new DeviceController(s15i));
 
         sendUdp("10.0");
 
@@ -118,17 +117,17 @@ public class CommandListenerServiceTest {
 
     @Test
     public void noDevice_selected_noCommandProduced() throws Exception {
-        // When currentDevice is null the service should silently drop the message.
-        Device.instance = null;
+        // When no subscriber is set the service should silently drop the message.
         CountDownLatch latch = new CountDownLatch(1);
 
         controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
+        // No setSubscriber() call — subscriber remains null
 
         sendUdp("8.0;3.0");
 
         // Give the service a moment to process (or not).
-        assertFalse("no command should be generated when device is null",
+        assertFalse("no command should be generated when subscriber is null",
                     latch.await(500, TimeUnit.MILLISECONDS));
         assertNull(lastCommand);
     }
@@ -140,10 +139,10 @@ public class CommandListenerServiceTest {
         x11i2.applyMetric(SliderMetric.KPH, 5.0f);
         CountDownLatch latch = new CountDownLatch(1);
         x11i2.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
-        Device.instance = x11i2;
 
         controller = Robolectric.buildService(CommandListenerService.class);
         controller.create().startCommand(0, 1);
+        CommandListenerService.setSubscriber(new DeviceController(x11i2));
 
         sendUdp("-1;-100");
 

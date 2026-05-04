@@ -1,8 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -15,7 +14,7 @@ import java.util.List;
  * End-to-end simulation of a Zwift ride session against an S22i bike.
  *
  * Tests exercise the full pipeline without UDP sockets:
- *   grade message → CommandDispatcher.dispatch() → S22iDevice.applyIncline()
+ *   grade message → DeviceController.onPacket() → S22iDevice.applyIncline()
  *   → Device.swipe() → Device.commandExecutor (captured)
  *
  * Time is injected so throttle behavior is controlled without sleeping.
@@ -41,10 +40,6 @@ public class ZwiftRideSimulationTest {
     private final List<String> commands = new ArrayList<>();
     private final long[] time = {1_000L};
 
-    private CommandDispatcher dispatcher() {
-        return new CommandDispatcher(() -> time[0]);
-    }
-
     /** Creates a S22iDevice that captures swipes into the shared commands list. */
     private S22iDevice bike() {
         S22iDevice dev = new S22iDevice();
@@ -52,13 +47,18 @@ public class ZwiftRideSimulationTest {
         return dev;
     }
 
+    /** Creates a DeviceController with an injectable clock backed by {@code time}. */
+    private DeviceController ctrl(S22iDevice device) {
+        return new DeviceController(device, () -> time[0]);
+    }
+
     @Before
     public void setup() { commands.clear(); }
 
     /** Advances time by ms and dispatches one Zwift grade message (2-part format). */
-    private void send(CommandDispatcher d, S22iDevice bike, float grade, long advanceMs) {
+    private void send(DeviceController ctrl, float grade, long advanceMs) {
         time[0] += advanceMs;
-        d.dispatch(grade + ";0", bike);
+        ctrl.onPacket(QZCommandPacket.parse(grade + ";0"));
     }
 
     // ── helper: expected swipe string ────────────────────────────────────────
@@ -86,12 +86,12 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void fullRide_fiveGradeChanges_correctSwipeChain() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         float[] grades = {0f, 5f, 10f, 5f, 0f};
         for (float g : grades) {
-            send(d, bike, g, 600);  // 600ms > 500ms throttle
+            send(ctrl, g, 600);  // 600ms > 500ms throttle
         }
 
         assertEquals("expected 5 swipes for 5 grade changes", 5, commands.size());
@@ -114,19 +114,19 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void throttle_rapidMessages_fifoQueueDrains() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         // All three within the 500ms window: t=1100, t=1200, t=1300
-        send(d, bike, 5f,  100);  // fires immediately (window fresh)
-        send(d, bike, 8f,  100);  // throttled → queue=[8f]
-        send(d, bike, 10f, 100);  // throttled → queue=[8f, 10f]
+        send(ctrl, 5f,  100);  // fires immediately (window fresh)
+        send(ctrl, 8f,  100);  // throttled → queue=[8f]
+        send(ctrl, 10f, 100);  // throttled → queue=[8f, 10f]
 
         assertEquals(1, commands.size());
         assertEquals(swipe(622, dispatchY(622, targetThumbY(5f))), commands.get(0));
 
         // Advance past throttle window — oldest queued (8f) drains first
-        send(d, bike, 10f, 600);  // t=1900, window open → drains 8f
+        send(ctrl, 10f, 600);  // t=1900, window open → drains 8f
 
         assertEquals(2, commands.size());
         assertEquals(swipe(targetThumbY(5f), dispatchY(targetThumbY(5f), targetThumbY(8f))), commands.get(1));
@@ -136,11 +136,11 @@ public class ZwiftRideSimulationTest {
 
     @Test
     public void dedup_sameGradeTwice_onlyFirstSwipeFires() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
-        send(d, bike, 7f, 600);  // fires
-        send(d, bike, 7f, 600);  // de-dup: same as last, skipped
+        send(ctrl, 7f, 600);  // fires
+        send(ctrl, 7f, 600);  // de-dup: same as last, skipped
 
         assertEquals(1, commands.size());
         assertEquals(swipe(622, dispatchY(622, targetThumbY(7f))), commands.get(0));
@@ -154,12 +154,12 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void sentinelFlood_noSwipesFire() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         for (int i = 0; i < 20; i++) {
             time[0] += 600;
-            d.dispatch("-1;-100", bike);
+            ctrl.onPacket(QZCommandPacket.parse("-1;-100"));
         }
 
         assertTrue("no swipes expected for 20 sentinel messages", commands.isEmpty());
@@ -169,9 +169,6 @@ public class ZwiftRideSimulationTest {
 
     @Test
     public void decimalSeparator_commaAndDot_identicalSwipes() {
-        CommandDispatcher dotDispatcher   = new CommandDispatcher(() -> time[0]);
-        CommandDispatcher commaDispatcher = new CommandDispatcher(() -> time[0] + 1);
-
         S22iDevice bikeDot   = new S22iDevice();
         S22iDevice bikeComma = bike();
 
@@ -180,9 +177,13 @@ public class ZwiftRideSimulationTest {
 
         bikeDot.commandExecutor   = cmd -> dotCmds.add(cmd);
         bikeComma.commandExecutor = cmd -> commaCmds.add(cmd);
+
+        DeviceController dotCtrl   = new DeviceController(bikeDot,   () -> time[0]);
+        DeviceController commaCtrl = new DeviceController(bikeComma, () -> time[0] + 1);
+
         time[0] += 600;
-        dotDispatcher.dispatch("5.0;0", bikeDot);
-        commaDispatcher.dispatch("5,0;0", bikeComma);
+        dotCtrl.onPacket(QZCommandPacket.parse("5.0;0"));
+        commaCtrl.onPacket(QZCommandPacket.parse("5,0;0"));
 
         assertEquals(1, dotCmds.size());
         assertEquals(1, commaCmds.size());
@@ -199,12 +200,12 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void alpeProfile_climbAndDescent_correctSequence() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         float[] profile = {2f, 5f, 8f, 10f, 8f, 5f, 2f, 0f};
         for (float g : profile) {
-            send(d, bike, g, 600);
+            send(ctrl, g, 600);
         }
 
         assertEquals(profile.length, commands.size());
@@ -232,12 +233,12 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void subThresholdChange_belowHalfPercent_suppressed() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
-        send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
-        send(d, bike, 6.7f, 600);  // quantized 7.0 → de-dup (same as last)
-        send(d, bike, 6.5f, 600);  // quantized 6.5 → fires
+        send(ctrl, 7.0f, 600);  // quantized 7.0 → fires
+        send(ctrl, 6.7f, 600);  // quantized 7.0 → de-dup (same as last)
+        send(ctrl, 6.5f, 600);  // quantized 6.5 → fires
 
         assertEquals("only snap-grid changes should fire; 6.7→7.0 quantizes to same as last", 2, commands.size());
         assertEquals(swipe(622,           dispatchY(622,           targetThumbY(7.0f))), commands.get(0));
@@ -250,11 +251,11 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void exactThreshold_halfPercent_fires() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
-        send(d, bike, 7.0f, 600);  // quantized 7.0 → fires
-        send(d, bike, 6.5f, 600);  // quantized 6.5 → different snap point → fires
+        send(ctrl, 7.0f, 600);  // quantized 7.0 → fires
+        send(ctrl, 6.5f, 600);  // quantized 6.5 → different snap point → fires
 
         assertEquals(2, commands.size());
         assertEquals(swipe(targetThumbY(7.0f), dispatchY(targetThumbY(7.0f), targetThumbY(6.5f))), commands.get(1));
@@ -274,15 +275,15 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void mountainMash_slowDescent_firesEveryHalfPercent() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         // Peak grade — fires immediately
-        send(d, bike, 7.0f, 600);
+        send(ctrl, 7.0f, 600);
 
         // Descend in 0.1% steps from 6.9% to 5.0%
         for (int i = 69; i >= 50; i--) {
-            send(d, bike, i / 10.0f, 600);
+            send(ctrl, i / 10.0f, 600);
         }
 
         // Expected fires: 7.0, 6.5, 6.0, 5.5, 5.0
@@ -305,15 +306,15 @@ public class ZwiftRideSimulationTest {
      */
     @Test
     public void mountainMash_slowAscent_firesEveryHalfPercent() {
-        CommandDispatcher d = dispatcher();
         S22iDevice bike = bike();
+        DeviceController ctrl = ctrl(bike);
 
         // Starting grade
-        send(d, bike, 5.0f, 600);
+        send(ctrl, 5.0f, 600);
 
         // Ascend in 0.1% steps from 5.1% to 7.0%
         for (int i = 51; i <= 70; i++) {
-            send(d, bike, i / 10.0f, 600);
+            send(ctrl, i / 10.0f, 600);
         }
 
         // Expected fires: 5.0, 5.5, 6.0, 6.5, 7.0

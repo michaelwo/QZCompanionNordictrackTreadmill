@@ -1,32 +1,25 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-
 import java.util.ArrayDeque;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
- * Parses raw UDP messages, throttles delivery, and dispatches commands to the active device.
+ * Throttles and queues Commands for delivery to a device.
  *
- * Each incoming message is decoded into one Command per actionable field (e.g. a treadmill
- * message "8.0;3.0" yields [speedCmd, inclineCmd]).  All decoded Commands are enqueued, then
- * one is drained per open throttle window — oldest first.  Commands arriving when the queue
- * is full are silently dropped.
+ * Commands are enqueued via {@link #enqueue} and drained one per throttle window (500 ms).
+ * A background {@link ScheduledExecutorService} fires every {@code SWIPE_THROTTLE_MS} for
+ * active drain, independent of incoming commands. {@link #enqueue} also attempts an immediate
+ * drain when the window is open. Both paths synchronize on {@code this} to prevent double-drain.
  *
- * <h3>Active drain</h3>
- * A background {@link ScheduledExecutorService} fires every {@code SWIPE_THROTTLE_MS} and
- * calls {@link #tryDrain}, independent of incoming packets.  {@link #dispatch} also calls
- * {@code tryDrain} immediately when the window is open.  Both paths synchronize on {@code this}
- * to prevent double-drain.  The test constructor takes an injectable {@link Clock} and starts
- * no background thread — tests remain fully deterministic.
+ * The executor callback supplied at construction performs the actual command execution (e.g.
+ * calling {@code cmd.applyTo(device)}) and any associated logging. CommandDispatcher itself
+ * has no device knowledge.
  *
- * Device subclasses via applyCommand() are pure executors — no throttle logic there.
- *
- * Extracted as a plain Java class so it can be tested without Android dependencies.
- * CommandListenerService creates one instance at startup and calls dispatch() per message.
+ * The test constructor takes an injectable {@link Clock} and starts no background thread —
+ * tests remain fully deterministic.
  */
 public class CommandDispatcher {
 
@@ -34,26 +27,22 @@ public class CommandDispatcher {
     public static final int SWIPE_THROTTLE_MS = 500;
 
     /** Maximum number of pending Commands held while the throttle window is closed. */
-    static final int QUEUE_CAPACITY = 5;
+    public static final int QUEUE_CAPACITY = 5;
 
     /** Injectable clock — defaults to wall time; replaced with a fixed value in tests. */
     public interface Clock { long now(); }
 
     private final Clock clock;
     private final ScheduledExecutorService scheduler;
+    private final Consumer<Command> executor;
 
-    private static final class Pending {
-        final Command command;
-        final Device  device;
-        Pending(Command c, Device d) { command = c; device = d; }
-    }
-
-    private final ArrayDeque<Pending> queue = new ArrayDeque<>();
+    private final ArrayDeque<Command> queue = new ArrayDeque<>();
     private long lastExecutedMs = 0;
 
     /** Production constructor: wall clock + background drain thread. */
-    public CommandDispatcher() {
-        this.clock = System::currentTimeMillis;
+    public CommandDispatcher(Consumer<Command> executor) {
+        this.clock    = System::currentTimeMillis;
+        this.executor = executor;
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "QZ:DrainThread");
             t.setDaemon(true);
@@ -65,55 +54,49 @@ public class CommandDispatcher {
     }
 
     /** Test constructor: injectable clock, no background thread. */
-    public CommandDispatcher(Clock clock) {
-        this.clock = clock;
+    public CommandDispatcher(Consumer<Command> executor, Clock clock) {
+        this.clock     = clock;
+        this.executor  = executor;
         this.scheduler = null;
     }
 
-    /** Stops the background drain thread. Call from CommandListenerService.onDestroy(). */
+    /** Stops the background drain thread. Call from DeviceController.shutdown(). */
     public void shutdown() {
         if (scheduler != null) scheduler.shutdownNow();
     }
 
     /**
-     * Decodes {@code message} into atomic Commands, enqueues all of them, then attempts
-     * an immediate drain if the throttle window is open.
+     * Enqueues {@code cmd} and attempts an immediate drain if the throttle window is open.
      *
-     * @param message raw semicolon-delimited UDP string
-     * @param device  the currently active device
+     * @return the queue depth after enqueue (1–{@value #QUEUE_CAPACITY}), or -1 if the queue
+     *         was full and the command was dropped
      */
-    public void dispatch(String message, Device device) {
+    public int enqueue(Command cmd) {
         long now = clock.now();
-        QZCommandPacket pkt = QZCommandPacket.parse(message);
-        List<Command> incoming = device.decodeCommands(pkt);
-
+        int depth;
         synchronized (this) {
-            for (Command cmd : incoming) {
-                if (queue.size() < QUEUE_CAPACITY) {
-                    queue.offer(new Pending(cmd, device));
-                    device.logger.log("QZ:Dispatcher",
-                            "enqueue: " + cmd + " depth=" + queue.size() + "/" + QUEUE_CAPACITY);
-                } else {
-                    device.logger.log("QZ:Dispatcher",
-                            "drop: " + cmd + " (queue full at " + QUEUE_CAPACITY + ")");
-                }
+            if (queue.size() < QUEUE_CAPACITY) {
+                queue.offer(cmd);
+                depth = queue.size();
+            } else {
+                depth = -1;
             }
         }
-        tryDrain(now);
+        if (depth >= 0) tryDrain(now);
+        return depth;
     }
 
+    /** Attempts an immediate drain without enqueuing — used by sentinel packets that carry no commands. */
+    public void drain() { tryDrain(clock.now()); }
+
     private void tryDrain(long now) {
-        Pending next;
-        int remaining;
+        Command next;
         synchronized (this) {
             if (now < lastExecutedMs + SWIPE_THROTTLE_MS) return;
             next = queue.poll();
             if (next == null) return;
-            remaining = queue.size();
             lastExecutedMs = now;
         }
-        next.device.logger.log("QZ:Dispatcher",
-                "drain: " + next.command + " depth=" + remaining + "/" + QUEUE_CAPACITY);
-        next.device.applyCommand(next.command);
+        executor.accept(next);
     }
 }

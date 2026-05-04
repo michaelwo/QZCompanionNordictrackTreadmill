@@ -13,7 +13,6 @@ import org.robolectric.android.controller.ServiceController;
 import org.robolectric.annotation.Config;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import static org.junit.Assert.*;
 
 /**
@@ -33,14 +32,8 @@ public class MetricReaderUnicastingServiceTest {
 
     private ServiceController<MetricReaderUnicastingService> controller;
 
-    @Before
-    public void setUp() {
-        Device.instance = null;
-    }
-
     @After
     public void tearDown() {
-        Device.instance = null;
         if (controller != null) {
             try { controller.destroy(); } catch (Exception ignored) {}
         }

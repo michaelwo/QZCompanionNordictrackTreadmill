@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
@@ -15,7 +16,7 @@ import java.util.List;
 
 
 /**
- * Integration tests for CommandDispatcher.
+ * Integration tests for CommandDispatcher via DeviceController.
  *
  * Each test exercises the full pipeline from a raw UDP message string through
  * decodeCommand, queue/throttle logic, and apply*, down to the final "input swipe"
@@ -29,8 +30,9 @@ public class CommandDispatcherTest {
     private String lastCommand;
     private final long[] time = {1_000L};
 
-    private CommandDispatcher dispatcher() {
-        return new CommandDispatcher(() -> time[0]);
+    /** Creates a DeviceController with an injectable clock backed by {@code time}. */
+    private <T extends Device> DeviceController ctrl(T device) {
+        return new DeviceController(device, () -> time[0]);
     }
 
     /** Pre-populate a device's live speed so the treadmill speed gate passes. */
@@ -57,8 +59,8 @@ public class CommandDispatcherTest {
         // X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device);
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;3.0"));
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -70,12 +72,12 @@ public class CommandDispatcherTest {
         X11iDevice device = new X11iDevice();
         device.commandExecutor = cmd -> { lastCommand = cmd; count[0]++; };
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device); // speed drained (count=1), incline queued
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;3.0")); // speed drained (count=1), incline queued
 
         int countAfterFirst = count[0]; // 1
         time[0] += 200;                 // still within window
-        d.dispatch("9.0;4.0", device); // queued — no additional drain
+        ctrl.onPacket(QZCommandPacket.parse("9.0;4.0")); // queued — no additional drain
         assertEquals("second dispatch within window must not produce additional swipes",
                 countAfterFirst, count[0]);
     }
@@ -86,14 +88,14 @@ public class CommandDispatcherTest {
         // X11i targetSpeedY(9.0) = (int)(621.997 - 21.785*9.0) = 425; fromY=447 (after 8.0)
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", device); // speed 8.0 applied (y: 600→447)
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;-100")); // speed 8.0 applied (y: 600→447)
 
         time[0] += 200;                              // within window
-        d.dispatch("9.0;-100", device);             // queued
+        ctrl.onPacket(QZCommandPacket.parse("9.0;-100")); // queued
 
         time[0] += CommandDispatcher.SWIPE_THROTTLE_MS;
-        d.dispatch("-1;-100", device);              // window open: drains "9.0;-100"
+        ctrl.onPacket(QZCommandPacket.parse("-1;-100")); // window open: drains "9.0;-100"
         assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
@@ -101,8 +103,8 @@ public class CommandDispatcherTest {
     public void treadmill_speedGate_stopped_cachesSpeed() {
         // Speed must not be applied when current speed is 0 (device not yet running).
         // Use sentinel incline (-100) so that path also produces no command.
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", dev(new X11iDevice()));
+        X11iDevice device = dev(new X11iDevice());
+        ctrl(device).onPacket(QZCommandPacket.parse("8.0;-100"));
         assertNull(lastCommand);
     }
 
@@ -112,8 +114,8 @@ public class CommandDispatcherTest {
         // no sentinel or subsequent dispatch() needed.
         // X11i targetSpeedY(8.0) = 447; fromY = 600 (initialSpeedY)
         X11iDevice device = dev(new X11iDevice());
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", device); // cached — belt stopped, no swipe
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;-100")); // cached — belt stopped, no swipe
         assertNull(lastCommand);
 
         setMoving(device); // fires cached 8.0 immediately via applyMetric self-flush
@@ -124,12 +126,12 @@ public class CommandDispatcherTest {
     public void treadmill_throttle_secondMessageWithinWindowIsCached() {
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device); // applied at t=1000
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;3.0")); // applied at t=1000
         lastCommand = null;
 
         time[0] += 200; // still within 500 ms window
-        d.dispatch("9.0;3.0", device); // throttled — same device instance
+        ctrl.onPacket(QZCommandPacket.parse("9.0;3.0")); // throttled — same device instance
         assertNull(lastCommand);
     }
 
@@ -139,21 +141,21 @@ public class CommandDispatcherTest {
         // Reuse the same device so initialSpeedY carries over correctly: 600→447 after first dispatch.
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;-100", device); // speed 8.0 applied, y 600→447
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;-100")); // speed 8.0 applied, y 600→447
 
         time[0] += 200;
-        d.dispatch("9.0;-100", device); // throttled → queued
+        ctrl.onPacket(QZCommandPacket.parse("9.0;-100")); // throttled → queued
 
         time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1;-100", device); // flush queued 9.0, y 447→425
+        ctrl.onPacket(QZCommandPacket.parse("-1;-100")); // flush queued 9.0, y 447→425
         assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
     }
 
     @Test
     public void treadmill_sentinelMessage_noCommandGenerated() {
-        CommandDispatcher d = dispatcher();
-        d.dispatch("-1;-100", dev(new X11iDevice()));
+        X11iDevice device = dev(new X11iDevice());
+        ctrl(device).onPacket(QZCommandPacket.parse("-1;-100"));
         assertNull(lastCommand);
     }
 
@@ -162,8 +164,7 @@ public class CommandDispatcherTest {
         // "8.0;3.0" — dot separator: speed field parses correctly and speed swipe fires first.
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8.0;3.0", device);
+        ctrl(device).onPacket(QZCommandPacket.parse("8.0;3.0"));
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -173,40 +174,40 @@ public class CommandDispatcherTest {
     public void bike_resistance_appliesResistanceSwipe() {
         // S15i: resistanceX=1848, initialResistanceY=790
         // targetResistanceY(10.0) = 790 - (int)(23.16*10) = 790 - 231 = 559
-        CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", dev(new S15iDevice()));
+        S15iDevice device = dev(new S15iDevice());
+        ctrl(device).onPacket(QZCommandPacket.parse("10.0"));
         assertEquals("input swipe 1845 790 1845 559 200", lastCommand);
     }
 
     @Test
     public void bike_incline_appliesInclineSwipe() {
         // S22i targetInclineY(5.0)=(int)(622-18.57*5.0)=529; h=0 → dispatch=529
-        CommandDispatcher d = dispatcher();
-        d.dispatch("5.0;0", dev(new S22iDevice()));
+        S22iDevice device = dev(new S22iDevice());
+        ctrl(device).onPacket(QZCommandPacket.parse("5.0;0"));
         assertEquals("input swipe 75 622 75 529 200", lastCommand);
     }
 
     @Test
     public void bike_duplicateResistance_notReapplied() {
         S15iDevice device = dev(new S15iDevice());
-        CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", device); // applied
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("10.0")); // applied
         lastCommand = null;
 
         time[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("10.0", device); // same value — skipped
+        ctrl.onPacket(QZCommandPacket.parse("10.0")); // same value — skipped
         assertNull(lastCommand);
     }
 
     @Test
     public void bike_throttle_cachesResistance() {
         S15iDevice device = dev(new S15iDevice());
-        CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", device); // applied at t=1000
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("10.0")); // applied at t=1000
         lastCommand = null;
 
         time[0] += 200; // within throttle window
-        d.dispatch("12.0", device); // cached
+        ctrl.onPacket(QZCommandPacket.parse("12.0")); // cached
         assertNull(lastCommand);
     }
 
@@ -214,23 +215,23 @@ public class CommandDispatcherTest {
     public void bike_throttledResistance_cachedAndAppliedAfterWindow() {
         // S15i targetResistanceY(12.0) = 790 - (int)(23.16*12) = 790 - 277 = 513
         S15iDevice device = dev(new S15iDevice());
-        CommandDispatcher d = dispatcher();
-        d.dispatch("10.0", device); // applied at t=1000
+        DeviceController ctrl = ctrl(device);
+        ctrl.onPacket(QZCommandPacket.parse("10.0")); // applied at t=1000
 
         time[0] += 200;
         lastCommand = null;
-        d.dispatch("12.0", device); // throttled → queued
+        ctrl.onPacket(QZCommandPacket.parse("12.0")); // throttled → queued
         assertNull(lastCommand);
 
         time[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
-        d.dispatch("-1", device); // sentinel: flush queued 12.0
+        ctrl.onPacket(QZCommandPacket.parse("-1")); // sentinel: flush queued 12.0
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 
     @Test
     public void bike_sentinelResistance_noCommandGenerated() {
-        CommandDispatcher d = dispatcher();
-        d.dispatch("-1", dev(new S15iDevice()));
+        S15iDevice device = dev(new S15iDevice());
+        ctrl(device).onPacket(QZCommandPacket.parse("-1"));
         assertNull(lastCommand);
     }
 
@@ -241,8 +242,7 @@ public class CommandDispatcherTest {
         // "8,0;3,0" — parseField fallback replaces ',' with '.'; speed field parses and swipe fires.
         X11iDevice device = dev(new X11iDevice());
         setMoving(device);
-        CommandDispatcher d = dispatcher();
-        d.dispatch("8,0;3,0", device);
+        ctrl(device).onPacket(QZCommandPacket.parse("8,0;3,0"));
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 
@@ -251,7 +251,7 @@ public class CommandDispatcherTest {
     /**
      * Verifies FIFO ordering and per-window drain count.
      *
-     * In test mode (Clock-injected constructor, no background scheduler), dispatch() is the
+     * In test mode (Clock-injected constructor, no background scheduler), onPacket() is the
      * only drain path — sentinel packets act as passive drain drivers, one Command per call.
      * In production the background thread drains independently; sentinel packets still drive
      * an immediate drain attempt for any Commands that arrive alongside them.
@@ -263,26 +263,26 @@ public class CommandDispatcherTest {
         List<String> commands = new ArrayList<>();
         S15iDevice device = new S15iDevice();
         device.commandExecutor = commands::add;
-        CommandDispatcher d = dispatcher();
+        DeviceController ctrl = ctrl(device);
 
-        d.dispatch("10.0", device);                      // t=1000: window open → drained immediately
-        time[0] += 100; d.dispatch("12.0", device);     // t=1100: window closed → queued
-        time[0] += 100; d.dispatch("14.0", device);     // t=1200: window closed → queued
-        time[0] += 100; d.dispatch("16.0", device);     // t=1300: window closed → queued
+        ctrl.onPacket(QZCommandPacket.parse("10.0"));                      // t=1000: window open → drained immediately
+        time[0] += 100; ctrl.onPacket(QZCommandPacket.parse("12.0"));     // t=1100: window closed → queued
+        time[0] += 100; ctrl.onPacket(QZCommandPacket.parse("14.0"));     // t=1200: window closed → queued
+        time[0] += 100; ctrl.onPacket(QZCommandPacket.parse("16.0"));     // t=1300: window closed → queued
         assertEquals("only the initial dispatch fires during the burst", 1, commands.size());
 
         time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=1800: window open
-        d.dispatch("-1", device);                        // sentinel 1 → drains 12.0
+        ctrl.onPacket(QZCommandPacket.parse("-1"));                        // sentinel 1 → drains 12.0
         assertEquals(2, commands.size());
         assertEquals("input swipe 1845 790 1845 513 200", commands.get(1));
 
         time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=2300: window open
-        d.dispatch("-1", device);                        // sentinel 2 → drains 14.0
+        ctrl.onPacket(QZCommandPacket.parse("-1"));                        // sentinel 2 → drains 14.0
         assertEquals(3, commands.size());
         assertEquals("input swipe 1845 790 1845 466 200", commands.get(2));
 
         time[0] += CommandDispatcher.SWIPE_THROTTLE_MS; // t=2800: window open
-        d.dispatch("-1", device);                        // sentinel 3 → drains 16.0
+        ctrl.onPacket(QZCommandPacket.parse("-1"));                        // sentinel 3 → drains 16.0
         assertEquals(4, commands.size());
         assertEquals("input swipe 1845 790 1845 420 200", commands.get(3));
     }

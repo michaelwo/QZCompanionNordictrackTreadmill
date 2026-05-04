@@ -14,11 +14,11 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S27iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Se9iEllipticalDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricReader;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.ResistanceCommand;
 import org.junit.After;
@@ -237,13 +237,6 @@ public class BikeDeviceTest {
         assertTrue(new Se9iEllipticalDevice() instanceof BikeDevice);
     }
 
-    // ── BikeDevice.defaultMetricReader ────────────────────────────────────────
-
-    @Test
-    public void bikeDevice_defaultMetricReader_returnsMonoStdoutMetricReader() {
-        assertTrue(new S22iDevice().defaultMetricReader() instanceof MonoStdoutMetricReader);
-    }
-
     // ── S22iDevice resistance slider (x=1845, calibrated) ────────────────────
     // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
     // targetResistanceY(v) = (int)(724.0 - 401.0/23 * (v-1)); initialY = 724
@@ -425,8 +418,8 @@ public class BikeDeviceTest {
         // A 1-part message produces a ResistanceCommand but applyResistance is a no-op
         // because the resistance Slider is null.
         ProformCarbonC10Device dev = dev(new ProformCarbonC10Device());
-        CommandDispatcher d = new CommandDispatcher(() -> 1000L);
-        d.dispatch("10.0", dev);
+        DeviceController ctrl = new DeviceController(dev, () -> 1000L);
+        ctrl.onPacket(QZCommandPacket.parse("10.0"));
         assertNull("null resistance slider must not generate a swipe", lastCommand);
     }
 
@@ -437,25 +430,25 @@ public class BikeDeviceTest {
         // S15i resistanceY: 10→559, 11→536, 12→513
         final long[] t = {1_000L};
         S15iDevice device = dev(new S15iDevice());
-        CommandDispatcher d = new CommandDispatcher(() -> t[0]);
+        DeviceController ctrl = new DeviceController(device, () -> t[0]);
 
-        d.dispatch("10.0", device);  // applied at t=1000 (resistanceY: 790→559)
+        ctrl.onPacket(QZCommandPacket.parse("10.0"));  // applied at t=1000 (resistanceY: 790→559)
 
         t[0] += 200;
-        d.dispatch("11.0", device);  // throttled → queue=[11.0]
+        ctrl.onPacket(QZCommandPacket.parse("11.0"));  // throttled → queue=[11.0]
 
         t[0] += 100;
-        d.dispatch("12.0", device);  // throttled → queue=[11.0, 12.0]
+        ctrl.onPacket(QZCommandPacket.parse("12.0"));  // throttled → queue=[11.0, 12.0]
 
         t[0] = 1000 + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1", device);    // drains 11.0 first
+        ctrl.onPacket(QZCommandPacket.parse("-1"));    // drains 11.0 first
         // S15i uses resistanceLive slider — fromY is always targetThumbY(0)=790 when no live metric
         assertEquals("input swipe 1845 790 1845 536 200", lastCommand);
 
         t[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1", device);    // drains 12.0 next
+        ctrl.onPacket(QZCommandPacket.parse("-1"));    // drains 12.0 next
         assertEquals("input swipe 1845 790 1845 513 200", lastCommand);
     }
 

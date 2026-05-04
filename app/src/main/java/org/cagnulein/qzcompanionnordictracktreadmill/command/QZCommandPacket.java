@@ -1,10 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public class QZCommandPacket {
-    public static final char   DELIMITER     = ';';
-    public static final float  NO_COMMAND    = -100f;
-    public static final float  NO_RESISTANCE = -1f;
-    public static final String END_OF_RIDE   = "-1" + DELIMITER + "-100";
+    public static final char   DELIMITER      = ';';
+    public static final float  NO_COMMAND     = -100f;
+    public static final float  NO_RESISTANCE  = -1f;
+    public static final String END_OF_RIDE    = "-1" + DELIMITER + "-100";
+    public static final String CALSWIPE_PREFIX = "CALSWIPE:";
 
     private final String[] fields;
 

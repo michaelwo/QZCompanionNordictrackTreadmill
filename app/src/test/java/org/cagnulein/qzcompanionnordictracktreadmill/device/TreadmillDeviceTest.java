@@ -32,6 +32,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.SpeedCommand;
@@ -1126,8 +1127,8 @@ public class TreadmillDeviceTest {
         X11iDevice device = dev(new X11iDevice());
         device.applyMetric(SliderMetric.KPH, 5.0f); // was moving
         device.applyMetric(SliderMetric.KPH, 0.0f); // now stopped
-        CommandDispatcher d = new CommandDispatcher(() -> 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100);
-        d.dispatch("8.0;-100", device);
+        DeviceController ctrl = new DeviceController(device, () -> 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100);
+        ctrl.onPacket(QZCommandPacket.parse("8.0;-100"));
         assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
     }
 
@@ -1138,25 +1139,25 @@ public class TreadmillDeviceTest {
         // X11i targetSpeedY(9.0)=425; targetSpeedY(10.0)=404; fromY=447 (after 8.0)
         final long[] t = {1_000L};
         X11iDevice device = dev(new X11iDevice());
-        CommandDispatcher d = new CommandDispatcher(() -> t[0]);
+        DeviceController ctrl = new DeviceController(device, () -> t[0]);
 
         device.applyMetric(SliderMetric.KPH, 5.0f);
-        d.dispatch("8.0;-100", device);  // applied at t=1000 (speedY: 600→447)
+        ctrl.onPacket(QZCommandPacket.parse("8.0;-100"));  // applied at t=1000 (speedY: 600→447)
 
         t[0] += 200;
-        d.dispatch("9.0;-100", device);  // throttled → queue=[9.0]
+        ctrl.onPacket(QZCommandPacket.parse("9.0;-100"));  // throttled → queue=[9.0]
 
         t[0] += 100;
-        d.dispatch("10.0;-100", device); // throttled → queue=[9.0, 10.0]
+        ctrl.onPacket(QZCommandPacket.parse("10.0;-100")); // throttled → queue=[9.0, 10.0]
 
         t[0] = 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1;-100", device);   // drains 9.0 first → y:447→425
+        ctrl.onPacket(QZCommandPacket.parse("-1;-100"));   // drains 9.0 first → y:447→425
         assertEquals("input swipe 1205 447 1205 425 200", lastCommand);
 
         t[0] += CommandDispatcher.SWIPE_THROTTLE_MS + 100;
         lastCommand = null;
-        d.dispatch("-1;-100", device);   // drains 10.0 next → y:425→404
+        ctrl.onPacket(QZCommandPacket.parse("-1;-100"));   // drains 10.0 next → y:425→404
         assertEquals("input swipe 1205 425 1205 404 200", lastCommand);
     }
 
