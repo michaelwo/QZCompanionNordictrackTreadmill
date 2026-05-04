@@ -4,8 +4,9 @@
 Android app for controlling NordicTrack and ProForm fitness devices via AccessibilityService gesture injection.
 
 ### Main Files
-- `app/src/main/java/.../command/CommandListenerService.java` — UDP listener (port 8003); dispatches packets to `CommandDispatcher`
-- `app/src/main/java/.../reader/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout and unicasts changes over UDP (port 8002)
+- `app/src/main/java/.../command/CommandListenerService.java` — UDP listener (port 8003); pure publisher — calls `PacketSubscriber.onPacket()` or `onCalibrationSwipe()` for each received datagram
+- `app/src/main/java/.../reader/MetricReaderUnicastingService.java` — streams iFit metrics via MonoStdout, unicasts changes over UDP (port 8002); pure publisher — calls `MetricSubscriber.onMetric()` for each reading
+- `app/src/main/java/.../device/DeviceController.java` — owns `Device` + `CommandDispatcher`; implements both `MetricSubscriber` and `PacketSubscriber`; the single seam between the two services and the device layer
 - `app/src/main/java/.../command/MyAccessibilityService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
 - `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
@@ -21,13 +22,14 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
 ├── command/          CommandListenerService, MyAccessibilityService,
-│                     CommandDispatcher, QZCommandPacket, Command
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceRegistry (+ DeviceId enum),
-│                     DeviceCalibration
+│                     CommandDispatcher, QZCommandPacket, Command,
+│                     PacketSubscriber, CalibrationSwipeCommand
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceController,
+│                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
 └── reader/           MetricReader hierarchy, QZMetricPacket,
-                      MetricReaderUnicastingService
+                      MetricReaderUnicastingService, MetricSubscriber
 ```
 
 ---
