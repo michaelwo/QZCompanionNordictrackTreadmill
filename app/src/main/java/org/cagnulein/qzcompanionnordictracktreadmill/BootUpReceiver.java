@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.ui.MainActivity;
+
 public class BootUpReceiver extends BroadcastReceiver {
 
     @Override

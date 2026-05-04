@@ -21,11 +21,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
-        <service android:name=".reader.MetricReaderUnicastingService"/>
-        <service android:name=".command.CommandListenerService"/>
+        <service android:name=".qz.QZMetricUnicastingService"/>
+        <service android:name=".qz.QZCommandListenerService"/>
 
         <service
-            android:name=".command.MyAccessibilityService"
+            android:name=".device.gesture.GestureService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="false">
             <intent-filter>
@@ -45,7 +45,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-        <activity android:name=".MainActivity"
+        <activity android:name=".ui.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -28,14 +28,14 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iDevice
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39019Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39221Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.SpeedCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

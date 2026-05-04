@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;

@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

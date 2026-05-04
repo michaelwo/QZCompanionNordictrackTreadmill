@@ -1,17 +1,17 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CalibrationSwipeCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.MyAccessibilityService;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.PacketSubscriber;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricSubscriber;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CalibrationSwipeCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricSubscriber;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 import java.util.List;
 
-public class DeviceController implements MetricSubscriber, PacketSubscriber {
+public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber {
 
     private final Device device;
     private final CommandDispatcher dispatcher;
@@ -55,8 +55,8 @@ public class DeviceController implements MetricSubscriber, PacketSubscriber {
 
     @Override
     public void onCalibrationSwipe(CalibrationSwipeCommand cmd) {
-        if (MyAccessibilityService.isConnected())
-            MyAccessibilityService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, Device.SWIPE_DURATION_MS);
+        if (GestureService.isConnected())
+            GestureService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, Device.SWIPE_DURATION_MS);
     }
 
     public void shutdown() { dispatcher.shutdown(); }

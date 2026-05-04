@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.ResistanceCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 import java.util.Collections;
 import java.util.List;

@@ -35,11 +35,11 @@ The two main service files were renamed to say what they actually do:
 
 | 3.x name | 4.x name |
 |----------|----------|
-| `UDPListenerService` | `CommandListenerService` |
-| `QZService` | `MetricReaderUnicastingService` |
-| `MyAccessibilityService` | `MyAccessibilityService` *(unchanged)* |
+| `UDPListenerService` | `QZCommandListenerService` |
+| `QZService` | `QZMetricUnicastingService` |
+| `MyAccessibilityService` | `GestureService` |
 
-If you're searching the codebase for something that lived in `QZService` in 3.x, look in `MetricReaderUnicastingService` first, then `Device` and its `Slider` instances (metric values live there now).
+If you're searching the codebase for something that lived in `QZService` in 3.x, look in `QZMetricUnicastingService` first, then `Device` and its `Slider` instances (metric values live there now).
 
 ---
 
@@ -180,15 +180,15 @@ Each device class constructs `Slider` instances with `new Slider(trackX, initial
 **4.x:** Each step is a separate class with a single responsibility:
 
 ```
-CommandListenerService   receive UDP packet, hold WakeLock
+QZCommandListenerService   receive UDP packet, hold WakeLock
         ↓
-CommandDispatcher        parse raw string, call device.applyCommand()
+CommandDispatcher          parse raw string, call device.applyCommand()
         ↓
 BikeDevice / TreadmillDevice   throttle, cache, de-dup
         ↓
-Slider.moveTo()          quantize → targetThumbY → hysteresis → swipe
+Slider.moveTo()            quantize → targetThumbY → hysteresis → swipe
         ↓
-MyAccessibilityService.performSwipe()   all 44 devices
+GestureService.performSwipe()   all 44 devices
 ```
 
 `CommandDispatcher` is pure Java with no Android imports. The `Clock` it uses for throttle timing is injectable, so tests control time directly. `Device` has an injectable `logger` functional interface, so tests capture swipe strings without Android.
@@ -224,7 +224,7 @@ if (ifit_v2) {
 }
 ```
 
-**4.x:** No flag and no detection needed. `MonoStdoutMetricReader` subscribes to `logcat -s mono-stdout`, which is the same across all iFit versions — there is no v1/v2 log path fork. `MetricReaderUnicastingService` creates a `MonoStdoutMetricReader` directly; no reader variants or factory methods exist. Device classes are completely unaware of iFit versions.
+**4.x:** No flag and no detection needed. `MonoStdoutMetricReader` subscribes to `logcat -s mono-stdout`, which is the same across all iFit versions — there is no v1/v2 log path fork. `QZMetricUnicastingService` creates a `MonoStdoutMetricReader` directly; no reader variants or factory methods exist. Device classes are completely unaware of iFit versions.
 
 ---
 
@@ -308,5 +308,5 @@ The card refreshes automatically on `onResume()` so enabling Accessibility in Se
 
 - The **UDP wire format** (`"speedKmh;inclinePct"`, `"resistanceLvl"`, etc.) is identical — the QZ app doesn't need updating.
 - The **iFit log file paths** and metric keyword strings are the same.
-- All devices use `AccessibilityService` gesture injection via `MyAccessibilityService.performSwipe()`.
+- All devices use `AccessibilityService` gesture injection via `GestureService.performSwipe()`.
 - The **CI pipeline** (`.github/workflows/main.yml`) runs the same steps; tests now run before the release build.

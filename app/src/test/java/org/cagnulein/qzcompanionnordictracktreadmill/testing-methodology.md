@@ -32,12 +32,12 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `QZMetricPacketTest` | 29 | `QZMetricPacket`: serialize, parse, round-trip, wire-format identity |
 | `CommandDispatcherTest` | 17 | Full pipeline from raw UDP string → `decodeCommands` → `applyCommand` → captured swipe; throttle, FIFO queue, sentinel drain, belt-gate self-flush, locale mismatch |
 | `DeviceCalibrationRegressionTest` | 13 | `DeviceCalibration` JSON loading, formula application, and regression against known-good calibration values |
-| `UdpPipelineTest` | 5 | End-to-end with real UDP sockets: datagram received by `CommandListenerService` → `CommandDispatcher` → device swipe captured |
+| `UdpPipelineTest` | 5 | End-to-end with real UDP sockets: datagram received by `QZCommandListenerService` → `CommandDispatcher` → device swipe captured |
 | `ZwiftRideSimulationTest` | 10 | Scenario replay against S22i: synthetic Zwift grade sequence through the full pipeline; time-injected throttle; verifies y1→y2 state chain across calls |
 | `HillyRouteReplayTest` | 1 | Parameterised replay of a recorded Hilly Route (31 intervals) against S22i; verifies de-dup fires correctly on repeated grades |
-| `ZwiftRideRobolectricTest` | 5 | Robolectric: real `CommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
-| `CommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
-| `MetricReaderUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
+| `ZwiftRideRobolectricTest` | 5 | Robolectric: real `QZCommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
+| `QZCommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
+| `QZMetricUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
 | **Total** | **326** | |
 
 ---
@@ -132,4 +132,4 @@ The helper methods `dev()`, `applyIncline()`, `applySpeed()`, and `assertSwipe()
 | `BleCanaryService` | Not tested | Android BLE stack; would require Robolectric + shadow classes. Low priority while the canary is in pre-production. |
 | `MetricReader` error paths | Partially tested | Malformed lines and truncation boundary covered; duplicate-field and extreme-value edge cases are not. |
 | `discover-device.py` sweep output | Not tested | The calibration script is validated via the unattended test plan (`tools/test-calibration-unattended.md`), not a unit test. |
-| Accessibility swipe path | Not tested | `MyAccessibilityService.performSwipe()` requires an Android runtime; no Robolectric coverage yet. |
+| Accessibility swipe path | Not tested | `GestureService.performSwipe()` requires an Android runtime; no Robolectric coverage yet. |

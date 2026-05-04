@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 /**
  * Bike device whose swipe formulas are loaded at runtime from DeviceCalibration

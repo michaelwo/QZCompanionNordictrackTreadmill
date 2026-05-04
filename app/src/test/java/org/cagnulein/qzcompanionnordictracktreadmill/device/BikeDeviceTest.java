@@ -15,12 +15,12 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Se9iEllipticalD
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.Tdf10InclinationDevice;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.command.ResistanceCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

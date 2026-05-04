@@ -7,17 +7,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.reader.MetricReaderUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
 
 public class AlarmReceiver extends BroadcastReceiver
 {
     @Override
     public void onReceive(Context context, Intent intent)
     {
-        Intent inServer = new Intent(context, CommandListenerService.class);
+        Intent inServer = new Intent(context, QZCommandListenerService.class);
         context.startService(inServer);
-        Intent in = new Intent(context, MetricReaderUnicastingService.class);
+        Intent in = new Intent(context, QZMetricUnicastingService.class);
         context.startService(in);
         setAlarm(context);
     }

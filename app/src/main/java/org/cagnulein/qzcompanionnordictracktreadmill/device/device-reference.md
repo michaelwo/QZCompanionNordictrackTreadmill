@@ -67,7 +67,7 @@ All 44 devices use `AccessibilityService` for swipe injection and `MonoStdoutMet
 
 ## Command Execution Modes
 
-All 44 devices use `MyAccessibilityService.performSwipe()`. Enable the **QZCompanion** accessibility service in **Settings → Accessibility** before using any device.
+All 44 devices use `GestureService.performSwipe()`. Enable the **QZCompanion** accessibility service in **Settings → Accessibility** before using any device.
 
 ---
 
