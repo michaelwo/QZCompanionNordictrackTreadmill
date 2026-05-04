@@ -33,23 +33,43 @@ public abstract class TreadmillDevice extends Device {
     public void applyMetric(SliderMetric metric, float value) {
         incline.applyIfMatch(metric, value);
         speed.applyIfMatch(metric, value);
-        if (metric == SliderMetric.KPH) lastKnownKph = value;
+        if (metric == SliderMetric.KPH) {
+            lastKnownKph = value;
+            if (value > 0) flushCachedSpeed();
+        }
+    }
+
+    // Called from applyMetric (MetricReader thread) — synchronized to prevent TOCTOU race
+    // with applyCommand (CommandListener thread) on cached.speedKmh.
+    private synchronized void flushCachedSpeed() {
+        if (cached.speedKmh != null) {
+            float v = cached.speedKmh;
+            cached.speedKmh = null;
+            logger.log("QZ:Dispatch", "belt-gate flush: applySpeed " + v);
+            applySpeed(v);
+        }
     }
 
     @Override
     public final void applyCommand(Command cmd) {
-        // speed: belt-gate cache provides fallback if this message has no speed field
-        Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
-        if (speedVal != null) {
-            logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cached.speedKmh);
-            if (lastKnownKph <= 0) {
-                logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
-                cached.speedKmh = speedVal;
-            } else {
-                applySpeed(speedVal);
-                logger.log("QZ:Dispatch", "applySpeed: " + speedVal);
-                cached.speedKmh = null;
+        Float speedToApply = null;
+        synchronized (this) {
+            // speed: belt-gate cache provides fallback if this message has no speed field
+            Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
+            if (speedVal != null) {
+                logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cached.speedKmh);
+                if (lastKnownKph <= 0) {
+                    logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
+                    cached.speedKmh = speedVal;
+                } else {
+                    cached.speedKmh = null;
+                    speedToApply = speedVal;
+                }
             }
+        }
+        if (speedToApply != null) {
+            applySpeed(speedToApply);
+            logger.log("QZ:Dispatch", "applySpeed: " + speedToApply);
         }
 
         if (cmd.inclinePct != null) {

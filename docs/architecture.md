@@ -80,9 +80,9 @@ Three mechanisms filter commands before a swipe is issued:
 
 | Mechanism | Where | Behaviour |
 |-----------|-------|-----------|
-| **Throttle** | `CommandDispatcher` | Incoming Commands are enqueued in a FIFO queue (capacity 5). One Command drains per 500ms throttle window, oldest first. Excess Commands are dropped. |
+| **Throttle** | `CommandDispatcher` | Incoming Commands are enqueued in a FIFO queue (capacity 5). One Command drains per 500ms throttle window, oldest first — driven by a background thread and by each `dispatch()` call. Excess Commands are dropped. |
 | **De-dup** | `BikeDevice` | If the quantized value equals `lastApplied`, the swipe is skipped entirely. |
-| **Speed gate** | `TreadmillDevice` | Speed commands are held in a one-slot cache while `lastKnownKph <= 0` (belt stopped). |
+| **Speed gate** | `TreadmillDevice` | Speed commands are held in a one-slot cache while `lastKnownKph <= 0` (belt stopped). The cache self-flushes when `applyMetric(KPH, >0)` fires. |
 
 ### Outbound: Hardware → Zwift
 
@@ -103,6 +103,7 @@ MetricReaderUnicastingService
         │
         │  Device.instance.applyMetric(packet.metric, packet.value)
         │    → feeds TreadmillDevice speed gate (lastKnownKph)
+        │    → self-flushes cached speed if belt just started (KPH > 0)
         │    → updates live-metric Sliders for currentThumbY tracking
         │
         │  delta check: only changed fields are sent
@@ -121,7 +122,7 @@ QZ App (phone/tablet)
 Zwift (PC/console)
 ```
 
-`MonoStdoutMetricReader` pushes metric updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. Only fields that changed since the last unicast are sent — unchanged metrics produce no UDP traffic. Metric packets are addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. The `applyMetric()` call also closes the feedback loop for the inbound path: the speed gate blocks treadmill speed swipes while `lastKnownKph <= 0`, and Sliders constructed with the live-metric factory re-derive their starting position from live observed metrics rather than tracking internal state.
+`MonoStdoutMetricReader` pushes metric updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. Only fields that changed since the last unicast are sent — unchanged metrics produce no UDP traffic. Metric packets are addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. The `applyMetric()` call also closes the feedback loop for the inbound path: the speed gate blocks treadmill speed swipes while `lastKnownKph <= 0`, and when `KPH` first rises above zero any cached speed is applied immediately — the swipe fires the moment the belt starts, independent of incoming UDP packets. Sliders constructed with the live-metric factory re-derive their starting position from live observed metrics rather than tracking internal state.
 
 ---
 
@@ -151,7 +152,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 
 **`BikeDevice`** (abstract, extends `Device`) — controls one or two `Slider` instances (incline + optional resistance). `applyCommand()` de-duplicates commands whose quantized value equals the last applied value; no throttle logic.
 
-**`TreadmillDevice`** (abstract, extends `Device`) — controls speed and incline `Slider` instances. Gates speed commands when `lastKnownKph <= 0` (belt stopped) to avoid swipes on a stationary belt; holds the pending speed in a one-slot cache until the belt moves.
+**`TreadmillDevice`** (abstract, extends `Device`) — controls speed and incline `Slider` instances. Gates speed commands when `lastKnownKph <= 0` (belt stopped) to avoid swipes on a stationary belt; holds the pending speed in a one-slot cache. The cache is flushed immediately when `applyMetric(KPH, value > 0)` is called — no external packet or sentinel needed.
 
 **`Slider`** — represents one physical slider on the iFit touchscreen. Constructed with `new Slider(trackX, initialThumbY, formula)` where `trackX` is a `ScreenProfile` constant (e.g. `ScreenProfile.W1920.leftTrackX`), `initialThumbY` equals the formula's y-intercept (the ORIGIN constant), and `formula` is a `ThumbYFormula` method reference to a `private static int offsetXxxThumbY(double v)` method in the device class. When `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding, an anonymous `Slider` subclass is used, combining the formula constructor with the override body. Overridable behaviours:
 - `targetThumbY(double v)` — (supplied via `ThumbYFormula`) converts a metric value to a logical pixel Y coordinate
@@ -181,7 +182,7 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 **`CommandListenerService`** — Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and passes each packet to `CommandDispatcher`. Records `qzAddress` and `lastQzHeartbeatMs` from `-100;N` heartbeat packets so `MetricReaderUnicastingService` knows where to send metric updates. Handles locale-aware decimal separators (`,` vs `.`).
 
-**`CommandDispatcher`** — throttle, queue, and router. Calls `QZCommandPacket.parse(message)` to split the raw string, then `device.decodeCommands(pkt)` to get one `Command` per actionable field. All decoded Commands are enqueued in a FIFO queue (capacity 5); one drains per 500 ms throttle window via `device.applyCommand(cmd)`. Sentinel packets (empty decode) still trigger the drain check, acting as flush pulses — see `testing-methodology.md` for the pattern. Has an injectable `Clock` interface so tests can drive time without sleeping.
+**`CommandDispatcher`** — throttle, queue, and router. Calls `QZCommandPacket.parse(message)` to split the raw string, then `device.decodeCommands(pkt)` to get one `Command` per actionable field. All decoded Commands are enqueued in a FIFO queue (capacity 5); one drains per 500 ms throttle window via `device.applyCommand(cmd)`. Drain happens on two paths: `dispatch()` attempts an immediate drain when the window is open, and a background `ScheduledExecutorService` (`QZ:DrainThread`) fires every 500 ms independent of incoming packets. Both paths synchronize on `this` to prevent double-drain. `shutdown()` stops the background thread; `CommandListenerService.onDestroy()` calls it. Has an injectable `Clock` interface so tests can drive time without sleeping — the test constructor starts no background thread, keeping tests fully deterministic.
 
 **`QZCommandPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, and named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`). The `;` split is not exposed outside this class.
 

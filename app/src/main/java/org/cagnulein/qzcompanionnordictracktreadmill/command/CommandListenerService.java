@@ -142,6 +142,7 @@ public class CommandListenerService extends Service {
     @Override
     public void onDestroy() {
         stopListen();
+        dispatcher.shutdown();
     }
 
 

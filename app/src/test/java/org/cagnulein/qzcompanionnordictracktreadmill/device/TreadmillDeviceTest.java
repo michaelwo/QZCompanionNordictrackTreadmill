@@ -1229,4 +1229,29 @@ public class TreadmillDeviceTest {
     public void decodeCommands_threeParts_returnsEmpty() {
         assertTrue(new X22iDevice().decodeCommands(QZCommandPacket.parse("1.0;2.0;3.0")).isEmpty());
     }
+
+    // ── Belt-gate self-flush ──────────────────────────────────────────────────
+
+    @Test
+    public void beltGate_selfFlushes_whenBeltStarts() {
+        // Speed cached while belt stopped; applyMetric(KPH, >0) fires it immediately —
+        // no sentinel or subsequent dispatch() call needed.
+        // X11i targetSpeedY(8.0) = 447; fromY = 600 (initialSpeedY)
+        java.util.List<String> commands = new java.util.ArrayList<>();
+        X11iDevice dev = new X11iDevice();
+        dev.commandExecutor = commands::add;
+
+        Command speedCmd = new Command();
+        speedCmd.speedKmh = 8.0f;
+        dev.applyCommand(speedCmd);                // belt stopped → cached, no swipe
+        assertEquals(0, commands.size());
+
+        dev.applyMetric(SliderMetric.KPH, 5.0f);  // belt starts → self-flush fires
+        assertEquals(1, commands.size());
+        assertEquals("input swipe 1205 600 1205 447 200", commands.get(0));
+
+        // Cache cleared — subsequent applyMetric does not re-fire
+        dev.applyMetric(SliderMetric.KPH, 6.0f);
+        assertEquals(1, commands.size());
+    }
 }
