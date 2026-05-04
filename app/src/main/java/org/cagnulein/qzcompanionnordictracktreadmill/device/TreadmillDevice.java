@@ -39,15 +39,16 @@ public abstract class TreadmillDevice extends Device {
         }
     }
 
-    // Called from applyMetric (MetricReader thread) — synchronized to prevent TOCTOU race
-    // with applyCommand (CommandListener thread) on cached.speedKmh.
-    private synchronized void flushCachedSpeed() {
-        if (cached.speedKmh != null) {
-            float v = cached.speedKmh;
+    // MetricReader and CommandListener threads both access cached.speedKmh.
+    private void flushCachedSpeed() {
+        float v;
+        synchronized (this) {
+            if (cached.speedKmh == null) return;
+            v = cached.speedKmh;
             cached.speedKmh = null;
-            logger.log("QZ:Dispatch", "belt-gate flush: applySpeed " + v);
-            applySpeed(v);
         }
+        logger.log("QZ:Dispatch", "belt-gate flush: applySpeed " + v);
+        applySpeed(v);
     }
 
     @Override

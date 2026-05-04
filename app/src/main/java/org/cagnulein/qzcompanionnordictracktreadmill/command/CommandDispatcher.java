@@ -60,7 +60,7 @@ public class CommandDispatcher {
             return t;
         });
         scheduler.scheduleAtFixedRate(
-                () -> tryDrain(System.currentTimeMillis()),
+                () -> tryDrain(clock.now()),
                 SWIPE_THROTTLE_MS, SWIPE_THROTTLE_MS, TimeUnit.MILLISECONDS);
     }
 
@@ -102,19 +102,18 @@ public class CommandDispatcher {
         tryDrain(now);
     }
 
-    private synchronized void tryDrain(long now) {
-        if (now >= lastExecutedMs + SWIPE_THROTTLE_MS) {
-            Pending next = queue.poll();
-            if (next != null) {
-                next.device.logger.log("QZ:Dispatcher",
-                        "drain: " + next.command + " depth=" + queue.size() + "/" + QUEUE_CAPACITY);
-                execute(next.command, next.device, now);
-            }
+    private void tryDrain(long now) {
+        Pending next;
+        int remaining;
+        synchronized (this) {
+            if (now < lastExecutedMs + SWIPE_THROTTLE_MS) return;
+            next = queue.poll();
+            if (next == null) return;
+            remaining = queue.size();
+            lastExecutedMs = now;
         }
-    }
-
-    private void execute(Command cmd, Device device, long now) {
-        device.applyCommand(cmd);
-        lastExecutedMs = now;
+        next.device.logger.log("QZ:Dispatcher",
+                "drain: " + next.command + " depth=" + remaining + "/" + QUEUE_CAPACITY);
+        next.device.applyCommand(next.command);
     }
 }
