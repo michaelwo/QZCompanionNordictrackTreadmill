@@ -1,6 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
@@ -13,7 +15,7 @@ public abstract class TreadmillDevice extends Device {
 
     private final Slider speed;
     private final Slider incline;
-    private final Command cached = new Command();
+    private Double cachedSpeedKmh = null;
     private volatile float lastKnownKph = 0f;
 
     protected TreadmillDevice(Slider incline, Slider speed) {
@@ -30,6 +32,32 @@ public abstract class TreadmillDevice extends Device {
     }
 
     @Override
+    public final void handleSpeed(double kmh) {
+        Double speedToApply = null;
+        synchronized (this) {
+            logger.log("QZ:Dispatch", "requestSpeed: " + kmh + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cachedSpeedKmh);
+            if (lastKnownKph <= 0) {
+                logger.log("QZ:Dispatch", "speed gate: held " + kmh + " (belt stopped)");
+                cachedSpeedKmh = kmh;
+            } else {
+                cachedSpeedKmh = null;
+                speedToApply = kmh;
+            }
+        }
+        if (speedToApply != null) {
+            applySpeed(speedToApply);
+            logger.log("QZ:Dispatch", "applySpeed: " + speedToApply);
+        }
+    }
+
+    @Override
+    public final void handleIncline(double pct) {
+        logger.log("QZ:Dispatch", "requestInclination: " + pct);
+        applyIncline(pct);
+        logger.log("QZ:Dispatch", "applyIncline: " + pct);
+    }
+
+    @Override
     public void applyMetric(SliderMetric metric, float value) {
         incline.applyIfMatch(metric, value);
         speed.applyIfMatch(metric, value);
@@ -39,45 +67,16 @@ public abstract class TreadmillDevice extends Device {
         }
     }
 
-    // MetricReader and CommandListener threads both access cached.speedKmh.
+    // MetricReader and CommandListener threads both access cachedSpeedKmh.
     private void flushCachedSpeed() {
-        float v;
+        double v;
         synchronized (this) {
-            if (cached.speedKmh == null) return;
-            v = cached.speedKmh;
-            cached.speedKmh = null;
+            if (cachedSpeedKmh == null) return;
+            v = cachedSpeedKmh;
+            cachedSpeedKmh = null;
         }
         logger.log("QZ:Dispatch", "belt-gate flush: applySpeed " + v);
         applySpeed(v);
-    }
-
-    @Override
-    public final void applyCommand(Command cmd) {
-        Float speedToApply = null;
-        synchronized (this) {
-            // speed: belt-gate cache provides fallback if this message has no speed field
-            Float speedVal = cmd.speedKmh != null ? cmd.speedKmh : cached.speedKmh;
-            if (speedVal != null) {
-                logger.log("QZ:Dispatch", "requestSpeed: " + speedVal + " lastSpeed=" + lastKnownKph + " cachedSpeed=" + cached.speedKmh);
-                if (lastKnownKph <= 0) {
-                    logger.log("QZ:Dispatch", "speed gate: held " + speedVal + " (belt stopped)");
-                    cached.speedKmh = speedVal;
-                } else {
-                    cached.speedKmh = null;
-                    speedToApply = speedVal;
-                }
-            }
-        }
-        if (speedToApply != null) {
-            applySpeed(speedToApply);
-            logger.log("QZ:Dispatch", "applySpeed: " + speedToApply);
-        }
-
-        if (cmd.inclinePct != null) {
-            logger.log("QZ:Dispatch", "requestInclination: " + cmd.inclinePct);
-            applyIncline(cmd.inclinePct);
-            logger.log("QZ:Dispatch", "applyIncline: " + cmd.inclinePct);
-        }
     }
 
     @Override
@@ -87,14 +86,10 @@ public abstract class TreadmillDevice extends Device {
             Float s = QZCommandPacket.parseField(pkt.rawField(0));
             Float i = QZCommandPacket.parseField(pkt.rawField(1));
             if (s != null && s != QZCommandPacket.NO_COMMAND && s != QZCommandPacket.NO_RESISTANCE) {
-                Command c = new Command();
-                c.speedKmh = QZCommandPacket.roundToOneDecimal(s);
-                cmds.add(c);
+                cmds.add(new SpeedCommand(QZCommandPacket.roundToOneDecimal(s)));
             }
             if (i != null && i != QZCommandPacket.NO_COMMAND) {
-                Command c = new Command();
-                c.inclinePct = QZCommandPacket.roundToOneDecimal(i);
-                cmds.add(c);
+                cmds.add(new InclineCommand(QZCommandPacket.roundToOneDecimal(i)));
             }
         }
         return cmds;

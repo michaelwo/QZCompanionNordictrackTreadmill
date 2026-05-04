@@ -18,7 +18,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.MonoStdoutMetricRead
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.ResistanceCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -420,8 +422,8 @@ public class BikeDeviceTest {
     @Test
     public void bikeDevice_nullResistanceSlider_resistanceCommandIsIgnored() {
         // ProformCarbonC10 has resistance slider = null (incline-only bike).
-        // A 1-part message sets cmd.resistanceLvl in decodeCommand but applyCommand
-        // silently skips it because the resistance Slider is null.
+        // A 1-part message produces a ResistanceCommand but applyResistance is a no-op
+        // because the resistance Slider is null.
         ProformCarbonC10Device dev = dev(new ProformCarbonC10Device());
         CommandDispatcher d = new CommandDispatcher(() -> 1000L);
         d.dispatch("10.0", dev);
@@ -503,23 +505,23 @@ public class BikeDeviceTest {
     public void decodeCommands_onePart_setsResistanceLvl() {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.0"));
         assertEquals(1, cmds.size());
-        assertEquals(8.0f, cmds.get(0).resistanceLvl, 0.001f);
-        assertNull(cmds.get(0).inclinePct);
+        assertTrue(cmds.get(0) instanceof ResistanceCommand);
+        assertEquals(8.0f, ((ResistanceCommand) cmds.get(0)).resistanceLvl, 0.001f);
     }
 
     @Test
     public void decodeCommands_twoParts_setsInclinePct() {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("5.0;unused"));
         assertEquals(1, cmds.size());
-        assertEquals(5.0f, cmds.get(0).inclinePct, 0.001f);
-        assertNull(cmds.get(0).resistanceLvl);
+        assertTrue(cmds.get(0) instanceof InclineCommand);
+        assertEquals(5.0f, ((InclineCommand) cmds.get(0)).inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommands_roundsToOneDecimal() {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.25"));
         assertEquals(1, cmds.size());
-        assertEquals(8.3f, cmds.get(0).resistanceLvl, 0.001f);
+        assertEquals(8.3f, ((ResistanceCommand) cmds.get(0)).resistanceLvl, 0.001f);
     }
 
     @Test
@@ -542,7 +544,7 @@ public class BikeDeviceTest {
         // "-1.0;0" is a legitimate Zwift grade, not the sentinel; must not be swallowed.
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("-1.0;0"));
         assertEquals(1, cmds.size());
-        assertEquals(-1.0f, cmds.get(0).inclinePct, 0.001f);
+        assertEquals(-1.0f, ((InclineCommand) cmds.get(0)).inclinePct, 0.001f);
     }
 
     @Test

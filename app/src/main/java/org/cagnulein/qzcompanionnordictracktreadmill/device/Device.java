@@ -16,14 +16,17 @@ public abstract class Device {
     /** Duration of each AccessibilityService swipe gesture, in ms. */
     public static final int SWIPE_DURATION_MS = 200;
 
-    /**
-     * Applies a parsed command to this device immediately.
-     * Throttling is handled by CommandDispatcher; device subclasses apply device-specific
-     * de-dup or safety-gate logic only.
-     *
-     * @param cmd parsed command snapshot (non-null fields = requested values)
-     */
-    public abstract void applyCommand(Command cmd);
+    /** Routes a parsed command to the appropriate handler on this device. */
+    public final void applyCommand(Command cmd) { cmd.applyTo(this); }
+
+    /** Override to handle a speed command (km/h). No-op by default. */
+    public void handleSpeed(double kmh) {}
+
+    /** Override to handle an incline command (%). No-op by default. */
+    public void handleIncline(double pct) {}
+
+    /** Override to handle a resistance command (level). No-op by default. */
+    public void handleResistance(double lvl) {}
 
     /** Routes a live slider metric update to the matching Slider(s) on this device. */
     public abstract void applyMetric(SliderMetric metric, float value);

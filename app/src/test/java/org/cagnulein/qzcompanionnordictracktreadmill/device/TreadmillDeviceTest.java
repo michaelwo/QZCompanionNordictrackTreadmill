@@ -32,7 +32,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.reader.SliderMetric;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.SpeedCommand;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1176,32 +1178,32 @@ public class TreadmillDeviceTest {
     public void decodeCommands_twoParts_setsBothFields() {
         java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.0;5.0"));
         assertEquals(2, cmds.size());
-        assertEquals(8.0f, cmds.get(0).speedKmh,   0.001f);
-        assertEquals(5.0f, cmds.get(1).inclinePct, 0.001f);
+        assertEquals(8.0f, ((SpeedCommand)   cmds.get(0)).speedKmh,   0.001f);
+        assertEquals(5.0f, ((InclineCommand) cmds.get(1)).inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommands_roundsToOneDecimal() {
         java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.25;5.14"));
         assertEquals(2, cmds.size());
-        assertEquals(8.3f, cmds.get(0).speedKmh,   0.001f);
-        assertEquals(5.1f, cmds.get(1).inclinePct, 0.001f);
+        assertEquals(8.3f, ((SpeedCommand)   cmds.get(0)).speedKmh,   0.001f);
+        assertEquals(5.1f, ((InclineCommand) cmds.get(1)).inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommands_sentinelMinusOneHundred_speed_returnsInclineOnly() {
         java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("-100;5.0"));
         assertEquals(1, cmds.size());
-        assertEquals(5.0f, cmds.get(0).inclinePct, 0.001f);
-        assertNull(cmds.get(0).speedKmh);
+        assertTrue(cmds.get(0) instanceof InclineCommand);
+        assertEquals(5.0f, ((InclineCommand) cmds.get(0)).inclinePct, 0.001f);
     }
 
     @Test
     public void decodeCommands_sentinelMinusOneHundred_incline_returnsSpeedOnly() {
         java.util.List<Command> cmds = new X22iDevice().decodeCommands(QZCommandPacket.parse("8.0;-100"));
         assertEquals(1, cmds.size());
-        assertEquals(8.0f, cmds.get(0).speedKmh, 0.001f);
-        assertNull(cmds.get(0).inclinePct);
+        assertTrue(cmds.get(0) instanceof SpeedCommand);
+        assertEquals(8.0f, ((SpeedCommand) cmds.get(0)).speedKmh, 0.001f);
     }
 
     @Test
@@ -1241,9 +1243,7 @@ public class TreadmillDeviceTest {
         X11iDevice dev = new X11iDevice();
         dev.commandExecutor = commands::add;
 
-        Command speedCmd = new Command();
-        speedCmd.speedKmh = 8.0f;
-        dev.applyCommand(speedCmd);                // belt stopped → cached, no swipe
+        dev.applyCommand(new SpeedCommand(8.0f));  // belt stopped → cached, no swipe
         assertEquals(0, commands.size());
 
         dev.applyMetric(SliderMetric.KPH, 5.0f);  // belt starts → self-flush fires

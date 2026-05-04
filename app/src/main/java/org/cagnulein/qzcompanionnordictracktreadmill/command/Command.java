@@ -1,21 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
-/**
- * A requested change to a device — decoded from a single UDP message.
- *
- * null means "not requested this message". Distinct from live metric values
- * tracked per-Slider, which represent what the device is currently doing.
- */
-public class Command {
-    public Float speedKmh      = null;
-    public Float inclinePct    = null;
-    public Float resistanceLvl = null;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 
-    @Override
-    public String toString() {
-        if (speedKmh      != null) return "speed="      + speedKmh;
-        if (inclinePct    != null) return "incline="    + inclinePct;
-        if (resistanceLvl != null) return "resistance=" + resistanceLvl;
-        return "flush";
-    }
+public abstract class Command {
+    public abstract void applyTo(Device device);
 }
