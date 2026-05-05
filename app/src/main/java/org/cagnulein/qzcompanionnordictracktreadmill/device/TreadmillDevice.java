@@ -1,6 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.ArrayList;
@@ -11,10 +13,10 @@ public abstract class TreadmillDevice extends Device {
 
     protected static final double KMH_TO_MPH = 0.621371;
 
-    private final Slider incline;
-    private final Slider speed;
+    private final InclineSlider incline;
+    private final SpeedSlider speed;
 
-    protected TreadmillDevice(Slider incline, Slider speed) {
+    protected TreadmillDevice(InclineSlider incline, SpeedSlider speed) {
         this.incline = incline;
         this.speed   = speed;
     }
