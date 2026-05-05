@@ -21,7 +21,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class QZMetricUnicastingService extends Service {
-    private static final String LOG_TAG = "QZ:MetricReaderService";
+    private static final String LOG_TAG = "QZ:MetricUnicastingService";
     IBinder binder;
     boolean allowRebind;
     /** UDP port on the QZ host that receives unicast metric updates. */

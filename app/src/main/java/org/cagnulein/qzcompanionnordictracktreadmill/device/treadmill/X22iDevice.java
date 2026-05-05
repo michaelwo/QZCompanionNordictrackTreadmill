@@ -1,7 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 
 public class X22iDevice extends TreadmillDevice {
 
@@ -10,8 +11,8 @@ public class X22iDevice extends TreadmillDevice {
     // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
     protected X22iDevice(int originIncline, double inclineScale, int originSpeed, double speedScale) {
         super(
-            Slider.linear(ScreenProfile.W1920.leftTrackX,  originIncline, inclineScale, 6),
-            Slider.linear(ScreenProfile.W1920.rightTrackX, originSpeed,   speedScale)
+            new InclineSlider(ScreenProfile.W1920.leftTrackX,  originIncline, v -> (int)(originIncline - inclineScale * (v + 6))),
+            new SpeedSlider(  ScreenProfile.W1920.rightTrackX, originSpeed,   v -> (int)(originSpeed - speedScale * v))
         );
     }
 

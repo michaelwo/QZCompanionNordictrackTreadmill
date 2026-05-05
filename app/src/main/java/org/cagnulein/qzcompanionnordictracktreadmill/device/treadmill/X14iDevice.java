@@ -1,7 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 public class X14iDevice extends TreadmillDevice {
     private static final double[][] INCLINE_TABLE = {
         {-6.0, 856}, {-5.5, 850}, {-5.0, 844}, {-4.5, 838}, {-4.0, 832},
@@ -28,8 +29,8 @@ public class X14iDevice extends TreadmillDevice {
     public X14iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            Slider.inclineLive(ScreenProfile.W1920.leftTrackX,  645, X14iDevice::offsetInclineThumbY),
-            Slider.speedLive(  ScreenProfile.W1920.rightTrackX, 807, v -> 807 - (int)((v - 1.0) * 31))
+            InclineSlider.live(ScreenProfile.W1920.leftTrackX,  645, X14iDevice::offsetInclineThumbY),
+            SpeedSlider.live(  ScreenProfile.W1920.rightTrackX, 807, v -> 807 - (int)((v - 1.0) * 31))
         );
     }
 

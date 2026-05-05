@@ -103,8 +103,9 @@ Before writing Step 1, you need the ORIGIN constants and scale factors for the d
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 
 public class MyNewDevice extends TreadmillDevice {
     private static final int ORIGIN_INCLINE_THUMBY = 644;
@@ -112,8 +113,8 @@ public class MyNewDevice extends TreadmillDevice {
 
     public MyNewDevice() {
         super(
-            new Slider(ScreenProfile.W1280.leftTrackX,  ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
-            new Slider(ScreenProfile.W1280.rightTrackX, ORIGIN_SPEED_THUMBY,   MyNewDevice::offsetSpeedThumbY)
+            new InclineSlider(ScreenProfile.W1280.leftTrackX,  ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
+            new SpeedSlider(ScreenProfile.W1280.rightTrackX, ORIGIN_SPEED_THUMBY,   MyNewDevice::offsetSpeedThumbY)
         );
     }
     @Override public String displayName() { return "My New Treadmill (MODEL)"; }
@@ -158,18 +159,20 @@ The CLAUDE.md has the full pattern including bike devices, naming conventions, a
 
 In 3.x, pixel constants (`y1Speed`, `y1Inclination`, `y1Resistance`) were module-level static variables, and the formulas for computing target Y coordinates were repeated inline in each dispatch branch. If a device needed special behaviour (metric-derived starting position, directional overshoot), it added more inline conditionals.
 
-In 4.x, a `Slider` encapsulates everything about one physical axis:
+In 4.x, a `Slider` encapsulates everything about one physical axis. `Slider` is abstract; four typed subclasses cover each axis kind:
 
-```
-Slider
-  trackX()              fixed horizontal pixel of the slider track (from ScreenProfile)
-  targetThumbY(v)       formula: metric value → logical pixel Y (via ThumbYFormula)
-  quantize(v)           optional: snap to physically reachable increments
-  currentThumbY(snap)   optional: re-derive thumb position from live metrics
-  hysteresisPixels()    optional: directional overshoot for stiction compensation
-```
+| Subclass | `SliderMetric` | `commandFor()` returns |
+|----------|---------------|----------------------|
+| `InclineSlider` | `GRADE` | `InclineCommand` |
+| `SpeedSlider` | `KPH` | `SpeedCommand` |
+| `ResistanceSlider` | `RESISTANCE` | `ResistanceCommand` |
+| `GearSlider` | `CURRENT_GEAR` | `GearCommand` |
 
-Each device class constructs `Slider` instances with `new Slider(trackX, initialThumbY, Device::offsetXxxThumbY)`, where `offsetXxxThumbY` is a `private static` method in the device class. Anonymous subclasses are used only when `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding. All the pixel math is co-located with the device that owns it, and the `BikeDevice`/`TreadmillDevice` base classes call `Slider.moveTo()` generically — no device-specific branching anywhere in the dispatch path.
+Each device class constructs typed slider instances — `new InclineSlider(trackX, initialThumbY, Device::offsetInclineThumbY)`, `new SpeedSlider(...)` — where `offsetXxxThumbY` is a `private static` method in the device class. Sliders that must re-derive their current position from the live metric feed are constructed with the typed `.live()` static factory instead of `new`. Anonymous typed-slider subclasses are used only when `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding.
+
+Each typed slider implements two abstract methods from `Slider`:
+- `handle(double value, Device device)` — called by `cmd.applyTo(device)` via `device.sliderOf()`. De-duplicates against `lastApplied()` and calls `moveTo()`. `SpeedSlider` additionally gates on `liveValueOrZero()`: if the belt is stopped, the speed is cached and released when `KPH > 0` arrives.
+- `commandFor(double value)` — creates the matching `Command` subclass. Called by `BikeDevice`/`TreadmillDevice` in `decodeCommands()`.
 
 ---
 
@@ -182,9 +185,11 @@ Each device class constructs `Slider` instances with `new Slider(trackX, initial
 ```
 QZCommandListenerService   receive UDP packet, hold WakeLock
         ↓
-CommandDispatcher          parse raw string, call device.applyCommand()
+CommandDispatcher          throttle, call device.applyCommand(cmd)
         ↓
-BikeDevice / TreadmillDevice   throttle, cache, de-dup
+cmd.applyTo(device)        calls device.sliderOf(XxxSlider.class)
+        ↓
+XxxSlider.handle()         de-dup; SpeedSlider also gates on belt speed
         ↓
 Slider.moveTo()            quantize → targetThumbY → hysteresis → swipe
         ↓
@@ -208,7 +213,7 @@ static float lastResistanceFloat = 0;
 
 Any class that needed current speed or incline imported `QZService` and read these directly. This made the coupling invisible and the state globally mutable.
 
-**4.x:** Metric values are tracked inside each `Slider` as a live float, updated via `Device.applyMetric(SliderMetric, float)`. `Slider` subclasses that override `currentThumbY()` read back this live value before each swipe to correct drift. The speed gate in `TreadmillDevice` reads `lastKnownKph` (set by `applyMetric`) — no cross-service import needed.
+**4.x:** Metric values are tracked inside each `Slider` as a live float, updated via `Device.applyMetric(SliderMetric, float)` which iterates `sliders()` and calls `s.applyIfMatch()`. Live-mode sliders (`.live()` factory) read back this value before each swipe via `currentThumbY()` to correct drift. The speed gate in `SpeedSlider` uses the same live value — when `KPH > 0` arrives, `applyIfMatch()` flushes any cached speed immediately — no cross-service import needed.
 
 ---
 

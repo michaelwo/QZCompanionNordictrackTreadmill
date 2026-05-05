@@ -1,15 +1,16 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 
 public class Exp7iDevice extends TreadmillDevice {
 
     public Exp7iDevice() {
         // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            Slider.inclineLive(ScreenProfile.W1024.leftTrackX,  442, v -> 442 - (int)(v * 21.802)),
-            Slider.speedLive(  ScreenProfile.W1024.rightTrackX, 453, v -> 453 - (int)((v * KMH_TO_MPH - 1.0) * 22.702))
+            InclineSlider.live(ScreenProfile.W1024.leftTrackX,  442, v -> 442 - (int)(v * 21.802)),
+            SpeedSlider.live(  ScreenProfile.W1024.rightTrackX, 453, v -> 453 - (int)((v * KMH_TO_MPH - 1.0) * 22.702))
         );
     }
 

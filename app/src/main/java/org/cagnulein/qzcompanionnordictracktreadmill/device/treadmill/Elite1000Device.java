@@ -1,14 +1,15 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 public class Elite1000Device extends TreadmillDevice {
 
     public Elite1000Device() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            Slider.inclineLive(ScreenProfile.W1280.leftTrackX,  589, v -> 589 - (int)(v * 32.8)),
-            Slider.speedLive(  ScreenProfile.W1280.rightTrackX, 600, v -> 600 - (int)(v * KMH_TO_MPH * 31.33))
+            InclineSlider.live(ScreenProfile.W1280.leftTrackX,  589, v -> 589 - (int)(v * 32.8)),
+            SpeedSlider.live(  ScreenProfile.W1280.rightTrackX, 600, v -> 600 - (int)(v * KMH_TO_MPH * 31.33))
         );
     }
 

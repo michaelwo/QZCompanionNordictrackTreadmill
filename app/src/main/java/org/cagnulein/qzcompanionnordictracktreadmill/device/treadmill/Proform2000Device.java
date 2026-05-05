@@ -1,7 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 
 public class Proform2000Device extends TreadmillDevice {
 
@@ -9,8 +10,8 @@ public class Proform2000Device extends TreadmillDevice {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         // Incline trackX=79 is 4.5px off APK-expected 74.5; matches hardware calibration.
         super(
-            Slider.inclineLive(ScreenProfile.W1280.leftTrackX,  520, v -> 520 - (int)((v + 3) * 21.804)),
-            new Slider(        ScreenProfile.W1280.rightTrackX, 598, v -> (int)(631.03 - 19.921 * v))
+            InclineSlider.live(ScreenProfile.W1280.leftTrackX,  520, v -> 520 - (int)((v + 3) * 21.804)),
+            new SpeedSlider(   ScreenProfile.W1280.rightTrackX, 598, v -> (int)(631.03 - 19.921 * v))
         );
     }
 

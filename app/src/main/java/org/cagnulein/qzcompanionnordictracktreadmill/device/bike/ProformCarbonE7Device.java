@@ -1,15 +1,16 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 
 public class ProformCarbonE7Device extends BikeDevice {
 
     public ProformCarbonE7Device() {
         // Screen: 1024px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            Slider.inclineLive(   ScreenProfile.W1024.leftTrackX,  440, v -> 440 - (int)(v * 11)),
-            Slider.resistanceLive(ScreenProfile.W1024.rightTrackX, 440, v -> 440 - (int)(v * 9.16))
+            InclineSlider.live(   ScreenProfile.W1024.leftTrackX,  440, v -> 440 - (int)(v * 11)),
+            ResistanceSlider.live(ScreenProfile.W1024.rightTrackX, 440, v -> 440 - (int)(v * 9.16))
         );
     }
 

@@ -11,20 +11,24 @@ public abstract class Device {
     /** Duration of each AccessibilityService swipe gesture, in ms. */
     public static final int SWIPE_DURATION_MS = 200;
 
+    /** All sliders on this device, in declaration order. Used for metric routing and command dispatch. */
+    public abstract List<Slider> sliders();
+
+    /** Returns the first slider of the given type, or null if none. */
+    public final <S extends Slider> S sliderOf(Class<S> type) {
+        for (Slider s : sliders()) {
+            if (type.isInstance(s)) return type.cast(s);
+        }
+        return null;
+    }
+
     /** Routes a parsed command to the appropriate handler on this device. */
     public final void applyCommand(Command cmd) { cmd.applyTo(this); }
 
-    /** Override to handle a speed command (km/h). No-op by default. */
-    public void handleSpeed(double kmh) {}
-
-    /** Override to handle an incline command (%). No-op by default. */
-    public void handleIncline(double pct) {}
-
-    /** Override to handle a resistance command (level). No-op by default. */
-    public void handleResistance(double lvl) {}
-
-    /** Routes a live slider metric update to the matching Slider(s) on this device. */
-    public abstract void applyMetric(SliderMetric metric, float value);
+    /** Routes a live slider metric update to all matching sliders on this device. */
+    public final void applyMetric(SliderMetric metric, float value) {
+        for (Slider s : sliders()) s.applyIfMatch(metric, value, this);
+    }
 
     /** Functional interface so the executor can be set without Android imports. */
     public interface CommandExecutor { void send(String command); }

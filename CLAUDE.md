@@ -29,7 +29,8 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── command/      CommandDispatcher, Command, SpeedCommand, InclineCommand,
-│   │                 ResistanceCommand, CalibrationSwipeCommand
+│   │                 ResistanceCommand, GearCommand, CalibrationSwipeCommand
+│   ├── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
 │   ├── gesture/      GestureService
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
@@ -49,15 +50,15 @@ Bike device (`device/bike/MyNewDevice.java`):
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 
 public class MyNewDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY = /* formula intercept */;
 
     public MyNewDevice() {
         super(
-            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
-            null  // null if no resistance slider
+            new InclineSlider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, MyNewDevice::offsetInclineThumbY),
+            null  // second slot: ResistanceSlider, GearSlider, or null
         );
     }
     @Override public String displayName() { return "My New Device"; }
@@ -66,7 +67,7 @@ public class MyNewDevice extends BikeDevice {
 }
 ```
 
-Treadmill device: extend `TreadmillDevice` and pass two `Slider` instances `(incline, speed)`. All devices use `AccessibilityService` by default — no `requiresAdb()` or `requiresAccessibility()` overrides needed. When `currentThumbY`, `quantize`, or `hysteresisPixels` need overriding, use an anonymous `Slider` subclass combining the formula constructor with the override body.
+Treadmill device: extend `TreadmillDevice` and pass `(incline, speed)` as `InclineSlider` and `SpeedSlider`. Bike devices pass `(incline, resistance)` where the resistance slot accepts `InclineSlider`, `ResistanceSlider`, or `GearSlider` depending on the physical axis. All devices use `AccessibilityService` by default — no `requiresAdb()` or `requiresAccessibility()` overrides needed. When `currentThumbY`, `quantize`, or `hysteresisPixels` need overriding, use an anonymous typed-slider subclass combining the formula constructor with the override body. Use `InclineSlider.live()` / `SpeedSlider.live()` / `ResistanceSlider.live()` / `GearSlider.live()` when the slider should derive its current thumb position from the live metric feed.
 
 ### 2. Register the device
 

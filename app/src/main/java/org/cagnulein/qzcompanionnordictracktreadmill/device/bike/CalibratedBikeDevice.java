@@ -2,8 +2,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 
 /**
  * Bike device whose swipe formulas are loaded at runtime from DeviceCalibration
@@ -31,10 +31,10 @@ public class CalibratedBikeDevice extends BikeDevice {
 
     // ── incline ───────────────────────────────────────────────────────────────
 
-    private static Slider buildInclineSlider() {
+    private static InclineSlider buildInclineSlider() {
         DeviceCalibration cal = DeviceCalibration.current;
         int initial = cal != null ? cal.neutralY : S22I_DEFAULT_NEUTRAL_Y;
-        return (new Slider(initial) {
+        return new InclineSlider(initial) {
 
             @Override
             public int trackX() {
@@ -67,16 +67,16 @@ public class CalibratedBikeDevice extends BikeDevice {
             protected int currentThumbY() {
                 return liveValue != null ? targetThumbY(liveValue) : thumbY();
             }
-        }).withMetric(SliderMetric.GRADE);
+        };
     }
 
     // ── resistance ────────────────────────────────────────────────────────────
 
-    private static Slider buildResistanceSlider() {
+    private static ResistanceSlider buildResistanceSlider() {
         DeviceCalibration cal = DeviceCalibration.current;
         if (cal == null || cal.resistanceOrigin == null) return null;
         int initY = (int) cal.resistanceOrigin.doubleValue();
-        return (new Slider(initY) {
+        return new ResistanceSlider(initY) {
 
             @Override
             public int trackX() {
@@ -103,6 +103,6 @@ public class CalibratedBikeDevice extends BikeDevice {
                 return (liveValue != null && liveValue >= 1)
                         ? targetThumbY(liveValue) : thumbY();
             }
-        }).withMetric(SliderMetric.RESISTANCE);
+        };
     }
 }

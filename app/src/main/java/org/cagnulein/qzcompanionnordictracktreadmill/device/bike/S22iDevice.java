@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;
@@ -13,7 +13,7 @@ public class S22iDevice extends BikeDevice {
     protected S22iDevice(int hystLong, int hystShort) {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            new Slider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, S22iDevice::offsetInclineThumbY) {
+            new InclineSlider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, S22iDevice::offsetInclineThumbY) {
                 // Calibration 2026-04-19 (positive) + 2026-04-22 (negative):
                 // Single linear fit — 18.57 px/% across the full range.
                 // Intercept 622 = device-reported neutral (0% grade in iFit log).
@@ -29,8 +29,8 @@ public class S22iDevice extends BikeDevice {
                 protected int hysteresisPixels(int fromY, int toY) {
                     return Math.abs(toY - fromY) >= 40 ? hystLong : hystShort;
                 }
-            }.withMetric(SliderMetric.GRADE),
-            new Slider(ScreenProfile.W1920.rightTrackX, ORIGIN_RESISTANCE_THUMBY, S22iDevice::offsetResistanceThumbY) {
+            },
+            new ResistanceSlider(ScreenProfile.W1920.rightTrackX, ORIGIN_RESISTANCE_THUMBY, S22iDevice::offsetResistanceThumbY) {
                 // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
                 // Slope = (323−724) / 23 = −401/23 ≈ −17.43 px per level.
                 public float quantize(float v) { return Math.round(v); }
@@ -41,7 +41,7 @@ public class S22iDevice extends BikeDevice {
                     return (liveValue != null && liveValue >= 1)
                             ? targetThumbY(liveValue) : thumbY();
                 }
-            }.withMetric(SliderMetric.RESISTANCE)
+            }
         );
     }
 

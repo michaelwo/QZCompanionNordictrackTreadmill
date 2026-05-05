@@ -1,7 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 public class C1750_2020KphDevice extends TreadmillDevice {
     private static final double[][] INCLINE_TABLE = {
         {-3.0, 592}, {-2.5, 584}, {-2.0, 576}, {-1.5, 568}, {-1.0, 560},
@@ -17,8 +18,8 @@ public class C1750_2020KphDevice extends TreadmillDevice {
     public C1750_2020KphDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
         super(
-            Slider.inclineLive(ScreenProfile.W1280.leftTrackX,  525, C1750_2020KphDevice::offsetInclineThumbY),
-            Slider.speedLive(  ScreenProfile.W1280.rightTrackX, 598, C1750_2020KphDevice::offsetSpeedThumbY)
+            InclineSlider.live(ScreenProfile.W1280.leftTrackX,  525, C1750_2020KphDevice::offsetInclineThumbY),
+            SpeedSlider.live(  ScreenProfile.W1280.rightTrackX, 598, C1750_2020KphDevice::offsetSpeedThumbY)
         );
     }
 

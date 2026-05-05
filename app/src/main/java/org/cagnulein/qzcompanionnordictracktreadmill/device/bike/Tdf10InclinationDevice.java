@@ -1,13 +1,13 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 
 public class Tdf10InclinationDevice extends BikeDevice {
 
     public Tdf10InclinationDevice() {
         // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
-        super(new Slider(ScreenProfile.W1280.leftTrackX, 482, v -> (int)(482.2 - 12.499 * v)), null);
+        super(new InclineSlider(ScreenProfile.W1280.leftTrackX, 482, v -> (int)(482.2 - 12.499 * v)), null);
     }
 
     @Override public String displayName() { return "TDF10 Bike (Inclination)"; }

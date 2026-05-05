@@ -6,7 +6,7 @@ All coordinates are screen pixels on the iFit touch display, standardised to **i
 input swipe <trackX> <fromY> <trackX> <targetThumbY(v)> 200
 ```
 
-Swipe duration is always 200 ms. `fromY` is the slider's current tracked position; `targetThumbY(v)` is computed from the formula for the requested value `v`. When a device overrides `currentThumbY(snapshot)`, the starting position is re-derived from the live iFit-reported value before each swipe, correcting drift.
+Swipe duration is always 200 ms. `fromY` is the slider's current tracked position; `targetThumbY(v)` is computed from the formula for the requested value `v`. Sliders constructed with the `.live()` factory override `currentThumbY()` to re-derive the starting position from the slider's internally tracked live metric value before each swipe, correcting drift.
 
 For the full dispatch pipeline see [architecture.md](../../../../../../../../docs/architecture.md). For how to add a device and write formula tests see the steps at the bottom of this file and [testing-methodology.md](../../../../../../test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
@@ -79,8 +79,8 @@ Bike UDP message: `"inclinePct;?"` (2-part) or `"resistanceLvl"` (1-part). Senti
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 75 | 616 | `616 - (int)(v * 17.65)` | from `snapshot.incline()` |
-| Resistance | 1845 | 790 | `790 - (int)(v * 23.16)` | from `snapshot.gear()` |
+| Incline | 75 | 616 | `616 - (int)(v * 17.65)` | live |
+| Gear | 1845 | 790 | `790 - (int)(v * 23.16)` | live |
 
 ---
 
@@ -88,12 +88,12 @@ Bike UDP message: `"inclinePct;?"` (2-part) or `"resistanceLvl"` (1-part). Senti
 
 | Slider | trackX | Initial Y | Formula | Quantize | currentThumbY | Hysteresis |
 |--------|--------|-----------|---------|----------|---------------|------------|
-| Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 18.57*v)` | 0.5% steps | from `snapshot.inclinePct` | travel ≥40px → 15px; <40px → 10px |
-| Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | from `snapshot.resistanceLvl` (when ≥1) | — |
+| Incline | 75 | 622 | `v≤0: (int)(622 - 10*v)` / `v>0: (int)(622 - 18.57*v)` | 0.5% steps | live | travel ≥40px → 15px; <40px → 10px |
+| Resistance | 1845 | 724 | `(int)(724 - 401.0/23 * (v-1))` | integer levels | live (when ≥1) | — |
 
 **Calibration (2026-05-01, 1920×1080, `discover-device.py --a11y`):** Incline: 12-point coarse sweep, R²=1.0000 — `Y = 600 − 20.0 × grade`. Resistance: 6-point coarse sweep, R²=1.0000 — `Y = 750 − 25.0 × (level − 1)`. The hardcoded `S22iDevice` formula above (origin 622/724, scale 18.57/17.43) is from an earlier manual measurement and remains the static fallback; `CalibratedBikeDevice` uses the discover-device.py values when `qz-calibration.json` is present.
 
-Hysteresis compensates for physical slider stiction: swipe overshoots `targetThumbY` in the direction of travel; `thumbY` tracks the logical target so de-dup is unaffected. `currentThumbY` reads back the iFit-reported grade before each swipe, correcting residual drift.
+Hysteresis compensates for physical slider stiction: swipe overshoots `targetThumbY` in the direction of travel; `thumbY` tracks the logical target so de-dup is unaffected. The live-mode incline slider re-derives its position from the iFit-reported grade before each swipe, correcting residual drift.
 
 ---
 
@@ -101,7 +101,7 @@ Hysteresis compensates for physical slider stiction: swipe overshoots `targetThu
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 75 | 800 | `800 - (int)((v + 10) * 19)` | from `snapshot.incline()` |
+| Incline | 75 | 800 | `800 - (int)((v + 10) * 19)` | live |
 
 ---
 
@@ -117,8 +117,8 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 75 | 803 | `803 - (int)((v + 10) * (803-248) / 30.0)` | from `snapshot.incline()` |
-| Resistance | 1845 | 803 | `803 - (int)((v - 1) * (803-248) / 23.0)` | from `snapshot.resistance()` |
+| Incline | 75 | 803 | `803 - (int)((v + 10) * (803-248) / 30.0)` | live |
+| Resistance | 1845 | 803 | `803 - (int)((v - 1) * (803-248) / 23.0)` | live |
 
 ---
 
@@ -158,8 +158,8 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 74 | 440 | `440 - (int)(v * 11)` | from `snapshot.incline()` |
-| Resistance | 950 | 440 | `440 - (int)(v * 9.16)` | from `snapshot.resistance()` |
+| Incline | 74 | 440 | `440 - (int)(v * 11)` | live |
+| Resistance | 950 | 440 | `440 - (int)(v * 9.16)` | live |
 
 ---
 
@@ -167,7 +167,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Resistance | 1205 | 632 | `632 - (int)(v * 18.45)` | from `snapshot.resistance()` |
+| Resistance | 1205 | 632 | `632 - (int)(v * 18.45)` | live |
 
 ---
 
@@ -179,7 +179,7 @@ Range: incline −10%..+20% → Y 803..248; resistance levels 1..24 → Y 803..2
 
 ## Treadmills
 
-Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gated: no swipe fires while `lastKnownKph <= 0` (belt stopped); the pending speed is held in a one-slot cache and applied once the belt moves.
+Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gated in `SpeedSlider`: no swipe fires while the belt is stopped (`liveValueOrZero() <= 0`); the pending speed is held in a one-slot cache and applied the moment `KPH > 0` arrives.
 
 ### X9i (`x9i`)
 
@@ -203,8 +203,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 807 | `807 - (int)((v - 1.0) * 31)` | from `snapshot.speed()` |
-| Incline | 75 | 645 | lookup table (`INCLINE_TABLE`) | from `snapshot.incline()` |
+| Speed | 1845 | 807 | `807 - (int)((v - 1.0) * 31)` | live |
+| Incline | 75 | 645 | lookup table (`INCLINE_TABLE`) | live |
 
 ---
 
@@ -248,8 +248,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 579 | `(int)(900.26 - 46.63 * v * 0.621371)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 750 | `750 - (int)(v * 12.05)` | from `snapshot.incline()` |
+| Speed | 1845 | 579 | `(int)(900.26 - 46.63 * v * 0.621371)` *(mph scaled)* | live |
+| Incline | 75 | 750 | `750 - (int)(v * 12.05)` | live |
 
 ---
 
@@ -257,7 +257,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 785 | `785 - (int)((v - 1.0) * 31.42)` | from `snapshot.speed()` |
+| Speed | 1845 | 785 | `785 - (int)((v - 1.0) * 31.42)` | live |
 | Incline | 75 | 700 | `(int)(700 - 34.9 * v)` | — |
 
 ---
@@ -266,8 +266,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 575 | `575 - (int)((v * 0.621371 - 1.0) * 28.91)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 520 | `520 - (int)(v * 20)` | from `snapshot.incline()` |
+| Speed | 1205 | 575 | `575 - (int)((v * 0.621371 - 1.0) * 28.91)` *(mph scaled)* | live |
+| Incline | 75 | 520 | `520 - (int)(v * 20)` | live |
 
 ---
 
@@ -275,8 +275,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 598 | lookup table | from `snapshot.speed()` |
-| Incline | 75 | 525 | lookup table (`INCLINE_TABLE`) | from `snapshot.incline()` |
+| Speed | 1205 | 598 | lookup table | live |
+| Incline | 75 | 525 | lookup table (`INCLINE_TABLE`) | live |
 
 ---
 
@@ -284,8 +284,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 603 | `603 - (int)((v * 0.621371 - 0.5) * 21.722)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 603 | `603 - (int)((v + 3.0) * 21.722)` | from `snapshot.incline()` |
+| Speed | 1205 | 603 | `603 - (int)((v * 0.621371 - 0.5) * 21.722)` *(mph scaled)* | live |
+| Incline | 75 | 603 | `603 - (int)((v + 3.0) * 21.722)` | live |
 
 ---
 
@@ -293,8 +293,8 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 787 | `787 - (int)(v * 43.5)` | from `snapshot.speed()` |
-| Incline | 75 | 787 | `787 - (int)((v + 3) * 29)` | from `snapshot.incline()` |
+| Speed | 1845 | 787 | `787 - (int)(v * 43.5)` | live |
+| Incline | 75 | 787 | `787 - (int)((v + 3) * 29)` | live |
 
 ---
 
@@ -302,7 +302,7 @@ Treadmill UDP message: `"speedKmh;inclinePct"` (2 parts). Speed commands are gat
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 620 | `620 - (int)((v - 1.0) * 20.73)` | from `snapshot.speed()` |
+| Speed | 1205 | 620 | `620 - (int)((v - 1.0) * 20.73)` | live |
 | Incline | 75 | 553 | `(int)(553 - 22 * v)` | — |
 
 ---
@@ -328,8 +328,8 @@ These three devices share the `T65sDevice` geometry — only the display name di
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 609 | `(int)(629.81 - 20.81 * v)` | from `snapshot.speed()` |
-| Incline | 75 | 609 | `(int)(609 - 36.417 * v)` | from `snapshot.incline()` |
+| Speed | 1205 | 609 | `(int)(629.81 - 20.81 * v)` | live |
+| Incline | 75 | 609 | `(int)(609 - 36.417 * v)` | live |
 
 ---
 
@@ -337,8 +337,8 @@ These three devices share the `T65sDevice` geometry — only the display name di
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 847 | `847 - (int)(30.0 * v)` | from `snapshot.speed()` |
-| Incline | 75 | 846 | `846 - (int)(46.0 * v)` | from `snapshot.incline()` |
+| Speed | 1845 | 847 | `847 - (int)(30.0 * v)` | live |
+| Incline | 75 | 846 | `846 - (int)(46.0 * v)` | live |
 
 ---
 
@@ -355,8 +355,8 @@ These three devices share the `T65sDevice` geometry — only the display name di
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 807 | `(int)(-26.33 * (v * 0.621371) + 831.39)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 715 | `715 - (int)((v + 3) * 29.26)` | from `snapshot.incline()` |
+| Speed | 1845 | 807 | `(int)(-26.33 * (v * 0.621371) + 831.39)` *(mph scaled)* | live |
+| Incline | 75 | 715 | `715 - (int)((v + 3) * 29.26)` | live |
 
 ---
 
@@ -364,8 +364,8 @@ These three devices share the `T65sDevice` geometry — only the display name di
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 807 | `807 - (int)((v - 1.0) * 31)` | from `snapshot.speed()` |
-| Incline | 75 | 807 | `807 - (int)((v + 3) * 31.1)` | from `snapshot.incline()` |
+| Speed | 1845 | 807 | `807 - (int)((v - 1.0) * 31)` | live |
+| Incline | 75 | 807 | `807 - (int)((v + 3) * 31.1)` | live |
 
 ---
 
@@ -375,8 +375,8 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 682 | `682 - (int)((v - 1.0) * 26.5)` | from `snapshot.speed()` |
-| Incline | 75 | 807 | `807 - (int)((v + 3) * 31.1)` | from `snapshot.incline()` |
+| Speed | 1845 | 682 | `682 - (int)((v - 1.0) * 26.5)` | live |
+| Incline | 75 | 807 | `807 - (int)((v + 3) * 31.1)` | live |
 
 ---
 
@@ -385,7 +385,7 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
 | Speed | 1205 | 598 | `(int)(631.03 - 19.921 * v)` | — |
-| Incline | 75 | 520 | `520 - (int)((v + 3) * 21.804)` | from `snapshot.incline()` |
+| Incline | 75 | 520 | `520 - (int)((v + 3) * 21.804)` | live |
 
 ---
 
@@ -402,8 +402,8 @@ Same incline geometry as `nordictrack_2950`. Speed formula adjusted for lower ma
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1845 | 800 | `800 - (int)((v * 0.621371 - 1.0) * 41.667)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 720 | `720 - (int)(v * 34.583)` | from `snapshot.incline()` |
+| Speed | 1845 | 800 | `800 - (int)((v * 0.621371 - 1.0) * 41.667)` *(mph scaled)* | live |
+| Incline | 75 | 720 | `720 - (int)(v * 34.583)` | live |
 
 ---
 
@@ -418,8 +418,8 @@ Both share `Elite1000Device` geometry — only the display name differs.
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 1205 | 600 | `600 - (int)(v * 0.621371 * 31.33)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 75 | 589 | `589 - (int)(v * 32.8)` | from `snapshot.incline()` |
+| Speed | 1205 | 600 | `600 - (int)(v * 0.621371 * 31.33)` *(mph scaled)* | live |
+| Incline | 75 | 589 | `589 - (int)(v * 32.8)` | live |
 
 ---
 
@@ -427,8 +427,8 @@ Both share `Elite1000Device` geometry — only the display name differs.
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 950 | 450 | `450 - (int)(v * 14.705)` | from `snapshot.speed()` |
-| Incline | 74 | 450 | `450 - (int)(v * 20.83)` | from `snapshot.incline()` |
+| Speed | 950 | 450 | `450 - (int)(v * 14.705)` | live |
+| Incline | 74 | 450 | `450 - (int)(v * 20.83)` | live |
 
 ---
 
@@ -436,8 +436,8 @@ Both share `Elite1000Device` geometry — only the display name differs.
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Speed | 950 | 453 | `453 - (int)((v * 0.621371 - 1.0) * 22.702)` *(mph scaled)* | from `snapshot.speed()` |
-| Incline | 74 | 442 | `442 - (int)(v * 21.802)` | from `snapshot.incline()` |
+| Speed | 950 | 453 | `453 - (int)((v * 0.621371 - 1.0) * 22.702)` *(mph scaled)* | live |
+| Incline | 74 | 442 | `442 - (int)(v * 21.802)` | live |
 
 ---
 
@@ -449,8 +449,8 @@ Physically an elliptical but treated as a bike (extends `BikeDevice`). Incline r
 
 | Slider | trackX | Initial Y | Formula | currentThumbY |
 |--------|--------|-----------|---------|---------------|
-| Incline | 75 | 858 | `858 - (int)(v * (858-208) / 20.0)` | from `snapshot.incline()` |
-| Resistance | 1845 | 858 | `858 - (int)((v-1) * (858-208) / 23.0)` | from `snapshot.resistance()` |
+| Incline | 75 | 858 | `858 - (int)(v * (858-208) / 20.0)` | live |
+| Resistance | 1845 | 858 | `858 - (int)((v-1) * (858-208) / 23.0)` | live |
 
 ---
 
@@ -468,7 +468,7 @@ Fallback device. Uses ProForm 2000 geometry without `currentThumbY`. Useful for 
 ## Adding a New Device
 
 1. Create a class in `device/bike/` (extends `BikeDevice`) or `device/treadmill/` (extends `TreadmillDevice`).
-2. Declare `private static int offsetInclineThumbY(double v)` (and `offsetSpeedThumbY` / `offsetResistanceThumbY` as needed). Pass one or two `Slider` instances to `super()` using the 3-arg constructor: `new Slider(ScreenProfile.Wxxx.leftTrackX, ORIGIN_INCLINE_THUMBY, MyDevice::offsetInclineThumbY)`. Choose the profile that matches the device's screen width (W1920, W1280, W1024, W800). Set `ORIGIN_xxx_THUMBY` equal to `offsetXxxThumbY(0)` (the formula's y-intercept). When `quantize()`, `currentThumbY()`, or `hysteresisPixels()` also need overriding, use an anonymous `Slider` subclass instead.
+2. Declare `private static int offsetInclineThumbY(double v)` (and `offsetSpeedThumbY` / `offsetResistanceThumbY` as needed). Pass one or two typed slider instances to `super()`: `new InclineSlider(ScreenProfile.Wxxx.leftTrackX, ORIGIN_INCLINE_THUMBY, MyDevice::offsetInclineThumbY)` for the incline axis; `new SpeedSlider(...)` for speed; `new ResistanceSlider(...)` for resistance; `new GearSlider(...)` for gear-based bikes. Choose the `ScreenProfile` that matches the device's screen width (W1920, W1280, W1024, W800). Set `ORIGIN_xxx_THUMBY` equal to `offsetXxxThumbY(0)` (the formula's y-intercept). When `quantize()`, `currentThumbY()`, or `hysteresisPixels()` also need overriding, use an anonymous typed-slider subclass instead.
 3. Override `displayName()`. No `requiresAdb()` or `requiresAccessibility()` overrides are needed — all devices use AccessibilityService by default.
 4. Add a `DeviceId` enum value to `DeviceRegistry.DeviceId` and a `m.put(DeviceId.my_device, new MyDevice())` line in `DeviceRegistry.DEVICES`.
 5. Add the `DeviceId` to the appropriate list in `DeviceAdapter` — `BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`. The UI is not automatic; if you skip this step the device will not appear in the app.
@@ -534,7 +534,7 @@ The right-slider trackX also implies the device's screen width:
 | Check | What it verifies |
 |-------|-----------------|
 | **A — Horizontal position** | `trackX ≈ 74.5` for left sliders; right `trackX + 74.5` lands on a recognised screen width (±15 px) |
-| **B — Initial thumb vs. formula** | `initialThumbY` passed to `new Slider(trackX, initialThumbY, formula)` should equal `formula(0)` (the ORIGIN constant) for incline/speed sliders |
+| **B — Initial thumb vs. formula** | `initialThumbY` passed to the typed slider constructor should equal `formula(0)` (the ORIGIN constant) for incline/speed sliders |
 | **C — Monotonicity** | Higher metric values produce lower Y (slider moves up); inverted slopes are flagged |
 | **D — Sindarin global bounds** | `offsetXxxThumbY()` at `MaxIncline=40°`, `MinIncline=−20°`, and practical max speed 22 km/h must land within `[0, screen_height]` |
 

@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 
 /**
  * Represents one physical slider on the fitness device's touch screen.
@@ -11,15 +12,11 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
  *   - a formula mapping a metric value to a target Y coordinate ({@link #targetThumbY})
  *   - an optional live metric value ({@link #liveValue}) updated via {@link #applyIfMatch}
  *
- * The formula can be supplied either as a {@link ThumbYFormula} constructor argument
- * (preferred for simple sliders) or by overriding {@link #targetThumbY} in a subclass
- * (required when {@link #currentThumbY}, {@link #quantize}, or {@link #hysteresisPixels}
- * also need overriding).
- *
- * Factory methods (linear, inclineLive, speedLive, resistanceLive, gearLive) cover the
- * most common patterns and eliminate boilerplate anonymous subclasses in device classes.
+ * Concrete subclasses ({@code InclineSlider}, {@code SpeedSlider}, {@code ResistanceSlider},
+ * {@code GearSlider}) implement {@link #handle} and {@link #commandFor}, encapsulating
+ * dedup, belt-gate, and command-creation logic for their slider type.
  */
-public class Slider {
+public abstract class Slider {
 
     @FunctionalInterface
     public interface ThumbYFormula {
@@ -30,62 +27,33 @@ public class Slider {
     private final ThumbYFormula formula;
     private int thumbY;
     private Float lastApplied = null;
-    private SliderMetric metric = null;
+    private SliderMetric metric;
     protected volatile Float liveValue = null;
 
-    public Slider(int trackX, int initialThumbY, ThumbYFormula formula) {
+    protected Slider(int trackX, int initialThumbY, ThumbYFormula formula, SliderMetric metric) {
         this.trackX  = trackX;
         this.thumbY  = initialThumbY;
         this.formula = formula;
+        this.metric  = metric;
     }
 
-    protected Slider(int trackX, int initialThumbY) {
-        this(trackX, initialThumbY, null);
-    }
+    // ── Abstract API ───────────────────────────────────────────────────────────
 
-    /** Single-arg constructor for subclasses that override {@link #trackX()} at runtime. */
-    protected Slider(int initialThumbY) {
-        this(0, initialThumbY, null);
-    }
+    /** Apply a command value to this slider, handling dedup, belt-gate, and swipe. */
+    public abstract void handle(double value, Device device);
 
-    // ── Static factory methods ─────────────────────────────────────────────────
-
-    /** Creates a Slider with targetThumbY = (int)(origin - scale * v). */
-    public static Slider linear(int trackX, int origin, double scale) {
-        return new Slider(trackX, origin, v -> (int)(origin - scale * v));
-    }
-
-    /** Creates a Slider with targetThumbY = (int)(origin - scale * (v + shift)). */
-    public static Slider linear(int trackX, int origin, double scale, double shift) {
-        return new Slider(trackX, origin, v -> (int)(origin - scale * (v + shift)));
-    }
-
-    /** Creates a Slider that derives currentThumbY from the live incline metric. */
-    public static Slider inclineLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.GRADE);
-    }
-
-    /** Creates a Slider that derives currentThumbY from the live speed metric. */
-    public static Slider speedLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.KPH);
-    }
-
-    /** Creates a Slider that derives currentThumbY from the live resistance metric. */
-    public static Slider resistanceLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.RESISTANCE);
-    }
-
-    /** Creates a Slider that derives currentThumbY from the live gear metric. */
-    public static Slider gearLive(int trackX, int initialY, ThumbYFormula formula) {
-        return new Slider(trackX, initialY, formula).withMetric(SliderMetric.CURRENT_GEAR);
-    }
+    /** Create the matching Command type for this slider with the given value. */
+    public abstract Command commandFor(double value);
 
     // ── Live metric ownership ──────────────────────────────────────────────────
 
-    public Slider withMetric(SliderMetric m) { this.metric = m; return this; }
-
     public void applyIfMatch(SliderMetric m, float value) {
         if (metric != null && metric == m) liveValue = value;
+    }
+
+    /** 3-arg overload called by {@link Device#applyMetric}; default delegates to 2-arg. */
+    public void applyIfMatch(SliderMetric m, float value, Device device) {
+        applyIfMatch(m, value);
     }
 
     public float liveValueOrZero() { return liveValue != null ? liveValue : 0f; }
@@ -100,16 +68,11 @@ public class Slider {
 
     /**
      * Current pixel Y of the slider thumb.
-     * For live sliders (metric != null): returns targetThumbY(liveValue) when a live
-     * value is known, else targetThumbY(0) — matching the pre-live-data neutral position.
-     * For non-live sliders: returns the internally tracked thumbY.
-     * Override when additional guards are needed (e.g. resistance level must be >= 1).
+     * Override in typed subclasses to choose live or dead mode:
+     *   - Live: {@code liveValue != null ? targetThumbY(liveValue) : targetThumbY(0.0)}
+     *   - Dead: {@code thumbY()}
      */
-    protected int currentThumbY() {
-        if (liveValue != null) return targetThumbY(liveValue);
-        if (metric != null) return targetThumbY(0.0);
-        return thumbY;
-    }
+    protected abstract int currentThumbY();
 
     /**
      * Snap {@code value} to the nearest position this slider can physically reach.
