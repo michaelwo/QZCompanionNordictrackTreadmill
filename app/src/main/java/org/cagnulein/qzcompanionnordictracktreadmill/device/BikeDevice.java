@@ -25,14 +25,6 @@ public abstract class BikeDevice extends Device {
         return Collections.emptyList();
     }
 
-    protected final void applyIncline(double value) {
-        if (incline != null) incline.moveTo(value, this);
-    }
-
-    protected final void applyResistance(double level) {
-        if (resistance != null) resistance.moveTo(level, this);
-    }
-
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {
         if (pkt.fieldCount() == 2) {

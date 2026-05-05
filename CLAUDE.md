@@ -125,6 +125,12 @@ Most docs live in `docs/`. Two live adjacent to the code they describe:
 
 ---
 
+## Code Exploration
+
+Prefer the `LSP` tool (JDTLS) over `grep`/`find` when exploring Java code — it resolves symbols, finds references, and navigates the type hierarchy accurately without reading irrelevant files.
+
+---
+
 ## Code Style Guidelines
 - All comments must be in English
 - Use descriptive variable names

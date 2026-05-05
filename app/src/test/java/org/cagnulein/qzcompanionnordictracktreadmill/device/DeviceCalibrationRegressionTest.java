@@ -1,6 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.CalibratedBikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 import org.junit.After;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -82,7 +84,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // toY=622=fromY=622 (initial) → no travel
-        dev.applyIncline(0.0);
+        dev.sliderOf(InclineSlider.class).moveTo(0.0, dev);
         assertEquals("input swipe 75 622 75 622 200", lastCommand);
     }
 
@@ -91,7 +93,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // toY=436; fromY=622; h=0 → dispatchY=436
-        dev.applyIncline(10.0);
+        dev.sliderOf(InclineSlider.class).moveTo(10.0, dev);
         assertEquals("input swipe 75 622 75 436 200", lastCommand);
     }
 
@@ -100,7 +102,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // toY=807; fromY=622; h=0 → dispatchY=807
-        dev.applyIncline(-10.0);
+        dev.sliderOf(InclineSlider.class).moveTo(-10.0, dev);
         assertEquals("input swipe 75 622 75 807 200", lastCommand);
     }
 
@@ -108,8 +110,8 @@ public class DeviceCalibrationRegressionTest {
     public void calibratedBikeDevice_incline_updatesThumbY_onSequentialCommands() {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
-        dev.applyIncline(10.0);  // thumbY becomes 436
-        dev.applyIncline(5.0);   // fromY=436; toY=(int)(622-18.57*5)=529; h=0 → dispatchY=529
+        dev.sliderOf(InclineSlider.class).moveTo(10.0, dev);  // thumbY becomes 436
+        dev.sliderOf(InclineSlider.class).moveTo(5.0, dev);   // fromY=436; toY=(int)(622-18.57*5)=529; h=0 → dispatchY=529
         assertEquals("input swipe 75 436 75 529 200", lastCommand);
     }
 
@@ -118,7 +120,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // level=1; toY=(int)(724 - 401/23 * 0)=724; fromY=724 (initial); h=0
-        dev.applyResistance(1.0);
+        dev.sliderOf(ResistanceSlider.class).moveTo(1.0, dev);
         assertEquals("input swipe 1845 724 1845 724 200", lastCommand);
     }
 
@@ -127,7 +129,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // level=24; toY=(int)(724 - 401/23 * 23)=(int)(724-401)=323; fromY=724; h=0
-        dev.applyResistance(24.0);
+        dev.sliderOf(ResistanceSlider.class).moveTo(24.0, dev);
         assertEquals("input swipe 1845 724 1845 323 200", lastCommand);
     }
 
@@ -135,9 +137,9 @@ public class DeviceCalibrationRegressionTest {
     public void calibratedBikeDevice_resistance_updatesThumbY_onSequentialCommands() {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
-        dev.applyResistance(24.0);  // thumbY becomes 323
+        dev.sliderOf(ResistanceSlider.class).moveTo(24.0, dev);  // thumbY becomes 323
         // level=12; toY=(int)(724 - 401/23 * 11)=(int)(724-191.78...)=(int)(532.17)=532
-        dev.applyResistance(12.0);
+        dev.sliderOf(ResistanceSlider.class).moveTo(12.0, dev);
         assertEquals("input swipe 1845 323 1845 532 200", lastCommand);
     }
 
@@ -146,7 +148,7 @@ public class DeviceCalibrationRegressionTest {
         DeviceCalibration.current = null;
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
         // No travel when grade=0 so hysteresis does not fire; confirms x=75 and neutralY=622
-        dev.applyIncline(0.0);
+        dev.sliderOf(InclineSlider.class).moveTo(0.0, dev);
         assertEquals("input swipe 75 622 75 622 200", lastCommand);
     }
 

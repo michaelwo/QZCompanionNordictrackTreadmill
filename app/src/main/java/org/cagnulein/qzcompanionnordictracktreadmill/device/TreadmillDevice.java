@@ -22,14 +22,6 @@ public abstract class TreadmillDevice extends Device {
     @Override
     public List<Slider> sliders() { return Arrays.asList(incline, speed); }
 
-    protected final void applySpeed(double kmh) {
-        speed.moveTo(kmh, this);
-    }
-
-    protected final void applyIncline(double pct) {
-        incline.moveTo(pct, this);
-    }
-
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {
         List<Command> cmds = new ArrayList<>();
