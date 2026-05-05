@@ -28,8 +28,11 @@ public abstract class TreadmillDevice extends Device {
 
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {
-        if (pkt.fieldCount() == 1 && QZCommandPacket.SNAP_ORIGIN.equals(pkt.rawField(0)))
-            return Collections.singletonList(new SnapToOriginCommand());
+        if (pkt.fieldCount() == 1 && QZCommandPacket.SNAP_ORIGIN.equals(pkt.rawField(0))) {
+            List<Command> snaps = new ArrayList<>();
+            for (Slider s : sliders()) snaps.add(new SnapToOriginCommand(s));
+            return snaps;
+        }
         List<Command> cmds = new ArrayList<>();
         if (pkt.fieldCount() == 2) {
             Float s = QZCommandPacket.parseField(pkt.rawField(0));
