@@ -56,7 +56,7 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
     @Override
     public void onCalibrationSwipe(CalibrationSwipeCommand cmd) {
         if (GestureService.isConnected())
-            GestureService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, Device.SWIPE_DURATION_MS);
+            GestureService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, GestureService.SWIPE_DURATION_MS);
     }
 
     public void shutdown() { dispatcher.shutdown(); }

@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
 
 /**
  * Represents one physical slider on the fitness device's touch screen.
@@ -99,7 +100,15 @@ public abstract class Slider {
         int toY    = targetThumbY(value);
         int h      = hysteresisPixels(fromY, toY);
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
-        device.swipe(trackX(), fromY, swipeY);
+        String cmd = "input swipe " + trackX() + " " + fromY + " " + trackX() + " " + swipeY
+                   + " " + GestureService.SWIPE_DURATION_MS;
+        device.logger.log("QZ:Slider", "swipe -> " + cmd);
+        if (GestureService.isConnected()) {
+            GestureService.performSwipe(trackX(), fromY, trackX(), swipeY, GestureService.SWIPE_DURATION_MS);
+        } else {
+            device.logger.log("QZ:Slider", "swipe dropped: AccessibilityService not connected");
+        }
+        device.commandExecutor.send(cmd);
         thumbY      = toY;
         lastApplied = (float) value;
     }

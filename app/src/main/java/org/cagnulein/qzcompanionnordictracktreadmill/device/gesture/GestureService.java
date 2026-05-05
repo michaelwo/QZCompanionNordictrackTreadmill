@@ -20,6 +20,7 @@ import java.util.List;
 public class GestureService extends AccessibilityService {
 
     private static final String TAG = "QZ:IFit";
+    public static final int SWIPE_DURATION_MS = 200;
     private static final String IFIT_PACKAGE = "com.ifit.standalone";
     private static final String MACHINE_INFO_CLASS = "crc64ef9f2aa9b801e5a0.MachineInfoView";
 

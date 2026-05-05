@@ -305,7 +305,7 @@ Two UI elements appear above the device list:
 | All devices | "QZ App — Broadcasting heartbeat / No heartbeat received yet" (refreshes every 5 s) |
 | All devices | "Zwift via Bluetooth — Advertising / Not advertising / Not supported" (BLE FTMS canary status) |
 
-The card refreshes automatically on `onResume()` so enabling Accessibility in Settings and returning to the app immediately shows the updated state. Whether a device needs accessibility or shell injection is queried via `Device.requiresAccessibility()` and `Device.requiresAdb()` — `MainActivity` has no hardcoded `DeviceId` list.
+The card refreshes automatically on `onResume()` so enabling Accessibility in Settings and returning to the app immediately shows the updated state. All devices use `AccessibilityService` — the card always shows the accessibility prompt. `MainActivity` has no hardcoded `DeviceId` list.
 
 ---
 

@@ -76,9 +76,8 @@ XxxSlider.handle(value, device)   [de-dup / speed gate in SpeedSlider]
         │    quantize(value)        → snap to physical increments
         │    targetThumbY(value)    → compute logical pixel Y coordinate
         │    hysteresisPixels()     → directional overshoot in px (0 for most sliders)
-        │    device.swipe(x, fromY, swipeY)   [swipeY may differ from targetThumbY]
         ▼
-GestureService.performSwipe(x, fromY, x, swipeY, 200)
+GestureService.performSwipe(x, fromY, x, swipeY, 200)   [swipeY may differ from targetThumbY]
 ```
 
 Three mechanisms filter commands before a swipe is issued:
@@ -163,7 +162,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 
 **`Device`** (abstract) — base class for all fitness devices. Owns:
 - `logger` — functional interface; no-op by default, wired to `Log.i` in production
-- `swipe(x, y1, y2)` — logs the gesture string and calls `GestureService.performSwipe()`; all 44 devices use this path. `requiresAccessibility()` returns `true` and `requiresAdb()` returns `false` by default.
+- `commandExecutor` — functional interface; no-op by default, set by `MainActivity` to route shell commands
 - `decodeCommands(QZCommandPacket)` — abstract; returns one `Command` per actionable field in the packet (sentinels return an empty list)
 - `applyCommand(Command)` — calls `cmd.applyTo(this)`; throttle is handled upstream by `CommandDispatcher` via `DeviceController`
 - `sliders()` — abstract; returns the list of typed `Slider` instances owned by this device
@@ -183,6 +182,8 @@ org.cagnulein.qzcompanionnordictracktreadmill
 Each typed slider implements two abstract methods:
 - `handle(double value, Device device)` — de-duplicates against `lastApplied()` and calls `moveTo()`; `SpeedSlider` additionally gates on `liveValueOrZero()`
 - `commandFor(double value)` — creates the matching `Command` subclass (e.g. `InclineSlider.commandFor()` returns `new InclineCommand(...)`)
+
+`Slider.moveTo()` owns gesture dispatch: it calls `GestureService.performSwipe()` when connected and `device.commandExecutor.send()` unconditionally. `GestureService.SWIPE_DURATION_MS` (200 ms) governs gesture duration for both `moveTo()` and the calibration swipe path in `DeviceController`.
 
 **`ScreenProfile`** (enum) — encodes the horizontal pixel coordinates of the left and right slider tracks for each iFit screen width (W1920, W1280, W1024, W800). Constants are derived from iFit APK 2.6.90 (versionCode 4963, `com.ifit.standalone`): `workout_slider_margin=12 dp`, `workout_slider_width=125 dp` → track centre at `12 + 62.5 = 74.5 dp`. Left and right values are stored independently because dp→px rounding can be asymmetric at the pixel boundary. If the iFit app is updated, re-derive these constants from the new APK's `res/values/dimens.xml` before touching any device class.
 
@@ -228,7 +229,7 @@ The `MetricReader` interface and its implementations are described in the [Desig
 
 ### Swipe Execution Paths
 
-All 44 devices use `GestureService.performSwipe()`. `Device.requiresAccessibility()` returns `true` and `Device.requiresAdb()` returns `false` by default; no device overrides these. `MainActivity` shows the "Enable Accessibility Service" prompt for all devices and does not establish an ADB connection.
+All 44 devices use `GestureService.performSwipe()` via `Slider.moveTo()`. There is no per-device capability flag — all devices use `AccessibilityService` exclusively. `MainActivity` shows the "Enable Accessibility Service" prompt for all devices and does not establish an ADB connection.
 
 ### Calibration
 
