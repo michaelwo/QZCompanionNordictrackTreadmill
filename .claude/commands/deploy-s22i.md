@@ -175,6 +175,57 @@ EOF
 **FAIL:** hash mismatch — a stale APK is installed; re-run from Step 2.  
 **WARN:** subtitle not found — CI build or UI dump timing; verify manually or proceed if version check passed.
 
+## Step 7.5 — Bring iFit to Foreground and Reset Sliders to Origin
+
+QZCompanion launched in Step 7 is in the foreground; gestures target whichever window is focused. Bring iFit back to front, then reset both sliders to their origin positions using direct swipes computed from the live MonoStdout reading. Direct swipes bypass the QZ pipeline so de-dup state is not touched — after this step iFit's physical position matches what QZ's de-dup tracker already believes.
+
+```bash
+DEVICE=192.168.1.213:5555
+adb -s $DEVICE shell monkey -p com.ifit.standalone -c android.intent.category.LAUNCHER 1
+sleep 3
+adb -s $DEVICE shell dumpsys activity | grep mFocusedActivity
+```
+
+**PASS:** output contains `com.ifit.standalone`.  
+**FAIL:** QZ or another app is focused — repeat the monkey command.
+
+**Reset incline to 0%:** read the current grade from MonoStdout, compute the slider's actual Y, and swipe directly to the origin Y (622):
+
+```bash
+DEVICE=192.168.1.213:5555
+GRADE=$(adb -s $DEVICE logcat -d | grep "mono-stdout" | grep "Changed Grade" | tail -1 \
+  | grep -oP '(?<=Changed Grade to: )-?[0-9]+')
+[ -z "$GRADE" ] && GRADE=0
+echo "Current grade: ${GRADE}%"
+FROM_Y=$(python3 -c "print(int(622 - 18.57 * $GRADE))")
+echo "Direct swipe: y=$FROM_Y → y=622"
+adb -s $DEVICE shell input swipe 75 $FROM_Y 75 622 400
+sleep 4
+adb -s $DEVICE logcat -d | grep "mono-stdout" | grep "Changed Grade" | tail -3
+```
+
+**PASS:** `Changed Grade to: 0`
+
+**Reset resistance to level 1:** same approach — read current gear, swipe to origin Y (802):
+
+```bash
+GEAR=$(adb -s $DEVICE logcat -d | grep "mono-stdout" | grep "Changed CurrentGear" | tail -1 \
+  | grep -oP '(?<=Changed CurrentGear to: )[0-9]+')
+[ -z "$GEAR" ] && GEAR=1
+echo "Current gear: $GEAR"
+FROM_Y=$(python3 -c "print(int(802 - 26.25 * ($GEAR - 1)))")
+echo "Direct swipe: y=$FROM_Y → y=802"
+adb -s $DEVICE shell input swipe 1845 $FROM_Y 1845 802 400
+sleep 4
+adb -s $DEVICE logcat -d | grep "mono-stdout" | grep "Changed CurrentGear" | tail -3
+```
+
+**PASS:** `Changed CurrentGear to: 1`
+
+After this step iFit's sliders are physically at origin. QZ de-dup (`last=0.0` incline, `last=1.0` resistance) and `thumbY` already reflect origin — the direct swipes leave QZ's state unchanged. Steps 8 and 9 start from a clean, fully-aligned baseline.
+
+**FAIL (either axis):** MonoStdout line absent — iFit must be in foreground and in an active workout; re-run Step 6.
+
 ## Step 8 — Smoke Test: Incline
 
 Three consecutive commands cover positive → negative → origin, guaranteeing the de-dup guard never skips a gesture.
