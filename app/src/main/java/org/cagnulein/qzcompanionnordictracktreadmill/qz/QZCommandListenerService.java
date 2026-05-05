@@ -41,9 +41,17 @@ public class QZCommandListenerService extends Service {
     /** Subscriber that receives decoded packets and calibration swipes. */
     private volatile QZCommandSubscriber subscriber = null;
 
+    /**
+     * Holds a subscriber set before the service instance exists.
+     * MainActivity calls setSubscriber() during its own onCreate(), which runs before
+     * the service's onCreate() fires — this field bridges that gap.
+     */
+    private static volatile QZCommandSubscriber pendingSubscriber = null;
+
     private PowerManager.WakeLock wakeLock;
 
     public static void setSubscriber(QZCommandSubscriber s) {
+        pendingSubscriber = s;
         if (instance != null) instance.subscriber = s;
     }
 
@@ -124,6 +132,7 @@ public class QZCommandListenerService extends Service {
     @Override
     public void onCreate() {
         instance = this;
+        if (pendingSubscriber != null) subscriber = pendingSubscriber;
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "QZCompanion::UDPListener");
         Log.i(LOG_TAG, "QZCompanion v" + BuildConfig.VERSION_NAME

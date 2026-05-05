@@ -6,7 +6,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSli
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;
-    private static final int ORIGIN_RESISTANCE_THUMBY = 724;
+    private static final int ORIGIN_RESISTANCE_THUMBY = 802;
 
     public S22iDevice() { this(0, 0); }
 
@@ -31,8 +31,8 @@ public class S22iDevice extends BikeDevice {
                 }
             },
             new ResistanceSlider(ScreenProfile.W1920.rightTrackX, ORIGIN_RESISTANCE_THUMBY, S22iDevice::offsetResistanceThumbY) {
-                // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
-                // Slope = (323−724) / 23 = −401/23 ≈ −17.43 px per level.
+                // Recalibrated 2026-05-05: resistance=1 → Y=802, resistance=5 → Y=697 (direct swipe test).
+                // Scale = (802−697) / (5−1) = 105/4 = 26.25 px per level.
                 public float quantize(float v) { return Math.round(v); }
                 @Override
                 protected int currentThumbY() {
@@ -48,5 +48,5 @@ public class S22iDevice extends BikeDevice {
     @Override public String displayName() { return "S22i Bike"; }
 
     private static int offsetInclineThumbY(double v)    { return (int) (ORIGIN_INCLINE_THUMBY - 18.57 * v); }
-    private static int offsetResistanceThumbY(double v) { return (int) (ORIGIN_RESISTANCE_THUMBY - 401.0 / 23 * (v - 1)); }
+    private static int offsetResistanceThumbY(double v) { return (int) (ORIGIN_RESISTANCE_THUMBY - 26.25 * (v - 1)); }
 }

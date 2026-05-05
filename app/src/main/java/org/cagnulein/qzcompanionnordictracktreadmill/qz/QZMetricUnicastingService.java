@@ -39,6 +39,12 @@ public class QZMetricUnicastingService extends Service {
     /** Subscriber that receives decoded slider metrics. Set by DeviceController via setSubscriber(). */
     private volatile QZMetricSubscriber subscriber = null;
 
+    /**
+     * Holds a subscriber set before the service instance exists — same race as QZCommandListenerService.
+     * Applied in onCreate() so device selection from MainActivity always takes effect.
+     */
+    private static volatile QZMetricSubscriber pendingSubscriber = null;
+
     /** LAN broadcast address computed once at startup; used when QZ has not yet been discovered. */
     private static InetAddress broadcastAddress = null;
 
@@ -48,6 +54,7 @@ public class QZMetricUnicastingService extends Service {
     @Override
     public void onCreate() {
         instance = this;
+        if (pendingSubscriber != null) subscriber = pendingSubscriber;
         broadcastAddress = computeBroadcastAddress();
         Log.i(LOG_TAG, "service created");
         writeLog("Service onCreate");
@@ -55,6 +62,7 @@ public class QZMetricUnicastingService extends Service {
     }
 
     public static void setSubscriber(QZMetricSubscriber s) {
+        pendingSubscriber = s;
         if (instance != null) instance.subscriber = s;
     }
 

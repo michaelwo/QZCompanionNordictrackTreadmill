@@ -294,9 +294,14 @@ public class MainActivity extends AppCompatActivity {
                         : "Waiting for QZ heartbeat commands on port " + QZCommandListenerService.LISTEN_PORT + ". Device telemetry unicast paused.",
                 null);
 
-        BluetoothManager btMgr = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
-        BluetoothAdapter btAdapter = btMgr != null ? btMgr.getAdapter() : null;
-        boolean canAdvertise = btAdapter != null && btAdapter.isMultipleAdvertisementSupported();
+        boolean canAdvertise = false;
+        try {
+            BluetoothManager btMgr = (BluetoothManager) getSystemService(BLUETOOTH_SERVICE);
+            BluetoothAdapter btAdapter = btMgr != null ? btMgr.getAdapter() : null;
+            canAdvertise = btAdapter != null && btAdapter.isMultipleAdvertisementSupported();
+        } catch (SecurityException ignored) {
+            // BLUETOOTH permission not granted; treat as not capable (informational row only)
+        }
         addRequirementRow(list, !canAdvertise,
                 "Bluetooth",
                 canAdvertise
