@@ -9,7 +9,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
-import android.util.Log;
 import java.util.List;
 
 public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber {
@@ -29,7 +28,7 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
     }
 
     private void executeCommand(Command cmd) {
-        device.logger.log(Log.DEBUG, "QZ:Dispatch", "drain: " + cmd);
+        device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch", "drain: " + cmd);
         device.applyCommand(cmd);
     }
 
@@ -44,10 +43,10 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         for (Command cmd : commands) {
             int depth = dispatcher.enqueue(cmd);
             if (depth >= 0)
-                device.logger.log(Log.DEBUG, "QZ:Dispatch",
+                device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch",
                         "enqueue: " + cmd + " depth=" + depth + "/" + CommandDispatcher.QUEUE_CAPACITY);
             else
-                device.logger.log(Log.WARN, "QZ:Dispatch",
+                device.logger.log(Device.Logger.WARN, "QZ:Dispatch",
                         "drop: " + cmd + " (queue full at " + CommandDispatcher.QUEUE_CAPACITY + ")");
         }
         // Sentinel packets (empty command list) still act as passive drain drivers.
@@ -59,7 +58,7 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         if (GestureService.isConnected())
             GestureService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, GestureService.SWIPE_DURATION_MS);
         else
-            device.logger.log(Log.ERROR, "QZ:Dispatch", "calibration swipe dropped: AccessibilityService not connected");
+            device.logger.log(Device.Logger.ERROR, "QZ:Dispatch", "calibration swipe dropped: AccessibilityService not connected");
     }
 
     public void shutdown() { dispatcher.shutdown(); }
