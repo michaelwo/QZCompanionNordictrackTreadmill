@@ -217,9 +217,9 @@ Any class that needed current speed or incline imported `QZService` and read the
 
 ---
 
-## iFit v2 Detection (3.x vs 4.x)
+## Metric Reading Strategy (3.x vs 4.x)
 
-**3.x:** A `static boolean ifit_v2` flag was set in `QZService` when the v2 log path was detected. Reader code branched on it:
+**3.x:** Each device was configured with one of several reading strategies that described how `QZService` extracted metric values from the iFit log. Strategies ranged from reading the log file directly, to shelling out and tailing it, to grepping a snapshot of it on each poll cycle. On top of that, the reader had to branch on which iFit version was installed, because v1 and v2 wrote metrics to different file paths with different keyword formats. A `static boolean ifit_v2` flag in `QZService` tracked this:
 
 ```java
 if (ifit_v2) {
@@ -229,7 +229,11 @@ if (ifit_v2) {
 }
 ```
 
-**4.x:** No flag and no detection needed. `MonoStdoutMetricReader` subscribes to `logcat -s mono-stdout`, which is the same across all iFit versions — there is no v1/v2 log path fork. `QZMetricUnicastingService` creates a `MonoStdoutMetricReader` directly; no reader variants or factory methods exist. Device classes are completely unaware of iFit versions.
+The combination of per-device reading strategy × iFit version produced a matrix of configurations. Adding a new device meant deciding which strategy it needed, and any change to iFit's log format could break devices that weren't on the updated code path.
+
+**4.x:** All of that is replaced by a single approach: `logcat -s mono-stdout`. This works because iFit's fitness logic runs inside a **Xamarin/.NET (Mono) runtime** — it's a .NET application hosted by the Android APK. The Mono runtime unconditionally routes all `.NET stdout` output to the Android logcat tag `mono-stdout`, regardless of iFit version or the device model running it. There is no file path to discover, no version to detect, and no per-device strategy to configure.
+
+`MonoStdoutMetricReader` opens a `logcat -s mono-stdout` process, streams its output line by line, and parses keyword patterns (`"Changed KPH"`, `"Changed Grade"`, `"Changed Resistance"`, etc.) to emit a `QZMetricPacket` for each changed value. `QZMetricUnicastingService` creates one `MonoStdoutMetricReader` directly — no factory, no variants, no flag. Device classes are completely unaware of iFit versions or log formats.
 
 ---
 
