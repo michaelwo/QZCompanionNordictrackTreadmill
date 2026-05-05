@@ -1,12 +1,14 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public abstract class TreadmillDevice extends Device {
@@ -26,6 +28,8 @@ public abstract class TreadmillDevice extends Device {
 
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {
+        if (pkt.fieldCount() == 1 && QZCommandPacket.SNAP_ORIGIN.equals(pkt.rawField(0)))
+            return Collections.singletonList(new SnapToOriginCommand());
         List<Command> cmds = new ArrayList<>();
         if (pkt.fieldCount() == 2) {
             Float s = QZCommandPacket.parseField(pkt.rawField(0));

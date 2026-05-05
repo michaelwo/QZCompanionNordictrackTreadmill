@@ -43,4 +43,6 @@ public class ResistanceSlider extends Slider {
 
     @Override
     public Command commandFor(double lvl) { return new ResistanceCommand((float) lvl); }
+
+    @Override protected float originValue() { return 1f; }
 }

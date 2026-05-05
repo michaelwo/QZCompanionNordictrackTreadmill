@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.Arrays;
@@ -27,6 +28,8 @@ public abstract class BikeDevice extends Device {
 
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {
+        if (pkt.fieldCount() == 1 && QZCommandPacket.SNAP_ORIGIN.equals(pkt.rawField(0)))
+            return Collections.singletonList(new SnapToOriginCommand());
         if (pkt.fieldCount() == 2) {
             if (QZCommandPacket.END_OF_RIDE.equals(pkt.raw())) return Collections.emptyList();
             Float v = QZCommandPacket.parseField(pkt.rawField(0));

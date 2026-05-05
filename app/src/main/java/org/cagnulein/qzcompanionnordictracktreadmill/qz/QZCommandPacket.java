@@ -6,6 +6,7 @@ public class QZCommandPacket {
     public static final float  NO_RESISTANCE  = -1f;
     public static final String END_OF_RIDE    = "-1" + DELIMITER + "-100";
     public static final String CALSWIPE_PREFIX = "CALSWIPE:";
+    public static final String SNAP_ORIGIN     = "SNAP_ORIGIN";
 
     private final String[] fields;
 

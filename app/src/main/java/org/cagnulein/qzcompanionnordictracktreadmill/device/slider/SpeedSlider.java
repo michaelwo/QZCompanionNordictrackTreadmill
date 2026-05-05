@@ -58,4 +58,6 @@ public class SpeedSlider extends Slider {
 
     @Override
     public Command commandFor(double kmh) { return new SpeedCommand((float) kmh); }
+
+    @Override protected float originValue() { return 0f; }
 }

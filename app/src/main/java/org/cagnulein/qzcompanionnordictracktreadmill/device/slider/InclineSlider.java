@@ -44,4 +44,6 @@ public class InclineSlider extends Slider {
 
     @Override
     public Command commandFor(double pct) { return new InclineCommand((float) pct); }
+
+    @Override protected float originValue() { return 0f; }
 }

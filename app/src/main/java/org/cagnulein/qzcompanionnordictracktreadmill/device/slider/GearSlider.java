@@ -33,4 +33,6 @@ public class GearSlider extends Slider {
 
     @Override
     public Command commandFor(double gear) { return new GearCommand((float) gear); }
+
+    @Override protected float originValue() { return 1f; }
 }

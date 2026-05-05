@@ -25,17 +25,19 @@ public abstract class Slider {
     }
 
     private final int trackX;
+    private final int originThumbY;
     private final ThumbYFormula formula;
     private int thumbY;
     private Float lastApplied = null;
     private SliderMetric metric;
     protected volatile Float liveValue = null;
 
-    protected Slider(int trackX, int initialThumbY, ThumbYFormula formula, SliderMetric metric) {
-        this.trackX  = trackX;
-        this.thumbY  = initialThumbY;
-        this.formula = formula;
-        this.metric  = metric;
+    protected Slider(int trackX, int originThumbY, ThumbYFormula formula, SliderMetric metric) {
+        this.trackX       = trackX;
+        this.originThumbY = originThumbY;
+        this.thumbY       = originThumbY;
+        this.formula      = formula;
+        this.metric       = metric;
     }
 
     // ── Abstract API ───────────────────────────────────────────────────────────
@@ -45,6 +47,9 @@ public abstract class Slider {
 
     /** Create the matching Command type for this slider with the given value. */
     public abstract Command commandFor(double value);
+
+    /** The metric value corresponding to this slider's physical origin (e.g. 0f for incline, 1f for resistance). */
+    protected abstract float originValue();
 
     // ── Live metric ownership ──────────────────────────────────────────────────
 
@@ -113,6 +118,19 @@ public abstract class Slider {
         lastApplied = (float) value;
     }
 
-    public int   thumbY()       { return thumbY; }
-    public Float lastApplied()  { return lastApplied; }
+    public void snapToOrigin(Device device) {
+        device.logger.log(Device.Logger.DEBUG, "QZ:Slider", "snapToOrigin: tap at y=" + originThumbY);
+        if (GestureService.isConnected()) {
+            GestureService.performSwipe(trackX(), originThumbY, trackX(), originThumbY, GestureService.SWIPE_DURATION_MS);
+        } else {
+            device.logger.log(Device.Logger.ERROR, "QZ:Slider", "snapToOrigin dropped: AccessibilityService not connected");
+        }
+        thumbY      = originThumbY;
+        liveValue   = originValue();
+        lastApplied = null;
+    }
+
+    public int   thumbY()        { return thumbY; }
+    public int   originThumbY()  { return originThumbY; }
+    public Float lastApplied()   { return lastApplied; }
 }
