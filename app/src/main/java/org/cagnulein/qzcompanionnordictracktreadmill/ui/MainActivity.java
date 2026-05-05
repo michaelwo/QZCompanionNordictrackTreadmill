@@ -12,7 +12,6 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -157,9 +156,6 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView deviceList = findViewById(R.id.deviceList);
         deviceList.setLayoutManager(new LinearLayoutManager(this));
         deviceAdapter = new DeviceAdapter(id -> {
-            if (!isAccessibilityServiceEnabled(getApplicationContext(), GestureService.class)) {
-                startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
-            }
             selectDevice(DeviceRegistry.forId(id));
             SharedPreferences.Editor myEdit = sharedPreferences.edit();
             myEdit.putString(PREF_DEVICE_ID, id.name());
@@ -186,31 +182,24 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {
         int accessibilityEnabled = 0;
-        final String service = context.getPackageName() + "/" + accessibilityService.getCanonicalName();
         try {
             accessibilityEnabled = Settings.Secure.getInt(
                     context.getApplicationContext().getContentResolver(),
-                    Settings.Secure.ACCESSIBILITY_ENABLED
-            );
+                    Settings.Secure.ACCESSIBILITY_ENABLED);
         } catch (Settings.SettingNotFoundException e) {
             e.printStackTrace();
         }
-        TextUtils.SimpleStringSplitter colonSplitter = new TextUtils.SimpleStringSplitter(':');
+        if (accessibilityEnabled != 1) return false;
 
-        if (accessibilityEnabled == 1) {
-            String settingValue = Settings.Secure.getString(
-                    context.getApplicationContext().getContentResolver(),
-                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-            );
-            if (settingValue != null) {
-                colonSplitter.setString(settingValue);
-                while (colonSplitter.hasNext()) {
-                    String componentName = colonSplitter.next();
-                    if (componentName.equalsIgnoreCase(service)) {
-                        return true;
-                    }
-                }
-            }
+        android.content.ComponentName target = new android.content.ComponentName(context, accessibilityService);
+        String settingValue = Settings.Secure.getString(
+                context.getApplicationContext().getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+        if (settingValue == null) return false;
+
+        for (String entry : settingValue.split(":")) {
+            android.content.ComponentName cn = android.content.ComponentName.unflattenFromString(entry.trim());
+            if (target.equals(cn)) return true;
         }
         return false;
     }
