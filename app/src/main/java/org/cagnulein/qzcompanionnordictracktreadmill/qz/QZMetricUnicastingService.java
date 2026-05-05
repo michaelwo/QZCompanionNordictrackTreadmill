@@ -21,7 +21,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class QZMetricUnicastingService extends Service {
-    private static final String LOG_TAG = "QZ:MetricUnicastingService";
+    private static final String LOG_TAG = "QZ:MetricSvc";
     IBinder binder;
     boolean allowRebind;
     /** UDP port on the QZ host that receives unicast metric updates. */
@@ -49,6 +49,7 @@ public class QZMetricUnicastingService extends Service {
     public void onCreate() {
         instance = this;
         broadcastAddress = computeBroadcastAddress();
+        Log.i(LOG_TAG, "service created");
         writeLog("Service onCreate");
         applyDeviceInternal();
     }
@@ -76,6 +77,7 @@ public class QZMetricUnicastingService extends Service {
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
         cachedReader.subscribe(this::applyAndUnicast);
+        Log.i(LOG_TAG, "metric reader streaming active");
         writeLog("Metric reader: streaming active");
         try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
     }
@@ -127,6 +129,7 @@ public class QZMetricUnicastingService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.i(LOG_TAG, "service started");
         writeLog("Service started");
         return START_STICKY;
     }
@@ -149,6 +152,7 @@ public class QZMetricUnicastingService extends Service {
     public void onDestroy() {
         cachedReader = null;
         instance = null;
+        Log.i(LOG_TAG, "metric service stopped");
     }
 
     private static void writeLog(String msg) {

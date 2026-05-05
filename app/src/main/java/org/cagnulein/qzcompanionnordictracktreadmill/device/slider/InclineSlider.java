@@ -4,6 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import android.util.Log;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 
 public class InclineSlider extends Slider {
@@ -33,12 +34,12 @@ public class InclineSlider extends Slider {
     public void handle(double pct, Device device) {
         float quantized = quantize((float) pct);
         Float last = lastApplied();
-        device.logger.log("QZ:Dispatch", "requestIncline: " + pct + " quantized=" + quantized + " last=" + last);
+        device.logger.log(Log.VERBOSE, "QZ:Dispatch", "requestIncline: " + pct + " quantized=" + quantized + " last=" + last);
         if (last == null || quantized != last) {
             moveTo(quantized, device);
-            device.logger.log("QZ:Dispatch", "applyIncline: " + quantized);
+            device.logger.log(Log.DEBUG, "QZ:Dispatch", "applyIncline: " + quantized);
         } else {
-            device.logger.log("QZ:Dispatch", "de-dup: skipping incline " + pct + " (quantized=" + quantized + " already at " + last + ")");
+            device.logger.log(Log.VERBOSE, "QZ:Dispatch", "de-dup: skipping incline " + pct + " (quantized=" + quantized + " already at " + last + ")");
         }
     }
 

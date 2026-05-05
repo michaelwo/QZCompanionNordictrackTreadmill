@@ -4,6 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import android.util.Log;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 
 public class ResistanceSlider extends Slider {
@@ -32,12 +33,12 @@ public class ResistanceSlider extends Slider {
     @Override
     public void handle(double lvl, Device device) {
         Float last = lastApplied();
-        device.logger.log("QZ:Dispatch", "requestResistance: " + lvl + " last=" + last);
+        device.logger.log(Log.VERBOSE, "QZ:Dispatch", "requestResistance: " + lvl + " last=" + last);
         if (last == null || !Float.valueOf((float) lvl).equals(last)) {
             moveTo(lvl, device);
-            device.logger.log("QZ:Dispatch", "applyResistance: " + lvl);
+            device.logger.log(Log.DEBUG, "QZ:Dispatch", "applyResistance: " + lvl);
         } else {
-            device.logger.log("QZ:Dispatch", "de-dup: skipping resistance " + lvl + " (already at " + last + ")");
+            device.logger.log(Log.VERBOSE, "QZ:Dispatch", "de-dup: skipping resistance " + lvl + " (already at " + last + ")");
         }
     }
 

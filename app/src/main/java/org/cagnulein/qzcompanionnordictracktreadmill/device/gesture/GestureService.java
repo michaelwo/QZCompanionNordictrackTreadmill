@@ -60,7 +60,7 @@ public class GestureService extends AccessibilityService {
             builder.addStroke(new GestureDescription.StrokeDescription(path, 0, duration));
             boolean accepted = instance.dispatchGesture(builder.build(), new GestureResultCallback() {
                 @Override public void onCompleted(GestureDescription g) {
-                    Log.i(TAG, "gesture completed x=" + (int)startX + " y=" + (int)startY
+                    Log.d(TAG, "gesture completed x=" + (int)startX + " y=" + (int)startY
                             + "→" + (int)endY);
                 }
                 @Override public void onCancelled(GestureDescription g) {

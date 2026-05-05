@@ -33,10 +33,10 @@ public abstract class Device {
     public CommandExecutor commandExecutor = command -> {};
 
     /** Functional interface for log output. */
-    public interface Logger { void log(String tag, String msg); }
+    public interface Logger { void log(int level, String tag, String msg); }
 
     /** Logger for this device. No-op by default; set by MainActivity. */
-    public Logger logger = (tag, msg) -> {};
+    public Logger logger = (level, tag, msg) -> {};
 
     public abstract String displayName();
 

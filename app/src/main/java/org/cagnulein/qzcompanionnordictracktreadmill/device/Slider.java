@@ -1,5 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
+import android.util.Log;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
@@ -102,11 +103,11 @@ public abstract class Slider {
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
         String cmd = "input swipe " + trackX() + " " + fromY + " " + trackX() + " " + swipeY
                    + " " + GestureService.SWIPE_DURATION_MS;
-        device.logger.log("QZ:Slider", "swipe -> " + cmd);
+        device.logger.log(Log.DEBUG, "QZ:Slider", "swipe -> " + cmd);
         if (GestureService.isConnected()) {
             GestureService.performSwipe(trackX(), fromY, trackX(), swipeY, GestureService.SWIPE_DURATION_MS);
         } else {
-            device.logger.log("QZ:Slider", "swipe dropped: AccessibilityService not connected");
+            device.logger.log(Log.ERROR, "QZ:Slider", "swipe dropped: AccessibilityService not connected");
         }
         device.commandExecutor.send(cmd);
         thumbY      = toY;

@@ -17,7 +17,7 @@ import android.util.Log;
  * #socat - UDP-DATAGRAM:192.168.1.255:8002,broadcast,sp=8002
  */
 public class QZCommandListenerService extends Service {
-    private static final String LOG_TAG = "QZ:CommandListenerService";
+    private static final String LOG_TAG = "QZ:CmdListener";
 
     /** Wall-clock ms of the last -100;N heartbeat packet from QZ. 0 = never received. */
     public static volatile long lastQzHeartbeatMs = 0;
@@ -61,15 +61,13 @@ public class QZCommandListenerService extends Service {
             socket.setBroadcast(true);
         }
 
-        writeLog("Waiting for UDP packet");
-
         wakeLock.acquire(10_000L); // 10-second timeout — auto-releases if receive hangs
         try {
             byte[] buf = new byte[UDP_BUFFER_SIZE];
             DatagramPacket pkt = new DatagramPacket(buf, buf.length);
             socket.receive(pkt);
             String msg = new String(pkt.getData(), 0, pkt.getLength()).trim();
-            Log.i(LOG_TAG, "rx: " + msg);
+            Log.d(LOG_TAG, "rx: " + msg);
 
             if (subscriber == null) {
                 writeLog("Packet discarded: no subscriber");
@@ -137,6 +135,7 @@ public class QZCommandListenerService extends Service {
     public void onDestroy() {
         stopListen();
         instance = null;
+        Log.i(LOG_TAG, "UDP listener stopped");
     }
 
     @Override

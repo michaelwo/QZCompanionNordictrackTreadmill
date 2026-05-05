@@ -399,7 +399,8 @@ public class MainActivity extends AppCompatActivity {
 
     /** Selects {@code device} as the active device and wires it to both services. */
     private void selectDevice(Device device) {
-        device.logger = (tag, msg) -> Log.i(tag, msg);
+        Log.i("QZ:Main", "device selected: " + device.displayName());
+        device.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
         activeController = new DeviceController(device);
         QZCommandListenerService.setSubscriber(activeController);
