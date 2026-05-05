@@ -24,6 +24,7 @@ import java.net.NetworkInterface;
 
 import android.graphics.Typeface;
 import android.util.TypedValue;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import java.sql.Timestamp;
@@ -56,6 +57,15 @@ public class MainActivity extends AppCompatActivity {
     private DeviceAdapter deviceAdapter;
     private DeviceController activeController = null;
     private static SharedPreferences sharedPreferences;
+
+    private DeviceRegistry.DeviceId committedDeviceId = null;
+    private DeviceRegistry.DeviceId pendingDeviceId   = null;
+    private boolean deviceListExpanded = false;
+
+    private View      devicePickerCard;
+    private TextView  selectedDeviceLabel;
+    private ImageView devicePickerChevron;
+    private View      deviceListContainer;
 
     private final android.os.Handler heartbeatHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -153,23 +163,30 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().setSubtitle("v" + BuildConfig.VERSION_NAME + "  ·  " + buildId);
         }
 
+        devicePickerCard    = findViewById(R.id.devicePickerCard);
+        selectedDeviceLabel = findViewById(R.id.selectedDeviceLabel);
+        devicePickerChevron = findViewById(R.id.devicePickerChevron);
+        deviceListContainer = findViewById(R.id.deviceListContainer);
+
         RecyclerView deviceList = findViewById(R.id.deviceList);
         deviceList.setLayoutManager(new LinearLayoutManager(this));
-        deviceAdapter = new DeviceAdapter(id -> {
-            selectDevice(DeviceRegistry.forId(id));
-            SharedPreferences.Editor myEdit = sharedPreferences.edit();
-            myEdit.putString(PREF_DEVICE_ID, id.name());
-            myEdit.apply();
-        });
+        deviceAdapter = new DeviceAdapter(id -> pendingDeviceId = id);
         deviceList.setAdapter(deviceAdapter);
+
+        devicePickerCard.setOnClickListener(v -> toggleDeviceList());
+        findViewById(R.id.btnSaveDeviceSelection).setOnClickListener(v -> onSaveDeviceSelection());
+        findViewById(R.id.btnCancelDeviceSelection).setOnClickListener(v -> onCancelDeviceSelection());
     }
 
     private void restoreDeviceSelection() {
         String savedId = sharedPreferences.getString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.other.name());
         try {
             DeviceRegistry.DeviceId id = DeviceRegistry.DeviceId.valueOf(savedId);
+            committedDeviceId = id;
+            pendingDeviceId   = id;
             deviceAdapter.setSelectedId(id);
             selectDevice(DeviceRegistry.forId(id));
+            updateSelectedDeviceLabel();
         } catch (IllegalArgumentException ignored) {}
     }
 
@@ -374,6 +391,50 @@ public class MainActivity extends AppCompatActivity {
                 : "No device selected";
         String ip = getLocalIpAddress();
         chip.setText("UDP " + QZCommandListenerService.LISTEN_PORT + "  ·  " + deviceName + "  ·  " + ip);
+        updateSelectedDeviceLabel();
+    }
+
+    private void updateSelectedDeviceLabel() {
+        if (selectedDeviceLabel == null) return;
+        selectedDeviceLabel.setText(activeController != null
+                ? activeController.device().displayName()
+                : "No device selected");
+    }
+
+    private void toggleDeviceList() {
+        if (deviceListExpanded) collapseDeviceList();
+        else expandDeviceList();
+    }
+
+    private void expandDeviceList() {
+        pendingDeviceId = committedDeviceId;
+        if (committedDeviceId != null) deviceAdapter.setSelectedId(committedDeviceId);
+        deviceListContainer.setVisibility(View.VISIBLE);
+        devicePickerChevron.animate().rotation(180f).setDuration(200).start();
+        deviceListExpanded = true;
+    }
+
+    private void collapseDeviceList() {
+        if (committedDeviceId != null) deviceAdapter.setSelectedId(committedDeviceId);
+        pendingDeviceId = committedDeviceId;
+        deviceListContainer.setVisibility(View.GONE);
+        devicePickerChevron.animate().rotation(0f).setDuration(200).start();
+        deviceListExpanded = false;
+    }
+
+    private void onSaveDeviceSelection() {
+        if (pendingDeviceId == null) { collapseDeviceList(); return; }
+        committedDeviceId = pendingDeviceId;
+        selectDevice(DeviceRegistry.forId(pendingDeviceId));
+        sharedPreferences.edit()
+                .putString(PREF_DEVICE_ID, pendingDeviceId.name())
+                .apply();
+        updateSelectedDeviceLabel();
+        collapseDeviceList();
+    }
+
+    private void onCancelDeviceSelection() {
+        collapseDeviceList();
     }
 
     private String getLocalIpAddress() {

@@ -147,6 +147,8 @@ adb -s $DEVICE logcat -d | grep "QZ:" | grep "Listening on UDP port"
 **PASS:** line contains `Listening on UDP port 8003`  
 **FAIL:** no output — app may have crashed; check full logcat.
 
+**Verify device selection:** The device picker card (below the requirements card) shows the previously saved device. Confirm it reads the correct S22i variant. The device list is collapsed by default — if the wrong device is shown or this is a fresh install, tap the picker card to expand, select the correct S22i variant, then tap **Save**. The card label and status chip both update immediately.
+
 Verify the installed commit matches local HEAD via the action bar subtitle (`v<version>  ·  dev-<hash>` for local builds):
 
 ```bash
