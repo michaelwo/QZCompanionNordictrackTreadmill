@@ -35,11 +35,15 @@ public class CalibrationRunnerTest {
                 ms -> {
                     if (gestures.pendingY != null && source.subscriber != null) {
                         int y = gestures.pendingY;
+                        int x = gestures.pendingX;
                         gestures.pendingY = null;
+                        gestures.pendingX = null;
                         clock.advance(1);
-                        float grade = (float) ((622.0 - y) / 18.57);
-                        source.subscriber.accept(new QZMetricPacket(
-                                QZMetricPacket.Metric.GRADE, grade));
+                        if (x == 57) {
+                            float grade = (float) ((622.0 - y) / 18.57);
+                            source.subscriber.accept(new QZMetricPacket(
+                                    QZMetricPacket.Metric.GRADE, grade));
+                        }
                     }
                     clock.advance(ms);
                 },
@@ -55,6 +59,8 @@ public class CalibrationRunnerTest {
         assertEquals(622.0, listener.fit.origin, 0.01);
         assertEquals(18.57, listener.fit.scale, 0.01);
         assertTrue(listener.fit.r2 > 0.999);
+        assertNull(listener.result.resistance);
+        assertNull(listener.resistanceFit);
         assertSame(listener.calibration, DeviceCalibration.current);
         assertTrue(source.closed);
         assertFalse(gestures.swipes.isEmpty());
@@ -88,6 +94,56 @@ public class CalibrationRunnerTest {
         assertTrue(source.closed);
     }
 
+    @Test
+    public void runner_savesOptionalResistanceCalibrationWhenReadingsExist() throws Exception {
+        ManualClock clock = new ManualClock();
+        CalibrationMetricCollector collector =
+                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        FakeSubscriptionSource source = new FakeSubscriptionSource();
+        ScriptedGestures gestures = new ScriptedGestures();
+        File output = File.createTempFile("qz-calibration-runner", ".json");
+        CalibrationRunner.Config config = fastConfig(output);
+
+        CalibrationRunner runner = new CalibrationRunner(
+                1920, 1000, config, gestures, collector, source,
+                ms -> {
+                    if (gestures.pendingY != null && source.subscriber != null) {
+                        int y = gestures.pendingY;
+                        int x = gestures.pendingX;
+                        gestures.pendingY = null;
+                        gestures.pendingX = null;
+                        clock.advance(1);
+                        if (x == 57) {
+                            float grade = (float) ((622.0 - y) / 18.57);
+                            source.subscriber.accept(new QZMetricPacket(
+                                    QZMetricPacket.Metric.GRADE, grade));
+                        } else if (x == 1845) {
+                            float level = (float) (1.0 + (802.0 - y) / 26.25);
+                            if (level >= 1.0f) {
+                                source.subscriber.accept(new QZMetricPacket(
+                                        QZMetricPacket.Metric.CURRENT_GEAR, level));
+                            }
+                        }
+                    }
+                    clock.advance(ms);
+                },
+                clock);
+
+        CapturingListener listener = new CapturingListener();
+        runner.run(listener);
+
+        assertNull(listener.failure);
+        assertNotNull(listener.result.resistance);
+        assertEquals(1845, listener.result.resistance.trackX);
+        assertEquals(1, listener.result.resistance.minLevel);
+        assertEquals(802.0, listener.resistanceFit.origin, 0.1);
+        assertEquals(26.25, listener.resistanceFit.scale, 0.1);
+        assertTrue(listener.resistanceFit.r2 > 0.999);
+        assertEquals(Integer.valueOf(1845), DeviceCalibration.current.resistanceTrackX);
+
+        output.delete();
+    }
+
     private static CalibrationRunner.Config fastConfig(File output) {
         CalibrationRunner.Config config = new CalibrationRunner.Config();
         config.outputFile = output;
@@ -103,6 +159,7 @@ public class CalibrationRunnerTest {
         CalibrationResult result;
         DeviceCalibration calibration;
         CalibrationFit.FitResult fit;
+        CalibrationFit.FitResult resistanceFit;
         String failure;
 
         @Override
@@ -110,10 +167,12 @@ public class CalibrationRunnerTest {
 
         @Override
         public void onComplete(CalibrationResult result, DeviceCalibration calibration,
-                               CalibrationFit.FitResult inclineFit) {
+                               CalibrationFit.FitResult inclineFit,
+                               CalibrationFit.FitResult resistanceFit) {
             this.result = result;
             this.calibration = calibration;
             this.fit = inclineFit;
+            this.resistanceFit = resistanceFit;
         }
 
         @Override
@@ -137,6 +196,7 @@ public class CalibrationRunnerTest {
     private static final class ScriptedGestures implements CalibrationRunner.Gestures {
         final List<Integer> swipes = new ArrayList<>();
         Integer pendingY;
+        Integer pendingX;
 
         @Override
         public boolean isReady() {
@@ -146,6 +206,7 @@ public class CalibrationRunnerTest {
         @Override
         public boolean swipe(int x, int fromY, int toY) {
             swipes.add(toY);
+            pendingX = x;
             pendingY = toY;
             return true;
         }

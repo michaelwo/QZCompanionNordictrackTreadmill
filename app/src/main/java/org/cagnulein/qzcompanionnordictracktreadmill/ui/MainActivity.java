@@ -325,15 +325,22 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onComplete(CalibrationResult result, DeviceCalibration calibration,
-                                   CalibrationFit.FitResult inclineFit) {
+                                   CalibrationFit.FitResult inclineFit,
+                                   CalibrationFit.FitResult resistanceFit) {
                 runOnUiThread(() -> {
                     calibrationRunner = null;
                     applyCalibratedDeviceSelection();
+                    String resistance = resistanceFit != null
+                            ? "\nresistance origin=" + String.format(java.util.Locale.US, "%.2f", resistanceFit.origin)
+                                    + "  scale=" + String.format(java.util.Locale.US, "%.4f", resistanceFit.scale)
+                                    + "  R²=" + String.format(java.util.Locale.US, "%.4f", resistanceFit.r2)
+                            : "\nresistance skipped";
                     new AlertDialog.Builder(MainActivity.this)
                             .setTitle("Incline Calibration Saved")
                             .setMessage("origin=" + String.format(java.util.Locale.US, "%.2f", inclineFit.origin)
                                     + "  scale=" + String.format(java.util.Locale.US, "%.4f", inclineFit.scale)
-                                    + "  R²=" + String.format(java.util.Locale.US, "%.4f", inclineFit.r2))
+                                    + "  R²=" + String.format(java.util.Locale.US, "%.4f", inclineFit.r2)
+                                    + resistance)
                             .setPositiveButton("OK", (d, w) -> d.dismiss())
                             .show();
                 });

@@ -17,10 +17,10 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
- * Phase-2 incline-only calibration runner.
+ * Guided incline + optional resistance calibration runner.
  *
  * Runs off the UI thread, drives the incline slider with Accessibility gestures,
- * consumes the shared mono-stdout metric stream, fits Y = origin - scale * grade,
+ * consumes the shared mono-stdout metric stream, fits Y = origin - scale * metric,
  * writes qz-calibration.json, and updates DeviceCalibration.current immediately.
  */
 public final class CalibrationRunner {
@@ -31,6 +31,9 @@ public final class CalibrationRunner {
         PREFLIGHT,
         INCLINE_COARSE,
         INCLINE_FINE,
+        RESISTANCE_PROBE,
+        RESISTANCE_COARSE,
+        RESISTANCE_FINE,
         FIT,
         SAVE,
         COMPLETE,
@@ -46,7 +49,8 @@ public final class CalibrationRunner {
     public interface Listener {
         void onState(State state, String detail);
         void onComplete(CalibrationResult result, DeviceCalibration calibration,
-                        CalibrationFit.FitResult inclineFit);
+                        CalibrationFit.FitResult inclineFit,
+                        CalibrationFit.FitResult resistanceFit);
         void onFailed(String message, Throwable error);
     }
 
@@ -56,6 +60,9 @@ public final class CalibrationRunner {
         public int fineSettleMs = 2000;
         public int fineTimeoutMs = 6000;
         public int stableSettleMs = 1000;
+        public int resistanceProbeTimeoutMs = 3000;
+        public int resistanceHomeSettleMs = 800;
+        public int resistanceHomeDoneMs = 2000;
         public int minY = CalibrationFit.COARSE_MARGIN;
         public File outputFile = new File(Environment.getExternalStorageDirectory(),
                 "qz-calibration.json");
@@ -99,7 +106,7 @@ public final class CalibrationRunner {
             throw new IllegalStateException("Calibration already running");
         }
         cancelled.set(false);
-        thread = new Thread(() -> run(listener), "QZ-InclineCalibration");
+        thread = new Thread(() -> run(listener), "QZ-DeviceCalibration");
         thread.setDaemon(true);
         thread.start();
     }
@@ -120,61 +127,60 @@ public final class CalibrationRunner {
             subscription = subscriptionSource.subscribe(metrics);
 
             CalibrationFit.TrackProfile profile = CalibrationFit.trackProfileForWidth(screenWidth);
-            int trackX = profile.inclineTrackX;
+            int inclineTrackX = profile.inclineTrackX;
+            int resistanceTrackX = profile.resistanceTrackX;
             int bottomY = screenHeight - config.minY;
-            int previousY = config.minY;
 
-            state(listener, State.INCLINE_COARSE, "Coarse incline sweep at x=" + trackX);
-            List<CalibrationFit.Point> coarse = new ArrayList<>();
-            for (int y = config.minY; y <= bottomY; y += CalibrationFit.COARSE_STEP) {
-                checkCancelled();
-                long ts = clock.getAsLong();
-                gestures.swipe(trackX, previousY, y);
-                previousY = y;
-                sleep(config.coarseSettleMs);
-                Float grade = metrics.waitFreshGrade(ts, config.coarseTimeoutMs);
-                if (grade != null) {
-                    coarse.add(new CalibrationFit.Point(y, grade));
-                    Log.i(TAG, "coarse y=" + y + " grade=" + grade);
-                } else {
-                    Log.i(TAG, "coarse y=" + y + " no grade change");
-                }
-            }
-            if (coarse.size() < 3) {
+            state(listener, State.INCLINE_COARSE, "Coarse incline sweep at x=" + inclineTrackX);
+            List<CalibrationFit.Point> inclineCoarse =
+                    coarseSweep(inclineTrackX, config.minY, bottomY, config.minY, MetricTarget.INCLINE);
+            if (inclineCoarse.size() < 3) {
                 throw new IllegalStateException("Incline calibration requires at least 3 readings; got "
-                        + coarse.size());
+                        + inclineCoarse.size());
             }
 
             state(listener, State.FIT, "Fitting coarse incline readings");
-            CalibrationFit.FitResult fit = CalibrationFit.fitLinear(coarse);
-            if (fit.r2 < 0.99) {
-                int[] range = CalibrationFit.findActiveRange(coarse, screenHeight);
+            CalibrationFit.FitResult inclineFit = CalibrationFit.fitLinear(inclineCoarse);
+            if (inclineFit.r2 < 0.99) {
+                int[] range = CalibrationFit.findActiveRange(inclineCoarse, screenHeight);
                 if (range != null) {
                     state(listener, State.INCLINE_FINE, "Fine incline sweep from y="
                             + range[0] + " to y=" + range[1]);
-                    List<CalibrationFit.Point> fine = fineSweep(trackX, range[0], range[1]);
+                    List<CalibrationFit.Point> fine =
+                            fineSweep(inclineTrackX, range[0], range[1], MetricTarget.INCLINE);
                     if (fine.size() >= 3) {
                         state(listener, State.FIT, "Fitting fine incline readings");
-                        fit = CalibrationFit.fitLinear(fine);
+                        inclineFit = CalibrationFit.fitLinear(fine);
                     }
                 }
             }
-            if (!fit.isValid()) throw new IllegalStateException("Incline fit is invalid");
-            if (fit.isWarningQuality()) {
-                Log.w(TAG, "Incline fit quality warning r2=" + fit.r2);
+            if (!inclineFit.isValid()) throw new IllegalStateException("Incline fit is invalid");
+            if (inclineFit.isWarningQuality()) {
+                Log.w(TAG, "Incline fit quality warning r2=" + inclineFit.r2);
             }
+
+            ResistanceFit resistance = runResistance(resistanceTrackX, bottomY, listener);
 
             state(listener, State.SAVE, "Writing qz-calibration.json");
             CalibrationResult result = new CalibrationResult(
                     new CalibrationResult.SliderCalibration(
-                            trackX, fit.origin, fit.scale),
-                    null);
+                            inclineTrackX, inclineFit.origin, inclineFit.scale),
+                    resistance != null
+                            ? new CalibrationResult.SliderCalibration(
+                                    resistanceTrackX,
+                                    resistance.fit.origin,
+                                    resistance.fit.scale,
+                                    resistance.minLevel)
+                            : null);
             result.writeTo(config.outputFile);
             DeviceCalibration calibration = result.toDeviceCalibration();
             DeviceCalibration.current = calibration;
 
-            state(listener, State.COMPLETE, "Incline calibration saved");
-            listener.onComplete(result, calibration, fit);
+            state(listener, State.COMPLETE, resistance != null
+                    ? "Incline and resistance calibration saved"
+                    : "Incline calibration saved; resistance skipped");
+            listener.onComplete(result, calibration, inclineFit,
+                    resistance != null ? resistance.fit : null);
         } catch (CancelledException e) {
             state(listener, State.CANCELLED, "Calibration cancelled");
         } catch (Throwable t) {
@@ -185,7 +191,112 @@ public final class CalibrationRunner {
         }
     }
 
-    private List<CalibrationFit.Point> fineSweep(int trackX, int topY, int bottomY)
+    private ResistanceFit runResistance(int trackX, int bottomY, Listener listener)
+            throws InterruptedException, CancelledException {
+        state(listener, State.RESISTANCE_PROBE, "Probing resistance slider at x=" + trackX);
+        Integer thumbY = probeResistanceThumb(trackX);
+        List<CalibrationFit.Point> coarse;
+        if (thumbY != null) {
+            state(listener, State.RESISTANCE_COARSE, "Resistance sweep from y=" + thumbY);
+            coarse = coarseSweep(trackX, thumbY + CalibrationFit.COARSE_STEP, bottomY,
+                    thumbY, MetricTarget.RESISTANCE);
+        } else {
+            Log.w(TAG, "Resistance thumb probe failed; falling back to full sweep");
+            state(listener, State.RESISTANCE_COARSE, "Fallback resistance sweep at x=" + trackX);
+            coarse = coarseSweep(trackX, config.minY, bottomY, config.minY, MetricTarget.RESISTANCE);
+        }
+        if (coarse.size() < 3) {
+            Log.w(TAG, "Only " + coarse.size() + " resistance readings; skipping resistance");
+            return null;
+        }
+
+        int[] range = CalibrationFit.findActiveRange(coarse, screenHeight);
+        if (range == null) {
+            Log.w(TAG, "Resistance active range not found; skipping resistance");
+            return null;
+        }
+
+        ResistanceFit coarseFit = fitResistance(coarse);
+        if (coarseFit.fit.r2 >= 0.99) return coarseFit;
+
+        state(listener, State.RESISTANCE_FINE, "Fine resistance sweep from y="
+                + range[0] + " to y=" + range[1]);
+        List<CalibrationFit.Point> fine =
+                fineSweep(trackX, range[0], range[1], MetricTarget.RESISTANCE);
+        if (fine.size() < 3) {
+            Log.w(TAG, "Only " + fine.size() + " fine resistance readings; skipping resistance");
+            return null;
+        }
+        return fitResistance(fine);
+    }
+
+    private Integer probeResistanceThumb(int trackX)
+            throws InterruptedException, CancelledException {
+        int[] probeYs = {800, 700, 600, 500, 400, 300};
+        for (int probeY : probeYs) {
+            checkCancelled();
+            long ts = clock.getAsLong();
+            gestures.swipe(trackX, probeY, probeY - 100);
+            sleep(config.resistanceHomeSettleMs);
+            Float level = metrics.waitFreshResistance(ts, config.resistanceProbeTimeoutMs);
+            if (level != null) {
+                int thumbY = probeY - 100;
+                Log.i(TAG, "resistance probe y=" + probeY + " level=" + level
+                        + " thumbY=" + thumbY);
+                while (thumbY > 250) {
+                    checkCancelled();
+                    int toY = Math.max(200, thumbY - 100);
+                    gestures.swipe(trackX, thumbY, toY);
+                    thumbY = toY;
+                    sleep(config.resistanceHomeSettleMs);
+                }
+                sleep(config.resistanceHomeDoneMs);
+                return thumbY;
+            }
+        }
+        return null;
+    }
+
+    private ResistanceFit fitResistance(List<CalibrationFit.Point> points) {
+        int minLevel = Integer.MAX_VALUE;
+        for (CalibrationFit.Point point : points) {
+            minLevel = Math.min(minLevel, (int) Math.round(point.metric));
+        }
+        List<CalibrationFit.Point> adjusted = new ArrayList<>();
+        for (CalibrationFit.Point point : points) {
+            adjusted.add(new CalibrationFit.Point(point.y, point.metric - minLevel));
+        }
+        CalibrationFit.FitResult fit = CalibrationFit.fitLinear(adjusted);
+        if (fit.isWarningQuality()) {
+            Log.w(TAG, "Resistance fit quality warning r2=" + fit.r2);
+        }
+        return new ResistanceFit(fit, minLevel);
+    }
+
+    private List<CalibrationFit.Point> coarseSweep(int trackX, int startY, int bottomY,
+                                                   int previousY, MetricTarget metric)
+            throws InterruptedException, CancelledException {
+        List<CalibrationFit.Point> readings = new ArrayList<>();
+        for (int y = startY; y <= bottomY; y += CalibrationFit.COARSE_STEP) {
+            checkCancelled();
+            long ts = clock.getAsLong();
+            gestures.swipe(trackX, previousY, y);
+            previousY = y;
+            sleep(config.coarseSettleMs);
+            Float value = metric.waitFresh(metrics, ts, config.coarseTimeoutMs);
+            if (value != null) {
+                readings.add(new CalibrationFit.Point(y, value));
+                Log.i(TAG, "coarse y=" + y + " " + metric.logName + "=" + value);
+                if (metric == MetricTarget.RESISTANCE && value <= 1.0f) break;
+            } else {
+                Log.i(TAG, "coarse y=" + y + " no " + metric.logName + " change");
+            }
+        }
+        return readings;
+    }
+
+    private List<CalibrationFit.Point> fineSweep(int trackX, int topY, int bottomY,
+                                                 MetricTarget metric)
             throws InterruptedException, CancelledException {
         gestures.swipe(trackX, bottomY, topY);
         sleep(config.fineSettleMs * 2L);
@@ -197,10 +308,10 @@ public final class CalibrationRunner {
             gestures.swipe(trackX, previousY, y);
             previousY = y;
             sleep(config.fineSettleMs);
-            Float grade = metrics.waitStableGrade(ts, config.stableSettleMs, config.fineTimeoutMs);
-            if (grade != null) {
-                raw.add(new CalibrationFit.Point(y, grade));
-                Log.i(TAG, "fine y=" + y + " grade=" + grade);
+            Float value = metric.waitStable(metrics, ts, config.stableSettleMs, config.fineTimeoutMs);
+            if (value != null) {
+                raw.add(new CalibrationFit.Point(y, value));
+                Log.i(TAG, "fine y=" + y + " " + metric.logName + "=" + value);
             } else {
                 Log.i(TAG, "fine y=" + y + " timeout");
             }
@@ -233,4 +344,45 @@ public final class CalibrationRunner {
     }
 
     private static final class CancelledException extends Exception {}
+
+    private static final class ResistanceFit {
+        final CalibrationFit.FitResult fit;
+        final int minLevel;
+
+        ResistanceFit(CalibrationFit.FitResult fit, int minLevel) {
+            this.fit = fit;
+            this.minLevel = minLevel;
+        }
+    }
+
+    private enum MetricTarget {
+        INCLINE("grade") {
+            @Override Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs) {
+                return metrics.waitFreshGrade(ts, timeoutMs);
+            }
+            @Override Float waitStable(CalibrationMetricCollector metrics, long ts,
+                                       long settleMs, long timeoutMs) {
+                return metrics.waitStableGrade(ts, settleMs, timeoutMs);
+            }
+        },
+        RESISTANCE("resistance") {
+            @Override Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs) {
+                return metrics.waitFreshResistance(ts, timeoutMs);
+            }
+            @Override Float waitStable(CalibrationMetricCollector metrics, long ts,
+                                       long settleMs, long timeoutMs) {
+                return metrics.waitStableResistance(ts, settleMs, timeoutMs);
+            }
+        };
+
+        final String logName;
+
+        MetricTarget(String logName) {
+            this.logName = logName;
+        }
+
+        abstract Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs);
+        abstract Float waitStable(CalibrationMetricCollector metrics, long ts,
+                                  long settleMs, long timeoutMs);
+    }
 }

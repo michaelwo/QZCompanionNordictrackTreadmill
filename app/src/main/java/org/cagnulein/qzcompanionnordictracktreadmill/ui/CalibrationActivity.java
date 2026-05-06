@@ -130,9 +130,10 @@ public class CalibrationActivity extends AppCompatActivity {
 
             @Override
             public void onComplete(CalibrationResult result, DeviceCalibration calibration,
-                                   CalibrationFit.FitResult inclineFit) {
+                                   CalibrationFit.FitResult inclineFit,
+                                   CalibrationFit.FitResult resistanceFit) {
                 persistCalibratedDevice();
-                runOnUiThread(() -> renderComplete(inclineFit));
+                runOnUiThread(() -> renderComplete(inclineFit, resistanceFit));
             }
 
             @Override
@@ -154,7 +155,8 @@ public class CalibrationActivity extends AppCompatActivity {
         else if (state == CalibrationRunner.State.SAVE) progressBar.setProgress(90);
     }
 
-    private void renderComplete(CalibrationFit.FitResult fit) {
+    private void renderComplete(CalibrationFit.FitResult inclineFit,
+                                CalibrationFit.FitResult resistanceFit) {
         running = false;
         runner = null;
         releaseWakeLock();
@@ -164,9 +166,16 @@ public class CalibrationActivity extends AppCompatActivity {
         progressDetail.setText("Custom calibrated device is selected.");
         resultsSection.setVisibility(View.VISIBLE);
         resultFormula.setText(String.format(Locale.US,
-                "Incline: origin %.2f, scale %.4f", fit.origin, fit.scale));
+                "Incline: origin %.2f, scale %.4f", inclineFit.origin, inclineFit.scale));
+        String resistance = resistanceFit != null
+                ? String.format(Locale.US, "\nResistance: origin %.2f, scale %.4f, R² %.4f",
+                        resistanceFit.origin, resistanceFit.scale, resistanceFit.r2)
+                : "\nResistance skipped";
         resultQuality.setText(String.format(Locale.US,
-                "R² %.4f%s", fit.r2, fit.isWarningQuality() ? "  Low fit quality" : ""));
+                "Incline R² %.4f%s%s",
+                inclineFit.r2,
+                inclineFit.isWarningQuality() ? "  Low fit quality" : "",
+                resistance));
         messageText.setVisibility(View.GONE);
         btnStart.setVisibility(View.GONE);
         btnDone.setVisibility(View.VISIBLE);
