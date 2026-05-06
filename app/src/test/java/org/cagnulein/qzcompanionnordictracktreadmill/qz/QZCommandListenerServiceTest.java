@@ -151,6 +151,26 @@ public class QZCommandListenerServiceTest {
         assertNull(lastCommand);
     }
 
+    @Test
+    public void calibrationSwipe_udpMessage_producesRawSwipeWithoutHeartbeat() throws Exception {
+        S15iDevice s15i = new S15iDevice();
+        CountDownLatch latch = new CountDownLatch(1);
+        s15i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
+        QZCommandListenerService.qzAddress = null;
+        QZCommandListenerService.lastQzHeartbeatMs = 0;
+
+        controller = Robolectric.buildService(QZCommandListenerService.class);
+        controller.create().startCommand(0, 1);
+        QZCommandListenerService.setSubscriber(new DeviceController(s15i));
+
+        sendUdp("CALSWIPE:57:250:450");
+
+        assertTrue("raw swipe command should arrive within 3 s", latch.await(3, TimeUnit.SECONDS));
+        assertEquals("input swipe 57 250 57 450 200", lastCommand);
+        assertNull(QZCommandListenerService.qzAddress);
+        assertEquals(0, QZCommandListenerService.lastQzHeartbeatMs);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**

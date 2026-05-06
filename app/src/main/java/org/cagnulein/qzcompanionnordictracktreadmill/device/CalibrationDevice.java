@@ -1,0 +1,51 @@
+package org.cagnulein.qzcompanionnordictracktreadmill.device;
+
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.RawSwipeCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Internal decoder for calibration-only UDP commands.
+ *
+ * This is not a registry device. It exists so CALSWIPE uses the same
+ * decodeCommands -> CommandDispatcher -> Command path as regular device control.
+ */
+public final class CalibrationDevice extends Device {
+
+    @Override
+    public List<Slider> sliders() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public String displayName() {
+        return "Calibration";
+    }
+
+    @Override
+    public List<Command> decodeCommands(QZCommandPacket pkt) {
+        String raw = pkt.raw();
+        if (!raw.startsWith(QZCommandPacket.CALSWIPE_PREFIX)) {
+            return Collections.emptyList();
+        }
+
+        String[] parts = raw.split(":", -1);
+        if (parts.length != 4) {
+            logger.log(Logger.ERROR, "QZ:Dispatch", "CALSWIPE parse error: expected 3 coordinates");
+            return Collections.emptyList();
+        }
+
+        Float x = QZCommandPacket.parseField(parts[1]);
+        Float fromY = QZCommandPacket.parseField(parts[2]);
+        Float toY = QZCommandPacket.parseField(parts[3]);
+        if (x == null || fromY == null || toY == null) {
+            logger.log(Logger.ERROR, "QZ:Dispatch", "CALSWIPE parse error: invalid coordinate");
+            return Collections.emptyList();
+        }
+
+        return Collections.singletonList(new RawSwipeCommand(x, fromY, toY));
+    }
+}

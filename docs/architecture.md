@@ -152,7 +152,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │   ├── bike/         One class per bike device
 │   ├── treadmill/    One class per treadmill device
 │   ├── command/      Command, SpeedCommand, InclineCommand, ResistanceCommand,
-│   │                 GearCommand, CommandDispatcher, CalibrationSwipeCommand
+│   │                 GearCommand, CommandDispatcher, RawSwipeCommand
 │   ├── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
 │   └── gesture/      GestureService
 └── ui/               MainActivity, DeviceAdapter
@@ -187,7 +187,7 @@ Each typed slider implements two abstract methods:
 
 **`ScreenProfile`** (enum) — encodes the horizontal pixel coordinates of the left and right slider tracks for each iFit screen width (W1920, W1280, W1024, W800). Constants are derived from iFit APK 2.6.90 (versionCode 4963, `com.ifit.standalone`): `workout_slider_margin=12 dp`, `workout_slider_width=125 dp` → track centre at `12 + 62.5 = 74.5 dp`. Left and right values are stored independently because dp→px rounding can be asymmetric at the pixel boundary. If the iFit app is updated, re-derive these constants from the new APK's `res/values/dimens.xml` before touching any device class.
 
-**`DeviceController`** — the seam between the two services and the device layer. Implements both `QZMetricSubscriber` and `QZCommandSubscriber`. Owns a `Device` instance and a `CommandDispatcher`. `onPacket()` calls `device.decodeCommands()`, enqueues each resulting `Command`, and calls `dispatcher.drain()` for empty (sentinel) packets. `onMetric()` forwards directly to `device.applyMetric()`. `onCalibrationSwipe()` calls `GestureService.performSwipe()` directly. `MainActivity` creates a new `DeviceController` on device selection and registers it with both services via `QZCommandListenerService.setSubscriber()` and `QZMetricUnicastingService.setSubscriber()`.
+**`DeviceController`** — the seam between the two services and the device layer. Implements both `QZMetricSubscriber` and `QZCommandSubscriber`. Owns the selected `Device`, an internal `CalibrationDevice`, and a `CommandDispatcher`. `onPacket()` first asks `CalibrationDevice.decodeCommands()` to translate `CALSWIPE:x:fromY:toY` packets into `RawSwipeCommand`; if no calibration command is produced, it falls back to `device.decodeCommands()`. It enqueues each resulting `Command` and calls `dispatcher.drain()` for empty (sentinel) packets. `onMetric()` forwards directly to `device.applyMetric()`. `MainActivity` creates a new `DeviceController` on device selection and registers it with both services via `QZCommandListenerService.setSubscriber()` and `QZMetricUnicastingService.setSubscriber()`.
 
 **`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `QZCommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
@@ -207,13 +207,15 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 ### Command Dispatch
 
-**`QZCommandListenerService`** — pure publisher. Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and calls `subscriber.onPacket()` or `subscriber.onCalibrationSwipe()` for each datagram. Records `qzAddress` and `lastQzHeartbeatMs` from `-100;N` heartbeat packets so `QZMetricUnicastingService` knows where to send metric updates. `CALSWIPE_PREFIX` is defined in `QZCommandPacket` (wire-format knowledge belongs there). Subscriber is set via `QZCommandListenerService.setSubscriber(QZCommandSubscriber)` after the service starts.
+**`QZCommandListenerService`** — pure publisher. Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and calls `subscriber.onPacket()` for each datagram. Records `qzAddress` and `lastQzHeartbeatMs` from normal QZ command/heartbeat packets so `QZMetricUnicastingService` knows where to send metric updates; `CALSWIPE` packets are routed to the subscriber without updating heartbeat state. `CALSWIPE_PREFIX` is defined in `QZCommandPacket` (wire-format knowledge belongs there). Subscriber is set via `QZCommandListenerService.setSubscriber(QZCommandSubscriber)` after the service starts.
 
 **`CommandDispatcher`** — pure throttle and queue. Accepts a `Consumer<Command> executor` at construction; has no device knowledge. Commands are enqueued via `enqueue(Command)` and drained one per 500 ms throttle window via `executor.accept(cmd)`. Drain happens on two paths: `enqueue()` attempts an immediate drain when the window is open, and a background `ScheduledExecutorService` (`QZ:DrainThread`) fires every 500 ms. `drain()` is called directly by `DeviceController` for sentinel packets (empty command list). Both paths synchronize on `this` to prevent double-drain. `shutdown()` stops the background thread. Has an injectable `Clock` interface so tests can drive time without sleeping — the test constructor starts no background thread.
 
-**`QZCommandSubscriber`** — two-method interface: `onPacket(QZCommandPacket)` and `onCalibrationSwipe(CalibrationSwipeCommand)`. The two methods exist because `CALSWIPE` and normal QZ datagrams are incompatible types at the boundary.
+**`QZCommandSubscriber`** — single-method interface: `onPacket(QZCommandPacket)`. Calibration and normal QZ datagrams share the same subscriber boundary.
 
-**`CalibrationSwipeCommand`** — plain value class carrying `x, fromY, toY` pixel coordinates for a calibration swipe. Not a `Command` subclass — calibration is a raw pixel gesture, not a device-specific command.
+**`CalibrationDevice`** — internal decoder for calibration-only UDP packets. It is not registered in `DeviceRegistry` and is never user-selectable; it exists so `discover-device.py --a11y` can use the same decode/dispatch path regardless of the selected fitness device.
+
+**`RawSwipeCommand`** — `Command` subclass carrying `x, fromY, toY` pixel coordinates for a calibration swipe. It dispatches directly through `GestureService.performSwipe()` and emits the equivalent `input swipe` string through `device.commandExecutor` for tests/debug capture.
 
 **`QZCommandPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`), and `CALSWIPE_PREFIX`. The `;` split is not exposed outside this class.
 

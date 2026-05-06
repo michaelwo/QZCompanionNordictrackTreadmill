@@ -185,4 +185,15 @@ public class UdpPipelineTest {
                 commandLatch.await(400, TimeUnit.MILLISECONDS));
         assertNull(captured.get());
     }
+
+    @Test
+    public void calibrationSwipeMessage_producesRawSwipe() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        startReceiver(dev(new S15iDevice()), 0.0f, latch);
+
+        sendUdp("CALSWIPE:57:250:450");
+
+        assertTrue("dispatch should complete within 2 s", latch.await(2, TimeUnit.SECONDS));
+        assertEquals("input swipe 57 250 57 450 200", lastCommand);
+    }
 }

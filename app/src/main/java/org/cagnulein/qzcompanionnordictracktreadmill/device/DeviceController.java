@@ -1,9 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CalibrationSwipeCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricSubscriber;
@@ -14,16 +12,21 @@ import java.util.List;
 public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber {
 
     private final Device device;
+    private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
 
     public DeviceController(Device device) {
         this.device     = device;
+        this.calibrationDevice = new CalibrationDevice();
+        this.calibrationDevice.logger = device.logger;
         this.dispatcher = new CommandDispatcher(this::executeCommand);
     }
 
     /** Test constructor: injectable clock, no background drain thread. */
     public DeviceController(Device device, CommandDispatcher.Clock clock) {
         this.device     = device;
+        this.calibrationDevice = new CalibrationDevice();
+        this.calibrationDevice.logger = device.logger;
         this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
     }
 
@@ -39,7 +42,9 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
 
     @Override
     public void onPacket(QZCommandPacket packet) {
-        List<Command> commands = device.decodeCommands(packet);
+        calibrationDevice.logger = device.logger;
+        List<Command> commands = calibrationDevice.decodeCommands(packet);
+        if (commands.isEmpty()) commands = device.decodeCommands(packet);
         for (Command cmd : commands) {
             int depth = dispatcher.enqueue(cmd);
             if (depth >= 0)
@@ -51,14 +56,6 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         }
         // Sentinel packets (empty command list) still act as passive drain drivers.
         if (commands.isEmpty()) dispatcher.drain();
-    }
-
-    @Override
-    public void onCalibrationSwipe(CalibrationSwipeCommand cmd) {
-        if (GestureService.isConnected())
-            GestureService.performSwipe(cmd.x, cmd.fromY, cmd.x, cmd.toY, GestureService.SWIPE_DURATION_MS);
-        else
-            device.logger.log(Device.Logger.ERROR, "QZ:Dispatch", "calibration swipe dropped: AccessibilityService not connected");
     }
 
     public void shutdown() { dispatcher.shutdown(); }

@@ -2,7 +2,6 @@ package org.cagnulein.qzcompanionnordictracktreadmill.qz;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.ui.MainActivity;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CalibrationSwipeCommand;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -38,7 +37,7 @@ public class QZCommandListenerService extends Service {
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
     private static volatile QZCommandListenerService instance;
 
-    /** Subscriber that receives decoded packets and calibration swipes. */
+    /** Subscriber that receives parsed command packets. */
     private volatile QZCommandSubscriber subscriber = null;
 
     /**
@@ -82,26 +81,14 @@ public class QZCommandListenerService extends Service {
                 return;
             }
 
-            if (msg.startsWith(QZCommandPacket.CALSWIPE_PREFIX)) {
-                String[] parts = msg.split(":");
-                try {
-                    subscriber.onCalibrationSwipe(new CalibrationSwipeCommand(
-                            Float.parseFloat(parts[1]),
-                            Float.parseFloat(parts[2]),
-                            Float.parseFloat(parts[3])));
-                    Log.i(LOG_TAG, "CALSWIPE routed to subscriber");
-                } catch (Exception e) {
-                    Log.e(LOG_TAG, "CALSWIPE parse error: " + e.getMessage());
-                }
-                return;
-            }
-
             if (msg.equals(QZCommandPacket.END_OF_RIDE)) {
                 lastQzHeartbeatMs = 0;
                 qzAddress = null;
-            } else {
+            } else if (!msg.startsWith(QZCommandPacket.CALSWIPE_PREFIX)) {
                 lastQzHeartbeatMs = System.currentTimeMillis();
                 qzAddress = pkt.getAddress();
+            } else {
+                Log.i(LOG_TAG, "CALSWIPE routed to command subscriber");
             }
             subscriber.onPacket(QZCommandPacket.parse(msg));
         } finally {

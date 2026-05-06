@@ -194,7 +194,7 @@ sleep 2
 adb -s $DEVICE logcat -d | grep CALSWIPE | tail -3
 ```
 
-**PASS:** log line reads `CALSWIPE x=57 250→450` (no "not connected" warning)  
+**PASS:** log line reads `CALSWIPE x=57 250->450` (no "not connected" warning)  
 **FAIL:** log reads `CALSWIPE: accessibility service not connected` — reboot the device and re-run from Phase 3.
 
 ---
