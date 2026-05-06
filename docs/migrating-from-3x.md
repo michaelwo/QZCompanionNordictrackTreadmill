@@ -54,7 +54,7 @@ If you're searching the codebase for something that lived in `QZService` in 3.x,
 | `static long lastSwipeMs` | `CommandDispatcher.lastExecutedMs` (private, injectable-clock) |
 | `static float lastSpeedFloat` etc. | Per-`Slider` live-metric values; `Device.applyMetric(SliderMetric, float)` updates them |
 | `static boolean ifit_v2` | `MetricReader.forIfitV2()` — no flag; format adaptation is on the reader |
-| OCR-based calibration in `QZService` + `CalibrationActivity` | Removed — calibration is now done by `tools/discover-device.py` (ADB sweep); `DeviceCalibration` loads the resulting `qz-calibration.json` at startup |
+| OCR-based calibration in `QZService` + `CalibrationActivity` | Replaced by in-app guided calibration using Accessibility gestures and `mono-stdout` metrics; `DeviceCalibration` loads the resulting `qz-calibration.json`, and `tools/discover-device.py` remains an external fallback |
 | Device selection in `MainActivity` (RadioGroup) | `DeviceAdapter` (RecyclerView, sectioned by type) |
 
 ---
@@ -94,7 +94,7 @@ There was no enforced structure — pixel constants, formulas, and dispatch logi
 
 ### 4.x — one self-contained file, plus two registrations
 
-Before writing Step 1, you need the ORIGIN constants and scale factors for the device. If you own the hardware, derive them empirically. If you don't, this is where `tools/discover-device.py` comes in: ask the user who reported the device to run the calibration sweep on their machine. The script fits a linear formula for each slider axis and prints the ORIGIN and scale values directly — those numbers become the constants in your device class, and the user can ride with Zwift immediately via `custom_calibrated` while the PR is in review.
+Before writing Step 1, you need the ORIGIN constants and scale factors for the device. If you own the hardware, derive them empirically. If you don't, ask the user who reported the device to run the in-app calibration flow on their machine. It fits a linear formula for each slider axis and saves `qz-calibration.json`; those numbers become the constants in your device class, and the user can ride with Zwift immediately via `custom_calibrated` while the PR is in review. Use `tools/discover-device.py` when you specifically need an ADB-based fallback or repeatable contributor validation run.
 
 **Step 1 — create the device class:**
 

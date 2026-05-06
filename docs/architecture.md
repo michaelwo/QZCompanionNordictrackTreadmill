@@ -235,20 +235,20 @@ All 44 devices use `GestureService.performSwipe()` via `Slider.moveTo()`. There 
 
 ### Calibration
 
-Device-specific slider calibration is performed once per physical device by running `tools/discover-device.py` from a laptop over ADB. The script sweeps both the incline and resistance sliders, fits a linear formula `Y = origin − scale × value` for each, and writes `qz-calibration.json` to the device's `/sdcard/`. QZCompanion loads this file at startup via `DeviceCalibration.loadFromJson()` and selects the `custom_calibrated` device automatically.
+Device-specific slider calibration is performed once per physical device from inside QZCompanion. The guided calibration screen runs on the iFit tablet, uses `GestureService` gestures to sweep incline and resistance, subscribes to the shared `MonoStdoutMetricHub`, fits `Y = origin − scale × value`, writes `/sdcard/qz-calibration.json`, updates `DeviceCalibration.current`, and selects `custom_calibrated` without an app restart.
 
-`DeviceCalibration` is the only calibration class in the app. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `DeviceCalibration.load(SharedPreferences)` provides a legacy fallback.
+`DeviceCalibration` remains the compatibility boundary. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `DeviceCalibration.load(SharedPreferences)` provides a legacy fallback.
 
-The full calibration procedure — including `--a11y` mode for Xamarin/API 25 devices — is documented in [tools/discover-device-runbook.md](../tools/discover-device-runbook.md).
+`tools/discover-device.py` is retained as an external fallback for contributors, recovery, unattended validation, and comparison runs. Its `qz-calibration.json` output remains compatible with the in-app loader.
 
 #### discover-device.py as a device onboarding tool
 
-Most contributors don't own every NordicTrack/ProForm variant they want to support. `discover-device.py` is the mechanism for closing that gap: a user with the physical device runs the sweep, obtains working ORIGIN and scale constants for their machine, and can immediately ride with Zwift via the `custom_calibrated` device — no code changes required.
+Most contributors don't own every NordicTrack/ProForm variant they want to support. The in-app calibration flow is the primary mechanism for closing that gap: a user with the physical device runs the sweep, obtains working ORIGIN and scale constants for their machine, and can immediately ride with Zwift via the `custom_calibrated` device — no code changes required. `discover-device.py` remains useful when a contributor needs an ADB-run reproducible sweep.
 
 The fitted constants from `qz-calibration.json` are also the exact values a contributor needs to write a proper hardcoded device class (the `ORIGIN_INCLINE_THUMBY`, `ORIGIN_SPEED_THUMBY`, and scale factors in the `offsetXxxThumbY` formulas). The typical onboarding workflow for a new device is:
 
-1. User runs `discover-device.py` on their hardware, selects `custom_calibrated` in the app, and confirms Zwift control works.
-2. User submits the resulting `qz-calibration.json` (or pastes the printed constants) in a GitHub issue or PR.
+1. User runs in-app calibration on their hardware, which writes `/sdcard/qz-calibration.json`, selects `custom_calibrated`, and confirms Zwift control works.
+2. User submits the resulting `qz-calibration.json` (or pastes the displayed constants) in a GitHub issue or PR.
 3. A contributor uses those constants to write the device class and register it — the user's calibration data becomes the hardcoded formula for everyone.
 
 ---

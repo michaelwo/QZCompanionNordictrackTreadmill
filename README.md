@@ -36,6 +36,8 @@ treadmill or bike incline as you run or cycle through virtual worlds; choose to 
 incline changes as you progress through a Zwift workout, or, you can choose to load
 a GPX file in QZ and have the treadmill or bike follow the incline recorded in the file.
 
+**Device Calibration:** For bikes and other devices without a built-in profile, use **QZ Companion → Calibrate** after starting an active iFit manual workout. The in-app guided flow moves the iFit sliders, reads live iFit metrics, saves `/sdcard/qz-calibration.json`, and selects **Custom (Calibrated)** without requiring a laptop script or app restart. The `tools/discover-device/` scripts remain available as an external contributor fallback.
+
 **Disclaimer**: We have tested this solution on several models of NordicTrack and Pro-Form treadmills
 and bikes and many are supported now. We began development on a NordicTrack Commercial 2950 (2021 model) 
 treadmill with a built-in 22" touchscreen. Note that this solution should work on any iFit-enabled/iFit-embedded

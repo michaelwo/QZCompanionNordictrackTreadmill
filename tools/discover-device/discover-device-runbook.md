@@ -1,6 +1,8 @@
-# Runbook: Calibrating a New iFit Device with `discover-device.py`
+# Runbook: External Calibration Fallback with `discover-device.py`
 
-Run this once per physical device to generate the slider calibration file (`qz-calibration.json`) that QZCompanion loads at startup. No APK rebuild required.
+QZCompanion now includes an in-app guided calibration flow. Use **QZ Companion → Calibrate** for normal device setup: start an active iFit manual workout, launch calibration from the app, and let it save/apply `custom_calibrated` without ADB or restarting QZCompanion.
+
+Keep `discover-device.py` as an external fallback for contributors, recovery, unattended validation, and comparing results while the in-app flow is validated across more hardware. It still generates the same slider calibration file (`qz-calibration.json`) that QZCompanion loads and applies.
 
 ---
 
@@ -14,6 +16,8 @@ Run this once per physical device to generate the slider calibration file (`qz-c
 | ADB over TCP enabled on tablet | See "Enable ADB over TCP" below |
 | iFit app open in an **active manual workout** | Slider events are only emitted during an active session |
 | QZCompanion installed and running | Required for `--a11y` mode (Xamarin/API 25 devices) |
+
+For in-app calibration, the tablet only needs QZCompanion installed with Accessibility enabled plus `READ_LOGS`, `WRITE_SECURE_SETTINGS`, and storage permissions granted through the existing setup flow.
 
 ### Enable ADB over TCP (one-time per tablet)
 

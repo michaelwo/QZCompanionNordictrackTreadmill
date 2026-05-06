@@ -14,9 +14,9 @@ import java.nio.charset.StandardCharsets;
 /**
  * Holds calibration coefficients for incline and (optionally) resistance sliders.
  *
- * Loaded at startup either from /sdcard/qz-calibration.json (written by
- * tools/discover-device.py) or from SharedPreferences (written by the legacy
- * in-app calibration flow). JSON takes priority.
+ * Loaded at startup either from /sdcard/qz-calibration.json (written by the
+ * in-app guided calibration flow or tools/discover-device.py) or from
+ * SharedPreferences (written by the legacy in-app calibration flow). JSON takes priority.
  *
  * Resistance fields are null when absent from the source — CalibratedBikeDevice
  * skips the resistance slider in that case.
@@ -75,7 +75,8 @@ public class DeviceCalibration {
     // ── JSON (discover-device.py output) ─────────────────────────────────────
 
     /**
-     * Loads calibration from a JSON file written by tools/discover-device.py.
+     * Loads calibration from a JSON file written by the in-app calibration flow
+     * or tools/discover-device.py.
      * Format: { "incline": { "trackX", "origin", "scale" },
      *           "resistance": { "trackX", "origin", "scale", "minLevel" } }
      * The resistance section is optional.

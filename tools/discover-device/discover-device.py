@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
-discover-device.py — ADB-based incline + resistance calibration for iFit bikes.
+discover-device.py — external fallback incline + resistance calibration for iFit bikes.
+
+QZCompanion now has an in-app guided calibration flow. Prefer the in-app
+Calibrate action for normal device setup. Keep this ADB-based script for
+contributors, recovery, unattended validation, and comparing external results
+against the in-app runner.
 
 Sweeps both sliders, reads grade/resistance events from logcat -s mono-stdout,
 fits Y = origin - scale * value for each slider, and writes qz-calibration.json.
-Push the file to /sdcard/ and restart QZCompanion to apply.
+Push the file to /sdcard/ and restart QZCompanion to apply when using this
+external fallback.
 
 Two sweep modes:
   default   -- adb shell input swipe (works on Android 11+, non-Xamarin iFit)
