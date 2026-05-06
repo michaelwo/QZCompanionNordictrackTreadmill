@@ -50,6 +50,25 @@ public class GestureService extends AccessibilityService {
         return instance != null;
     }
 
+    public static void performTap(float x, float y) {
+        Path path = new Path();
+        path.moveTo(x, y);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            GestureDescription.Builder builder = new GestureDescription.Builder();
+            builder.addStroke(new GestureDescription.StrokeDescription(path, 0, 50));
+            boolean accepted = instance.dispatchGesture(builder.build(), new GestureResultCallback() {
+                @Override public void onCompleted(GestureDescription g) {
+                    Log.d(TAG, "tap completed x=" + (int)x + " y=" + (int)y);
+                }
+                @Override public void onCancelled(GestureDescription g) {
+                    Log.e(TAG, "tap CANCELLED x=" + (int)x + " y=" + (int)y);
+                }
+            }, null);
+            if (!accepted) Log.e(TAG, "performTap: dispatchGesture rejected");
+        }
+    }
+
     public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
         Path path = new Path();
         path.moveTo(startX, startY);

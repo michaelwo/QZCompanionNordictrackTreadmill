@@ -121,7 +121,7 @@ public abstract class Slider {
     public void snapToOrigin(Device device) {
         device.logger.log(Device.Logger.DEBUG, "QZ:Slider", "snapToOrigin: tap at y=" + originThumbY);
         if (GestureService.isConnected()) {
-            GestureService.performSwipe(trackX(), originThumbY, trackX(), originThumbY, GestureService.SWIPE_DURATION_MS);
+            GestureService.performTap(trackX(), originThumbY);
         } else {
             device.logger.log(Device.Logger.ERROR, "QZ:Slider", "snapToOrigin dropped: AccessibilityService not connected");
         }

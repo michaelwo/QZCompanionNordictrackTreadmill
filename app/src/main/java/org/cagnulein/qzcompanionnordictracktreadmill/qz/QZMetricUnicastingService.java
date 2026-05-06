@@ -11,7 +11,7 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
@@ -30,8 +30,8 @@ public class QZMetricUnicastingService extends Service {
     private static final StrictMode.ThreadPolicy PERMIT_ALL =
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-    /** MonoStdout reader — started once in onCreate, runs for the lifetime of the service. */
-    private MetricReader cachedReader = null;
+    /** Shared mono-stdout subscription — the hub owns the single process-wide reader. */
+    private MonoStdoutMetricHub.Subscription metricSubscription = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
     private static volatile QZMetricUnicastingService instance;
@@ -81,13 +81,15 @@ public class QZMetricUnicastingService extends Service {
     }
 
     private void applyDeviceInternal() {
-        cachedReader = new MonoStdoutMetricReader();
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
-        cachedReader.subscribe(this::applyAndUnicast);
-        Log.i(LOG_TAG, "metric reader streaming active");
-        writeLog("Metric reader: streaming active");
-        try { cachedReader.read(); } catch (IOException e) { Log.e(LOG_TAG, "stream start failed", e); }
+        try {
+            metricSubscription = MonoStdoutMetricHub.shared().subscribe(this::applyAndUnicast);
+            Log.i(LOG_TAG, "metric reader streaming active");
+            writeLog("Metric reader: streaming active");
+        } catch (IOException e) {
+            Log.e(LOG_TAG, "stream start failed", e);
+        }
     }
 
     private void applyAndUnicast(QZMetricPacket packet) {
@@ -158,7 +160,10 @@ public class QZMetricUnicastingService extends Service {
 
     @Override
     public void onDestroy() {
-        cachedReader = null;
+        if (metricSubscription != null) {
+            metricSubscription.close();
+            metricSubscription = null;
+        }
         instance = null;
         Log.i(LOG_TAG, "metric service stopped");
     }

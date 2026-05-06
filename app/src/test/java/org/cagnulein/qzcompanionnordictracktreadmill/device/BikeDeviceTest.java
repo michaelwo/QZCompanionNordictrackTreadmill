@@ -241,31 +241,31 @@ public class BikeDeviceTest {
     }
 
     // ── S22iDevice resistance slider (x=1845, calibrated) ────────────────────
-    // Two-point calibration: resistance=1 → Y=724, resistance=24 → Y=323.
-    // targetResistanceY(v) = (int)(724.0 - 401.0/23 * (v-1)); initialY = 724
+    // Two-point calibration: resistance=1 → Y=802, resistance=5 → Y=697.
+    // targetResistanceY(v) = (int)(802.0 - 26.25 * (v-1)); initialY = 802
 
     @Test
     public void s22i_applyResistance_atLevel1_isAtTopOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.sliderOf(ResistanceSlider.class).moveTo(1.0, dev);
-        // targetResistanceY(1) = (int)(724 - 0) = 724; initialY = 724
-        assertEquals("input swipe 1845 724 1845 724 200", lastCommand);
+        // targetResistanceY(1) = (int)(802 - 0) = 802; initialY = 802
+        assertEquals("input swipe 1845 802 1845 802 200", lastCommand);
     }
 
     @Test
     public void s22i_applyResistance_atLevel24_isAtBottomOfRange() {
         S22iDevice dev = dev(new S22iDevice());
         dev.sliderOf(ResistanceSlider.class).moveTo(24.0, dev);
-        // targetResistanceY(24) = (int)(724 - 401.0/23*23) = (int)(724 - 401) = 323; initialY = 724
-        assertEquals("input swipe 1845 724 1845 323 200", lastCommand);
+        // targetResistanceY(24) = (int)(802 - 26.25*23) = 198; initialY = 802
+        assertEquals("input swipe 1845 802 1845 198 200", lastCommand);
     }
 
     @Test
     public void s22i_applyResistance_atLevel10_generatesCorrectSwipe() {
         S22iDevice dev = dev(new S22iDevice());
         dev.sliderOf(ResistanceSlider.class).moveTo(10.0, dev);
-        // targetResistanceY(10) = (int)(724 - 401.0/23*9) = (int)(724 - 156.913) = 567; initialY = 724
-        assertEquals("input swipe 1845 724 1845 567 200", lastCommand);
+        // targetResistanceY(10) = (int)(802 - 26.25*9) = 565; initialY = 802
+        assertEquals("input swipe 1845 802 1845 565 200", lastCommand);
     }
 
     // ── Ntex71021Device (no MetricReaderUnicastingService calls, pure formula) ────────────────────
