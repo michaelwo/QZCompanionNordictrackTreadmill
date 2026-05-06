@@ -121,6 +121,7 @@ public class DeviceRegistry {
     }
 
     public static Device forId(DeviceId id) {
+        if (id == DeviceId.custom_calibrated) return new CalibratedBikeDevice();
         Device device = DEVICES.get(id);
         if (device == null) throw new IllegalArgumentException("No device registered for id: " + id);
         return device;

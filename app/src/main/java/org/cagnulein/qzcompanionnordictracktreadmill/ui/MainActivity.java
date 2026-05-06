@@ -17,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.net.Inet4Address;
@@ -37,6 +38,9 @@ import java.io.IOException;
 
 
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationFit;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
+import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.IfitConsoleSnapshot;
@@ -66,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView  selectedDeviceLabel;
     private ImageView devicePickerChevron;
     private View      deviceListContainer;
+    private CalibrationRunner calibrationRunner = null;
 
     private final android.os.Handler heartbeatHandler =
             new android.os.Handler(android.os.Looper.getMainLooper());
@@ -241,6 +246,8 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         menu.findItem(R.id.menu_verbose_logging).setChecked(
                 sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
+        menu.findItem(R.id.menu_debug_incline_calibration).setVisible(
+                sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
         return true;
     }
 
@@ -257,8 +264,79 @@ public class MainActivity extends AppCompatActivity {
                     .setPositiveButton("OK", (d, w) -> d.dismiss())
                     .show();
             return true;
+        } else if (id == R.id.menu_debug_incline_calibration) {
+            confirmDebugInclineCalibration();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void confirmDebugInclineCalibration() {
+        new AlertDialog.Builder(this)
+                .setTitle("Debug Incline Calibration")
+                .setMessage("Start an active iFit manual workout first. The app will switch to iFit and move the incline slider.")
+                .setNegativeButton("Cancel", (d, w) -> d.dismiss())
+                .setPositiveButton("Start", (d, w) -> startDebugInclineCalibration())
+                .show();
+    }
+
+    private void startDebugInclineCalibration() {
+        if (calibrationRunner != null) {
+            Toast.makeText(this, "Calibration already running", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        calibrationRunner = new CalibrationRunner(getResources().getDisplayMetrics());
+        calibrationRunner.start(new CalibrationRunner.Listener() {
+            @Override
+            public void onState(CalibrationRunner.State state, String detail) {
+                writeLog("QZ:Calibration " + state + " " + detail);
+            }
+
+            @Override
+            public void onComplete(CalibrationResult result, DeviceCalibration calibration,
+                                   CalibrationFit.FitResult inclineFit) {
+                runOnUiThread(() -> {
+                    calibrationRunner = null;
+                    applyCalibratedDeviceSelection();
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Incline Calibration Saved")
+                            .setMessage("origin=" + String.format(java.util.Locale.US, "%.2f", inclineFit.origin)
+                                    + "  scale=" + String.format(java.util.Locale.US, "%.4f", inclineFit.scale)
+                                    + "  R²=" + String.format(java.util.Locale.US, "%.4f", inclineFit.r2))
+                            .setPositiveButton("OK", (d, w) -> d.dismiss())
+                            .show();
+                });
+            }
+
+            @Override
+            public void onFailed(String message, Throwable error) {
+                Log.e("QZ:Calibration", "Incline calibration failed", error);
+                runOnUiThread(() -> {
+                    calibrationRunner = null;
+                    new AlertDialog.Builder(MainActivity.this)
+                            .setTitle("Incline Calibration Failed")
+                            .setMessage(message != null ? message : "Unknown error")
+                            .setPositiveButton("OK", (d, w) -> d.dismiss())
+                            .show();
+                });
+            }
+        });
+
+        Toast.makeText(this, "Incline calibration running", Toast.LENGTH_SHORT).show();
+        launchIfit();
+    }
+
+    private void applyCalibratedDeviceSelection() {
+        committedDeviceId = DeviceRegistry.DeviceId.custom_calibrated;
+        pendingDeviceId = committedDeviceId;
+        deviceAdapter.setSelectedId(committedDeviceId);
+        sharedPreferences.edit()
+                .putString(PREF_DEVICE_ID, committedDeviceId.name())
+                .apply();
+        selectDevice(DeviceRegistry.forId(committedDeviceId));
+        updateSelectedDeviceLabel();
+        collapseDeviceList();
     }
 
     @Override
@@ -325,14 +403,18 @@ public class MainActivity extends AppCompatActivity {
                     "iFit Hardware",
                     "Open iFit → Settings → Equipment Info → Machine Info  ›",
                     v -> {
-                        Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
-                        ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-                        ifitIntent.setPackage("com.ifit.standalone");
-                        ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        try { startActivity(ifitIntent); }
-                        catch (Exception ignored) {}
+                        launchIfit();
                     });
         }
+    }
+
+    private void launchIfit() {
+        Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
+        ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        ifitIntent.setPackage("com.ifit.standalone");
+        ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try { startActivity(ifitIntent); }
+        catch (Exception ignored) {}
     }
 
     private void addRequirementRow(LinearLayout container, boolean ok,

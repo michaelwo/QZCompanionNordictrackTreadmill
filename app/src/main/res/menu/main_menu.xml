@@ -7,5 +7,10 @@
         android:checkable="true"
         android:showAsAction="never" />
 
+    <item
+        android:id="@+id/menu_debug_incline_calibration"
+        android:title="Debug Incline Calibration"
+        android:showAsAction="never"
+        android:visible="false" />
 
 </menu>
