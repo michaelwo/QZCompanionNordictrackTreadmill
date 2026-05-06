@@ -195,6 +195,12 @@ public class MainActivity extends AppCompatActivity {
         } catch (IllegalArgumentException ignored) {}
     }
 
+    private void syncDeviceSelectionFromPrefs() {
+        String savedId = sharedPreferences.getString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.other.name());
+        if (committedDeviceId != null && committedDeviceId.name().equals(savedId)) return;
+        restoreDeviceSelection();
+    }
+
     private void startServices() {
         Intent inServer = new Intent(getApplicationContext(), QZCommandListenerService.class);
         getApplicationContext().startService(inServer);
@@ -246,9 +252,30 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         menu.findItem(R.id.menu_verbose_logging).setChecked(
                 sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
-        menu.findItem(R.id.menu_debug_incline_calibration).setVisible(
-                sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
+        updateCalibrationMenu(menu);
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        updateCalibrationMenu(menu);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void updateCalibrationMenu(Menu menu) {
+        MenuItem calibrate = menu.findItem(R.id.menu_calibrate);
+        if (calibrate != null) calibrate.setVisible(hasCalibrationPrerequisites());
+        MenuItem debug = menu.findItem(R.id.menu_debug_incline_calibration);
+        if (debug != null) debug.setVisible(
+                sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
+    }
+
+    private boolean hasCalibrationPrerequisites() {
+        return isAccessibilityServiceEnabled(this, GestureService.class)
+                && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED
+                && checkCallingOrSelfPermission("android.permission.READ_LOGS")
+                    == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override
@@ -263,6 +290,9 @@ public class MainActivity extends AppCompatActivity {
                     .setMessage("Restart the app to apply logging changes.")
                     .setPositiveButton("OK", (d, w) -> d.dismiss())
                     .show();
+            return true;
+        } else if (id == R.id.menu_calibrate) {
+            startActivity(new Intent(this, CalibrationActivity.class));
             return true;
         } else if (id == R.id.menu_debug_incline_calibration) {
             confirmDebugInclineCalibration();
@@ -342,8 +372,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        syncDeviceSelectionFromPrefs();
         updateStatusChip();
         updateRequirementsCard();
+        invalidateOptionsMenu();
         heartbeatHandler.postDelayed(heartbeatTick, 5_000);
     }
 

@@ -1,61 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
         <TextView
+            android:id="@+id/calibrationTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Auto-Detect Incline"
+            android:text="Device Calibration"
             android:textSize="22sp"
             android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <TextView
+            android:id="@+id/calibrationSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Sweeps the incline slider automatically using OCR feedback to derive the swipe formula. No manual measurements required."
-            android:layout_marginBottom="16dp" />
+            android:text="Start an active iFit manual workout. Calibration will switch to iFit and move the incline slider while reading live iFit metrics."
+            android:textSize="14sp"
+            android:layout_marginBottom="14dp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="1dp">
+
+            <LinearLayout
+                android:id="@+id/prereqList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
+
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/phaseLabel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textStyle="bold"
+            android:textSize="15sp"
             android:layout_marginBottom="8dp"
-            android:text="Initializing…" />
+            android:text="Ready" />
 
         <ProgressBar
             android:id="@+id/progressBar"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:id="@+id/ocrReading"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="OCR: waiting…"
+            android:indeterminate="false"
+            android:max="100"
+            android:progress="0"
             android:layout_marginBottom="12dp" />
 
         <TextView
+            android:id="@+id/progressDetail"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Data points:"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/dataPoints"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
+            android:text="Waiting to start"
             android:layout_marginBottom="16dp" />
 
         <LinearLayout
@@ -63,7 +75,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:visibility="gone"
+            android:layout_marginBottom="16dp">
 
             <TextView
                 android:id="@+id/resultFormula"
@@ -74,49 +87,45 @@
                 android:layout_marginBottom="4dp" />
 
             <TextView
-                android:id="@+id/resultR2"
+                android:id="@+id/resultQuality"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp" />
-
-            <TextView
-                android:id="@+id/resultHyst"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp" />
+                android:layout_height="wrap_content" />
 
         </LinearLayout>
 
         <TextView
-            android:id="@+id/validationText"
+            android:id="@+id/messageText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStart"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Start Scan"
-            android:visibility="gone" />
+            android:text="Start Calibration" />
 
-        <Button
-            android:id="@+id/btnSave"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDone"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save as Custom Device"
+            android:text="Done"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnRetry"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Retry"
             android:visibility="gone" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancel"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Cancel" />
