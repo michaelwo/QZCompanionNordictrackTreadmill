@@ -144,6 +144,55 @@ public class CalibrationRunnerTest {
         output.delete();
     }
 
+    @Test
+    public void runner_skipsResistanceWhenFitQualityIsLow() throws Exception {
+        ManualClock clock = new ManualClock();
+        CalibrationMetricCollector collector =
+                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        FakeSubscriptionSource source = new FakeSubscriptionSource();
+        ScriptedGestures gestures = new ScriptedGestures();
+        File output = File.createTempFile("qz-calibration-runner", ".json");
+        CalibrationRunner.Config config = fastConfig(output);
+
+        CalibrationRunner runner = new CalibrationRunner(
+                1920, 1000, config, gestures, collector, source,
+                ms -> {
+                    if (gestures.pendingY != null && source.subscriber != null) {
+                        int y = gestures.pendingY;
+                        int x = gestures.pendingX;
+                        gestures.pendingY = null;
+                        gestures.pendingX = null;
+                        clock.advance(1);
+                        if (x == 57) {
+                            float grade = (float) ((622.0 - y) / 18.57);
+                            source.subscriber.accept(new QZMetricPacket(
+                                    QZMetricPacket.Metric.GRADE, grade));
+                        } else if (x == 1845) {
+                            float level;
+                            if (y <= 250) level = 24.0f;
+                            else if (y <= 325) level = 23.0f;
+                            else if (y <= 375) level = 1.0f;
+                            else level = 19.0f;
+                            source.subscriber.accept(new QZMetricPacket(
+                                    QZMetricPacket.Metric.RESISTANCE, level));
+                        }
+                    }
+                    clock.advance(ms);
+                },
+                clock);
+
+        CapturingListener listener = new CapturingListener();
+        runner.run(listener);
+
+        assertNull(listener.failure);
+        assertNotNull(listener.result);
+        assertNull(listener.result.resistance);
+        assertNull(listener.resistanceFit);
+        assertNull(DeviceCalibration.current.resistanceTrackX);
+
+        output.delete();
+    }
+
     private static CalibrationRunner.Config fastConfig(File output) {
         CalibrationRunner.Config config = new CalibrationRunner.Config();
         config.outputFile = output;
@@ -200,6 +249,14 @@ public class CalibrationRunnerTest {
 
         @Override
         public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public boolean tap(int x, int y) {
+            swipes.add(y);
+            pendingX = x;
+            pendingY = y;
             return true;
         }
 

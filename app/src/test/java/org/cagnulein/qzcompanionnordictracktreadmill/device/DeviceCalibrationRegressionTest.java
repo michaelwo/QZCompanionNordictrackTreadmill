@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.CalibratedBikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 import org.junit.After;
@@ -141,6 +142,18 @@ public class DeviceCalibrationRegressionTest {
         // level=12; toY=(int)(724 - 401/23 * 11)=(int)(724-191.78...)=(int)(532.17)=532
         dev.sliderOf(ResistanceSlider.class).moveTo(12.0, dev);
         assertEquals("input swipe 1845 323 1845 532 200", lastCommand);
+    }
+
+    @Test
+    public void calibratedBikeDevice_resistance_prefersCurrentGearOverResistanceNoise() {
+        DeviceCalibration.current = s22iCalibration();
+        CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
+        dev.applyMetric(SliderMetric.CURRENT_GEAR, 8.0f);
+        dev.applyMetric(SliderMetric.RESISTANCE, 10.0f);
+
+        dev.sliderOf(ResistanceSlider.class).moveTo(12.0, dev);
+
+        assertEquals("input swipe 1845 601 1845 532 200", lastCommand);
     }
 
     @Test

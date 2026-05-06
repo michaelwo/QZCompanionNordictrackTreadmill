@@ -448,9 +448,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void launchIfit() {
-        Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
-        ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        ifitIntent.setPackage("com.ifit.standalone");
+        Intent ifitIntent = getPackageManager().getLaunchIntentForPackage("com.ifit.standalone");
+        if (ifitIntent == null) {
+            ifitIntent = new Intent(Intent.ACTION_MAIN);
+            ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            ifitIntent.setPackage("com.ifit.standalone");
+        }
         ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try { startActivity(ifitIntent); }
         catch (Exception ignored) {}

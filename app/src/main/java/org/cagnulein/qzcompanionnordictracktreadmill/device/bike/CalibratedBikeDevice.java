@@ -2,6 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 
@@ -77,6 +78,7 @@ public class CalibratedBikeDevice extends BikeDevice {
         if (cal == null || cal.resistanceOrigin == null) return null;
         int initY = (int) cal.resistanceOrigin.doubleValue();
         return new ResistanceSlider(initY) {
+            private boolean currentGearSeen = false;
 
             @Override
             public int trackX() {
@@ -102,6 +104,16 @@ public class CalibratedBikeDevice extends BikeDevice {
             protected int currentThumbY() {
                 return (liveValue != null && liveValue >= 1)
                         ? targetThumbY(liveValue) : thumbY();
+            }
+
+            @Override
+            public void applyIfMatch(SliderMetric m, float value) {
+                if (m == SliderMetric.CURRENT_GEAR && value >= 1) {
+                    currentGearSeen = true;
+                    liveValue = value;
+                } else if (m == SliderMetric.RESISTANCE && value >= 1 && !currentGearSeen) {
+                    liveValue = value;
+                }
             }
         };
     }

@@ -10,6 +10,8 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.text.SpannableStringBuilder;
@@ -35,6 +37,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureServi
 import java.util.Locale;
 
 public class CalibrationActivity extends AppCompatActivity {
+    private static final long IFIT_HANDOFF_DELAY_MS = 4000L;
+
     private TextView phaseLabel;
     private TextView progressDetail;
     private TextView resultFormula;
@@ -50,6 +54,7 @@ public class CalibrationActivity extends AppCompatActivity {
 
     private CalibrationRunner runner;
     private PowerManager.WakeLock wakeLock;
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private boolean running = false;
 
     @Override
@@ -119,7 +124,15 @@ public class CalibrationActivity extends AppCompatActivity {
         btnDone.setVisibility(View.GONE);
         btnRetry.setVisibility(View.GONE);
         btnCancel.setVisibility(View.VISIBLE);
+        phaseLabel.setText("Opening iFit");
+        progressDetail.setText("Switching to iFit before the first calibration gesture.");
+        launchIfit();
+        handler.postDelayed(() -> {
+            if (running && runner == null) startRunner();
+        }, IFIT_HANDOFF_DELAY_MS);
+    }
 
+    private void startRunner() {
         runner = new CalibrationRunner(getResources().getDisplayMetrics());
         runner.start(new CalibrationRunner.Listener() {
             @Override
@@ -142,8 +155,6 @@ public class CalibrationActivity extends AppCompatActivity {
                 runOnUiThread(() -> renderFailed(message != null ? message : "Unknown error"));
             }
         });
-
-        launchIfit();
     }
 
     private void renderState(CalibrationRunner.State state, String detail) {
@@ -282,9 +293,12 @@ public class CalibrationActivity extends AppCompatActivity {
     }
 
     private void launchIfit() {
-        Intent ifitIntent = new Intent(Intent.ACTION_MAIN);
-        ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-        ifitIntent.setPackage("com.ifit.standalone");
+        Intent ifitIntent = getPackageManager().getLaunchIntentForPackage("com.ifit.standalone");
+        if (ifitIntent == null) {
+            ifitIntent = new Intent(Intent.ACTION_MAIN);
+            ifitIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            ifitIntent.setPackage("com.ifit.standalone");
+        }
         ifitIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try { startActivity(ifitIntent); }
         catch (Exception ignored) {}

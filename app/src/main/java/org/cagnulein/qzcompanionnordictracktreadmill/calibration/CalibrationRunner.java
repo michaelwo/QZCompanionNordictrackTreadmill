@@ -43,6 +43,7 @@ public final class CalibrationRunner {
 
     public interface Gestures {
         boolean isReady();
+        boolean tap(int x, int y);
         boolean swipe(int x, int fromY, int toY);
     }
 
@@ -63,6 +64,7 @@ public final class CalibrationRunner {
         public int resistanceProbeTimeoutMs = 3000;
         public int resistanceHomeSettleMs = 800;
         public int resistanceHomeDoneMs = 2000;
+        public boolean useTapSweeps = true;
         public int minY = CalibrationFit.COARSE_MARGIN;
         public File outputFile = new File(Environment.getExternalStorageDirectory(),
                 "qz-calibration.json");
@@ -194,16 +196,21 @@ public final class CalibrationRunner {
     private ResistanceFit runResistance(int trackX, int bottomY, Listener listener)
             throws InterruptedException, CancelledException {
         state(listener, State.RESISTANCE_PROBE, "Probing resistance slider at x=" + trackX);
-        Integer thumbY = probeResistanceThumb(trackX);
         List<CalibrationFit.Point> coarse;
-        if (thumbY != null) {
-            state(listener, State.RESISTANCE_COARSE, "Resistance sweep from y=" + thumbY);
-            coarse = coarseSweep(trackX, thumbY + CalibrationFit.COARSE_STEP, bottomY,
-                    thumbY, MetricTarget.RESISTANCE);
-        } else {
-            Log.w(TAG, "Resistance thumb probe failed; falling back to full sweep");
-            state(listener, State.RESISTANCE_COARSE, "Fallback resistance sweep at x=" + trackX);
+        if (config.useTapSweeps) {
+            state(listener, State.RESISTANCE_COARSE, "Tapped resistance sweep at x=" + trackX);
             coarse = coarseSweep(trackX, config.minY, bottomY, config.minY, MetricTarget.RESISTANCE);
+        } else {
+            Integer thumbY = probeResistanceThumb(trackX);
+            if (thumbY != null) {
+                state(listener, State.RESISTANCE_COARSE, "Resistance sweep from y=" + thumbY);
+                coarse = coarseSweep(trackX, thumbY + CalibrationFit.COARSE_STEP, bottomY,
+                        thumbY, MetricTarget.RESISTANCE);
+            } else {
+                Log.w(TAG, "Resistance thumb probe failed; falling back to full sweep");
+                state(listener, State.RESISTANCE_COARSE, "Fallback resistance sweep at x=" + trackX);
+                coarse = coarseSweep(trackX, config.minY, bottomY, config.minY, MetricTarget.RESISTANCE);
+            }
         }
         if (coarse.size() < 3) {
             Log.w(TAG, "Only " + coarse.size() + " resistance readings; skipping resistance");
@@ -227,7 +234,13 @@ public final class CalibrationRunner {
             Log.w(TAG, "Only " + fine.size() + " fine resistance readings; skipping resistance");
             return null;
         }
-        return fitResistance(fine);
+        ResistanceFit fineFit = fitResistance(fine);
+        if (!fineFit.fit.isValid() || fineFit.fit.isWarningQuality()) {
+            Log.w(TAG, "Resistance fit below quality threshold; skipping resistance r2="
+                    + fineFit.fit.r2);
+            return null;
+        }
+        return fineFit;
     }
 
     private Integer probeResistanceThumb(int trackX)
@@ -280,7 +293,8 @@ public final class CalibrationRunner {
         for (int y = startY; y <= bottomY; y += CalibrationFit.COARSE_STEP) {
             checkCancelled();
             long ts = clock.getAsLong();
-            gestures.swipe(trackX, previousY, y);
+            if (config.useTapSweeps) gestures.tap(trackX, y);
+            else gestures.swipe(trackX, previousY, y);
             previousY = y;
             sleep(config.coarseSettleMs);
             Float value = metric.waitFresh(metrics, ts, config.coarseTimeoutMs);
@@ -298,14 +312,16 @@ public final class CalibrationRunner {
     private List<CalibrationFit.Point> fineSweep(int trackX, int topY, int bottomY,
                                                  MetricTarget metric)
             throws InterruptedException, CancelledException {
-        gestures.swipe(trackX, bottomY, topY);
+        if (config.useTapSweeps) gestures.tap(trackX, topY);
+        else gestures.swipe(trackX, bottomY, topY);
         sleep(config.fineSettleMs * 2L);
         int previousY = topY;
         List<CalibrationFit.Point> raw = new ArrayList<>();
         for (int y = topY; y <= bottomY; y += CalibrationFit.FINE_STEP) {
             checkCancelled();
             long ts = clock.getAsLong();
-            gestures.swipe(trackX, previousY, y);
+            if (config.useTapSweeps) gestures.tap(trackX, y);
+            else gestures.swipe(trackX, previousY, y);
             previousY = y;
             sleep(config.fineSettleMs);
             Float value = metric.waitStable(metrics, ts, config.stableSettleMs, config.fineTimeoutMs);

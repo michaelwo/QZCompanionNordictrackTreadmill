@@ -16,6 +16,7 @@ public final class CalibrationMetricCollector implements Consumer<QZMetricPacket
     private final Sleeper sleeper;
     private Sample grade;
     private Sample resistance;
+    private Sample currentGear;
 
     public CalibrationMetricCollector() {
         this(System::currentTimeMillis, Thread::sleep);
@@ -34,16 +35,18 @@ public final class CalibrationMetricCollector implements Consumer<QZMetricPacket
     public synchronized void accept(QZMetricPacket packet, long timestampMs) {
         if (packet.metric == QZMetricPacket.Metric.GRADE) {
             grade = new Sample(packet.value, timestampMs);
-        } else if (packet.metric == QZMetricPacket.Metric.RESISTANCE
-                || packet.metric == QZMetricPacket.Metric.CURRENT_GEAR) {
+        } else if (packet.metric == QZMetricPacket.Metric.RESISTANCE) {
             if (packet.value >= 1.0f) resistance = new Sample(packet.value, timestampMs);
+        } else if (packet.metric == QZMetricPacket.Metric.CURRENT_GEAR) {
+            if (packet.value >= 1.0f) currentGear = new Sample(packet.value, timestampMs);
         }
         notifyAll();
     }
 
     public synchronized long anyEventTimestampMs() {
         return Math.max(grade != null ? grade.timestampMs : 0L,
-                resistance != null ? resistance.timestampMs : 0L);
+                Math.max(resistance != null ? resistance.timestampMs : 0L,
+                        currentGear != null ? currentGear.timestampMs : 0L));
     }
 
     public Float waitFreshGrade(long afterTimestampMs, long timeoutMs) {
@@ -65,11 +68,11 @@ public final class CalibrationMetricCollector implements Consumer<QZMetricPacket
     private Float waitFresh(QZMetricPacket.Metric metric, long afterTimestampMs, long timeoutMs) {
         long deadline = clock.nowMs() + timeoutMs;
         while (clock.nowMs() < deadline) {
-            Sample sample = sample(metric);
+            Sample sample = sample(metric, afterTimestampMs);
             if (sample != null && sample.timestampMs > afterTimestampMs) return sample.value;
             sleep(POLL_MS);
         }
-        Sample sample = sample(metric);
+        Sample sample = sample(metric, afterTimestampMs);
         return sample != null && sample.timestampMs > afterTimestampMs ? sample.value : null;
     }
 
@@ -79,7 +82,7 @@ public final class CalibrationMetricCollector implements Consumer<QZMetricPacket
         Float lastValue = null;
         long lastChangeMs = 0L;
         while (clock.nowMs() < deadline) {
-            Sample sample = sample(metric);
+            Sample sample = sample(metric, afterTimestampMs);
             if (sample != null && sample.timestampMs > afterTimestampMs) {
                 if (lastValue == null || Float.compare(sample.value, lastValue) != 0) {
                     lastValue = sample.value;
@@ -94,7 +97,15 @@ public final class CalibrationMetricCollector implements Consumer<QZMetricPacket
     }
 
     private synchronized Sample sample(QZMetricPacket.Metric metric) {
-        return metric == QZMetricPacket.Metric.GRADE ? grade : resistance;
+        if (metric == QZMetricPacket.Metric.GRADE) return grade;
+        if (currentGear != null) return currentGear;
+        return resistance;
+    }
+
+    private synchronized Sample sample(QZMetricPacket.Metric metric, long afterTimestampMs) {
+        if (metric == QZMetricPacket.Metric.GRADE) return grade;
+        if (currentGear != null && currentGear.timestampMs > afterTimestampMs) return currentGear;
+        return resistance;
     }
 
     private void sleep(long ms) {
