@@ -15,9 +15,9 @@ import org.robolectric.annotation.Config;
 import static org.junit.Assert.*;
 
 /**
- * Robolectric tests for QZMetricUnicastingService.
+ * Robolectric tests for QZTelemetryUnicastingService.
  *
- * Primary goal: force Gradle to compile the real QZMetricUnicastingService.java so that
+ * Primary goal: force Gradle to compile the real QZTelemetryUnicastingService.java so that
  * compilation errors (missing fields, bad imports, etc.) surface here
  * rather than only on the upstream CI.
  *
@@ -27,9 +27,9 @@ import static org.junit.Assert.*;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 34)
-public class QZMetricUnicastingServiceTest {
+public class QZTelemetryUnicastingServiceTest {
 
-    private ServiceController<QZMetricUnicastingService> controller;
+    private ServiceController<QZTelemetryUnicastingService> controller;
 
     @After
     public void tearDown() {
@@ -42,19 +42,19 @@ public class QZMetricUnicastingServiceTest {
 
     @Test
     public void serviceCreates_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(QZMetricUnicastingService.class);
+        controller = Robolectric.buildService(QZTelemetryUnicastingService.class);
         assertNotNull(controller.create().get());
     }
 
     @Test
     public void serviceStarts_withoutThrowingExceptions() {
-        controller = Robolectric.buildService(QZMetricUnicastingService.class);
+        controller = Robolectric.buildService(QZTelemetryUnicastingService.class);
         assertNotNull(controller.create().startCommand(0, 1).get());
     }
 
     @Test
     public void serviceDestroysCleanly() {
-        controller = Robolectric.buildService(QZMetricUnicastingService.class);
+        controller = Robolectric.buildService(QZTelemetryUnicastingService.class);
         controller.create().startCommand(0, 1).destroy();
         // No exception = pass
     }
@@ -68,8 +68,8 @@ public class QZMetricUnicastingServiceTest {
      */
     @Test
     public void onBind_doesNotThrow() {
-        controller = Robolectric.buildService(QZMetricUnicastingService.class);
-        QZMetricUnicastingService svc = controller.create().get();
+        controller = Robolectric.buildService(QZTelemetryUnicastingService.class);
+        QZTelemetryUnicastingService svc = controller.create().get();
         // IBinder may be null (service doesn't support binding) but must not throw
         IBinder result = svc.onBind(new Intent());
         // No assertion needed — compile + no exception is the contract
@@ -80,8 +80,8 @@ public class QZMetricUnicastingServiceTest {
      */
     @Test
     public void onUnbind_doesNotThrow() {
-        controller = Robolectric.buildService(QZMetricUnicastingService.class);
-        QZMetricUnicastingService svc = controller.create().get();
+        controller = Robolectric.buildService(QZTelemetryUnicastingService.class);
+        QZTelemetryUnicastingService svc = controller.create().get();
         svc.onUnbind(new Intent());
         // No exception = pass
     }

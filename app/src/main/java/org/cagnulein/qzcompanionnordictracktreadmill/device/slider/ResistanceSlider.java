@@ -4,17 +4,18 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
 
 public class ResistanceSlider extends Slider {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     public ResistanceSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, SliderMetric.RESISTANCE);
+        super(trackX, initialThumbY, formula, ResistanceTelemetry.class);
     }
 
     protected ResistanceSlider(int initialThumbY) {
-        super(0, initialThumbY, null, SliderMetric.RESISTANCE);
+        super(0, initialThumbY, null, ResistanceTelemetry.class);
     }
 
     @Override

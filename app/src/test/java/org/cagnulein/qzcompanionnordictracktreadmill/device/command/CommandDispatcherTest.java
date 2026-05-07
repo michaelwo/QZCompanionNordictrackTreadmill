@@ -5,7 +5,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import org.junit.Before;
@@ -38,7 +38,7 @@ public class CommandDispatcherTest {
 
     /** Pre-populate a device's live speed so the treadmill speed gate passes. */
     private static void setMoving(Device device) {
-        device.applyMetric(SliderMetric.KPH, 5.0f);
+        device.applyTelemetry(new SpeedTelemetry(5.0f));
     }
 
     @Before
@@ -111,7 +111,7 @@ public class CommandDispatcherTest {
 
     @Test
     public void treadmill_cachedSpeed_appliedWhenBeltStarts() {
-        // Speed cached while stopped. Fires immediately when applyMetric(KPH, >0) is called —
+        // Speed cached while stopped. Fires immediately when applyTelemetry(SpeedTelemetry > 0) is called —
         // no sentinel or subsequent dispatch() needed.
         // X11i targetSpeedY(8.0) = 447; fromY = 600 (initialSpeedY)
         X11iDevice device = dev(new X11iDevice());
@@ -119,7 +119,7 @@ public class CommandDispatcherTest {
         ctrl.onPacket(QZCommandPacket.parse("8.0;-100")); // cached — belt stopped, no swipe
         assertNull(lastCommand);
 
-        setMoving(device); // fires cached 8.0 immediately via applyMetric self-flush
+        setMoving(device); // fires cached 8.0 immediately via applyTelemetry self-flush
         assertEquals("input swipe 1205 600 1205 447 200", lastCommand);
     }
 

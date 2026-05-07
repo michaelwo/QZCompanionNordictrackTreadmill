@@ -1,18 +1,18 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import java.io.IOException;
 import java.util.function.Consumer;
 
-public interface MetricReader {
+public interface TelemetryReader {
     void read() throws IOException;
 
 
     /**
      * Push hook for streaming readers. The reader calls {@code listener} immediately whenever a
-     * new metric arrives, allowing the service to skip the poll loop entirely.
+     * new telemetry arrives, allowing consumers to skip polling.
      * Returns {@code true} if accepted; {@code false} for pull-based readers (default).
      */
-    default boolean subscribe(Consumer<QZMetricPacket> listener) { return false; }
+    default boolean subscribe(Consumer<Telemetry> listener) { return false; }
 }

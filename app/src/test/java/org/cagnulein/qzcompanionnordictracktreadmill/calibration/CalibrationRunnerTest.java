@@ -1,8 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
@@ -23,8 +26,8 @@ public class CalibrationRunnerTest {
     @Test
     public void inclineOnlyRunner_savesAndAppliesCalibration() throws Exception {
         ManualClock clock = new ManualClock();
-        CalibrationMetricCollector collector =
-                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        CalibrationTelemetryCollector collector =
+                new CalibrationTelemetryCollector(clock::nowMs, clock::advance);
         FakeSubscriptionSource source = new FakeSubscriptionSource();
         ScriptedGestures gestures = new ScriptedGestures();
         File output = File.createTempFile("qz-calibration-runner", ".json");
@@ -41,8 +44,7 @@ public class CalibrationRunnerTest {
                         clock.advance(1);
                         if (x == 57) {
                             float grade = (float) ((622.0 - y) / 18.57);
-                            source.subscriber.accept(new QZMetricPacket(
-                                    QZMetricPacket.Metric.GRADE, grade));
+                            source.subscriber.accept(new InclineTelemetry(grade));
                         }
                     }
                     clock.advance(ms);
@@ -71,8 +73,8 @@ public class CalibrationRunnerTest {
     @Test
     public void inclineOnlyRunner_failsWhenNotEnoughReadings() throws Exception {
         ManualClock clock = new ManualClock();
-        CalibrationMetricCollector collector =
-                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        CalibrationTelemetryCollector collector =
+                new CalibrationTelemetryCollector(clock::nowMs, clock::advance);
         FakeSubscriptionSource source = new FakeSubscriptionSource();
         ScriptedGestures gestures = new ScriptedGestures();
         File output = File.createTempFile("qz-calibration-runner", ".json");
@@ -97,8 +99,8 @@ public class CalibrationRunnerTest {
     @Test
     public void runner_savesOptionalResistanceCalibrationWhenReadingsExist() throws Exception {
         ManualClock clock = new ManualClock();
-        CalibrationMetricCollector collector =
-                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        CalibrationTelemetryCollector collector =
+                new CalibrationTelemetryCollector(clock::nowMs, clock::advance);
         FakeSubscriptionSource source = new FakeSubscriptionSource();
         ScriptedGestures gestures = new ScriptedGestures();
         File output = File.createTempFile("qz-calibration-runner", ".json");
@@ -115,13 +117,11 @@ public class CalibrationRunnerTest {
                         clock.advance(1);
                         if (x == 57) {
                             float grade = (float) ((622.0 - y) / 18.57);
-                            source.subscriber.accept(new QZMetricPacket(
-                                    QZMetricPacket.Metric.GRADE, grade));
+                            source.subscriber.accept(new InclineTelemetry(grade));
                         } else if (x == 1845) {
                             float level = (float) (1.0 + (802.0 - y) / 26.25);
                             if (level >= 1.0f) {
-                                source.subscriber.accept(new QZMetricPacket(
-                                        QZMetricPacket.Metric.CURRENT_GEAR, level));
+                                source.subscriber.accept(new GearTelemetry(level));
                             }
                         }
                     }
@@ -147,8 +147,8 @@ public class CalibrationRunnerTest {
     @Test
     public void runner_skipsResistanceWhenFitQualityIsLow() throws Exception {
         ManualClock clock = new ManualClock();
-        CalibrationMetricCollector collector =
-                new CalibrationMetricCollector(clock::nowMs, clock::advance);
+        CalibrationTelemetryCollector collector =
+                new CalibrationTelemetryCollector(clock::nowMs, clock::advance);
         FakeSubscriptionSource source = new FakeSubscriptionSource();
         ScriptedGestures gestures = new ScriptedGestures();
         File output = File.createTempFile("qz-calibration-runner", ".json");
@@ -165,16 +165,14 @@ public class CalibrationRunnerTest {
                         clock.advance(1);
                         if (x == 57) {
                             float grade = (float) ((622.0 - y) / 18.57);
-                            source.subscriber.accept(new QZMetricPacket(
-                                    QZMetricPacket.Metric.GRADE, grade));
+                            source.subscriber.accept(new InclineTelemetry(grade));
                         } else if (x == 1845) {
                             float level;
                             if (y <= 250) level = 24.0f;
                             else if (y <= 325) level = 23.0f;
                             else if (y <= 375) level = 1.0f;
                             else level = 19.0f;
-                            source.subscriber.accept(new QZMetricPacket(
-                                    QZMetricPacket.Metric.RESISTANCE, level));
+                            source.subscriber.accept(new ResistanceTelemetry(level));
                         }
                     }
                     clock.advance(ms);
@@ -232,11 +230,11 @@ public class CalibrationRunnerTest {
 
     private static final class FakeSubscriptionSource
             implements CalibrationRunner.MetricSubscriptionSource {
-        Consumer<QZMetricPacket> subscriber;
+        Consumer<Telemetry> subscriber;
         boolean closed = false;
 
         @Override
-        public MonoStdoutMetricHub.Subscription subscribe(Consumer<QZMetricPacket> subscriber) {
+        public MonoStdoutTelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber) {
             this.subscriber = subscriber;
             return () -> closed = true;
         }

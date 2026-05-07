@@ -268,7 +268,7 @@ public class BikeDeviceTest {
         assertEquals("input swipe 1845 802 1845 565 200", lastCommand);
     }
 
-    // ── Ntex71021Device (no MetricReaderUnicastingService calls, pure formula) ────────────────────
+    // ── Ntex71021Device (no QZTelemetryUnicastingService calls, pure formula) ────────────────────
     // targetInclineY(v) = (int)(493 - 13.57 * v); initialY = 493
 
     @Test

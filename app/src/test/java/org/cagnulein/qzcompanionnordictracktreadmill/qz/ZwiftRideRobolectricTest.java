@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
 
 import static org.junit.Assert.*;
 
@@ -209,7 +209,7 @@ public class ZwiftRideRobolectricTest {
     @Test
     public void x11i_speedMessage_producesExpectedSwipe() throws Exception {
         X11iDevice x11i = new X11iDevice();
-        x11i.applyMetric(SliderMetric.KPH, 5.0f);
+        x11i.applyTelemetry(new SpeedTelemetry(5.0f));
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { commands.add(cmd); latch.countDown(); };
 

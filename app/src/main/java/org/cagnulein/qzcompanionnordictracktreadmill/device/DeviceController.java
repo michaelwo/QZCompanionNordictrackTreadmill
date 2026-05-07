@@ -2,26 +2,30 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricSubscriber;
+
+import java.io.IOException;
 
 import java.util.List;
 
-public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber {
+public class DeviceController implements QZCommandSubscriber {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     private final Device device;
     private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
+    private final MonoStdoutTelemetryHub.Subscription telemetrySubscription;
 
     public DeviceController(Device device) {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
         this.dispatcher = new CommandDispatcher(this::executeCommand);
+        this.telemetrySubscription = subscribeTelemetry();
     }
 
     /** Test constructor: injectable clock, no background drain thread. */
@@ -30,6 +34,7 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
         this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
+        this.telemetrySubscription = null;
     }
 
     private void executeCommand(Command cmd) {
@@ -37,9 +42,8 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         device.applyCommand(cmd);
     }
 
-    @Override
-    public void onMetric(SliderMetric metric, float value) {
-        device.applyMetric(metric, value);
+    public void onTelemetry(Telemetry telemetry) {
+        device.applyTelemetry(telemetry);
     }
 
     @Override
@@ -60,7 +64,20 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         if (commands.isEmpty()) dispatcher.drain();
     }
 
-    public void shutdown() { dispatcher.shutdown(); }
+    public void shutdown() {
+        if (telemetrySubscription != null) telemetrySubscription.close();
+        dispatcher.shutdown();
+    }
 
     public Device device() { return device; }
+
+    private MonoStdoutTelemetryHub.Subscription subscribeTelemetry() {
+        try {
+            return MonoStdoutTelemetryHub.shared().subscribe(this::onTelemetry);
+        } catch (IOException e) {
+            device.logger.log(Device.Logger.ERROR, LOG_TAG,
+                    "telemetry subscription failed: " + e.getMessage());
+            return null;
+        }
+    }
 }

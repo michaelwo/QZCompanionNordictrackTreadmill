@@ -36,7 +36,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineComma
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 import org.junit.After;
 import org.junit.Before;
@@ -1127,8 +1127,8 @@ public class TreadmillDeviceTest {
         // guard is speed() > 0; device that previously moved but is now stopped at 0.0f
         // must still cache the command (not apply it).
         X11iDevice device = dev(new X11iDevice());
-        device.applyMetric(SliderMetric.KPH, 5.0f); // was moving
-        device.applyMetric(SliderMetric.KPH, 0.0f); // now stopped
+        device.applyTelemetry(new SpeedTelemetry(5.0f)); // was moving
+        device.applyTelemetry(new SpeedTelemetry(0.0f)); // now stopped
         DeviceController ctrl = new DeviceController(device, () -> 1_000L + CommandDispatcher.SWIPE_THROTTLE_MS + 100);
         ctrl.onPacket(QZCommandPacket.parse("8.0;-100"));
         assertNull("speed=0.0 exactly must not pass the gate", lastCommand);
@@ -1143,7 +1143,7 @@ public class TreadmillDeviceTest {
         X11iDevice device = dev(new X11iDevice());
         DeviceController ctrl = new DeviceController(device, () -> t[0]);
 
-        device.applyMetric(SliderMetric.KPH, 5.0f);
+        device.applyTelemetry(new SpeedTelemetry(5.0f));
         ctrl.onPacket(QZCommandPacket.parse("8.0;-100"));  // applied at t=1000 (speedY: 600→447)
 
         t[0] += 200;
@@ -1239,7 +1239,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void beltGate_selfFlushes_whenBeltStarts() {
-        // Speed cached while belt stopped; applyMetric(KPH, >0) fires it immediately —
+        // Speed cached while belt stopped; applyTelemetry(SpeedTelemetry > 0) fires it immediately —
         // no sentinel or subsequent dispatch() call needed.
         // X11i targetSpeedY(8.0) = 447; fromY = 600 (initialSpeedY)
         java.util.List<String> commands = new java.util.ArrayList<>();
@@ -1249,12 +1249,12 @@ public class TreadmillDeviceTest {
         dev.applyCommand(new SpeedCommand(8.0f));  // belt stopped → cached, no swipe
         assertEquals(0, commands.size());
 
-        dev.applyMetric(SliderMetric.KPH, 5.0f);  // belt starts → self-flush fires
+        dev.applyTelemetry(new SpeedTelemetry(5.0f));  // belt starts → self-flush fires
         assertEquals(1, commands.size());
         assertEquals("input swipe 1205 600 1205 447 200", commands.get(0));
 
-        // Cache cleared — subsequent applyMetric does not re-fire
-        dev.applyMetric(SliderMetric.KPH, 6.0f);
+        // Cache cleared — subsequent applyTelemetry does not re-fire
+        dev.applyTelemetry(new SpeedTelemetry(6.0f));
         assertEquals(1, commands.size());
     }
 }

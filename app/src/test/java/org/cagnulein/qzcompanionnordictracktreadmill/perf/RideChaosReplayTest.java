@@ -1,12 +1,12 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.perf;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import org.junit.After;
 import org.junit.Test;
@@ -38,10 +38,10 @@ public class RideChaosReplayTest {
 
     @After
     public void restoreStaticState() throws IOException {
-        MonoStdoutMetricReader.factory = () -> Runtime.getRuntime().exec(
+        MonoStdoutTelemetryReader.factory = () -> Runtime.getRuntime().exec(
                 new String[]{"logcat", "-s", "mono-stdout"});
-        MonoStdoutMetricReader.onError = e -> {};
-        MonoStdoutMetricReader.onLine = s -> {};
+        MonoStdoutTelemetryReader.onError = e -> {};
+        MonoStdoutTelemetryReader.onLine = s -> {};
         writeReports();
     }
 
@@ -172,7 +172,7 @@ public class RideChaosReplayTest {
         probe.start();
 
         AtomicInteger errors = new AtomicInteger();
-        List<QZMetricPacket> packets = new ArrayList<>();
+        List<Telemetry> packets = new ArrayList<>();
         StringBuilder stream = new StringBuilder();
         int totalLines = 0;
         int validLines = 0;
@@ -190,15 +190,15 @@ public class RideChaosReplayTest {
             totalLines++;
         }
 
-        MonoStdoutMetricReader.onError = e -> errors.incrementAndGet();
-        MonoStdoutMetricReader.factory = () -> fakeProcess(stream.toString());
-        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        MonoStdoutTelemetryReader.onError = e -> errors.incrementAndGet();
+        MonoStdoutTelemetryReader.factory = () -> fakeProcess(stream.toString());
+        MonoStdoutTelemetryReader reader = new MonoStdoutTelemetryReader();
         reader.subscribe(packets::add);
         reader.read();
         reader.awaitStream();
 
         for (int i = 0; i < 50; i++) {
-            MonoStdoutMetricReader.factory = () -> { throw new IOException("chaos launch failure"); };
+            MonoStdoutTelemetryReader.factory = () -> { throw new IOException("chaos launch failure"); };
             reader.read();
             reader.awaitStream();
         }

@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.perf;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import org.junit.After;
 import org.junit.Test;
@@ -38,10 +38,10 @@ public class RidePerformanceReplayTest {
 
     @After
     public void restoreStaticState() {
-        MonoStdoutMetricReader.factory = () -> Runtime.getRuntime().exec(
+        MonoStdoutTelemetryReader.factory = () -> Runtime.getRuntime().exec(
                 new String[]{"logcat", "-s", "mono-stdout"});
-        MonoStdoutMetricReader.onError = e -> {};
-        MonoStdoutMetricReader.onLine = s -> {};
+        MonoStdoutTelemetryReader.onError = e -> {};
+        MonoStdoutTelemetryReader.onLine = s -> {};
     }
 
     @Test
@@ -93,12 +93,12 @@ public class RidePerformanceReplayTest {
     private static MetricReplay replayMetrics() throws Exception {
         String fixture = readResource("perf/ifit-mono-stdout.log");
         int metricLines = countNonBlankLines(fixture);
-        List<QZMetricPacket> packets = new ArrayList<>();
+        List<Telemetry> packets = new ArrayList<>();
 
-        MonoStdoutMetricReader.factory = () -> fakeProcess(fixture);
-        MonoStdoutMetricReader.onError = e -> { throw new AssertionError(e); };
+        MonoStdoutTelemetryReader.factory = () -> fakeProcess(fixture);
+        MonoStdoutTelemetryReader.onError = e -> { throw new AssertionError(e); };
 
-        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        MonoStdoutTelemetryReader reader = new MonoStdoutTelemetryReader();
         reader.subscribe(packets::add);
         reader.read();
         reader.awaitStream();

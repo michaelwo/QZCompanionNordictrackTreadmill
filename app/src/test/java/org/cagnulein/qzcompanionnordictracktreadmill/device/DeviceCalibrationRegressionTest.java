@@ -3,7 +3,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.CalibratedBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
 import org.junit.After;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -148,8 +149,8 @@ public class DeviceCalibrationRegressionTest {
     public void calibratedBikeDevice_resistance_prefersCurrentGearOverResistanceNoise() {
         DeviceCalibration.current = s22iCalibration();
         CalibratedBikeDevice dev = capture(new CalibratedBikeDevice());
-        dev.applyMetric(SliderMetric.CURRENT_GEAR, 8.0f);
-        dev.applyMetric(SliderMetric.RESISTANCE, 10.0f);
+        dev.applyTelemetry(new GearTelemetry(8.0f));
+        dev.applyTelemetry(new ResistanceTelemetry(10.0f));
 
         dev.sliderOf(ResistanceSlider.class).moveTo(12.0, dev);
 

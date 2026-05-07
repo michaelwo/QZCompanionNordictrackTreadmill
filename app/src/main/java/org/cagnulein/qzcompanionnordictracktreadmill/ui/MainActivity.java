@@ -42,7 +42,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationFit;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
     private void startServices() {
         Intent inServer = new Intent(getApplicationContext(), QZCommandListenerService.class);
         getApplicationContext().startService(inServer);
-        Intent in = new Intent(getApplicationContext(), QZMetricUnicastingService.class);
+        Intent in = new Intent(getApplicationContext(), QZTelemetryUnicastingService.class);
         getApplicationContext().startService(in);
     }
 
@@ -559,14 +559,13 @@ public class MainActivity extends AppCompatActivity {
         return "no IP";
     }
 
-    /** Selects {@code device} as the active device and wires it to both services. */
+    /** Selects {@code device} as the active device and wires it to command and telemetry streams. */
     private void selectDevice(Device device) {
         Log.i("QZ:Main", "device selected: " + device.displayName());
         device.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
         activeController = new DeviceController(device);
         QZCommandListenerService.setSubscriber(activeController);
-        QZMetricUnicastingService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();
     }

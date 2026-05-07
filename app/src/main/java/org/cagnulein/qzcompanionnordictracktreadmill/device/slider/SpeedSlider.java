@@ -4,6 +4,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 public class SpeedSlider extends Slider {
 
@@ -12,7 +14,7 @@ public class SpeedSlider extends Slider {
     private volatile Float cachedKmh = null;
 
     public SpeedSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, SliderMetric.KPH);
+        super(trackX, initialThumbY, formula, SpeedTelemetry.class);
     }
 
     @Override
@@ -44,9 +46,9 @@ public class SpeedSlider extends Slider {
     }
 
     @Override
-    public void applyIfMatch(SliderMetric m, float value, Device device) {
-        super.applyIfMatch(m, value);
-        if (m != SliderMetric.KPH || value <= 0) return;
+    public void applyTelemetry(Telemetry telemetry, Device device) {
+        super.applyTelemetry(telemetry, device);
+        if (!(telemetry instanceof SpeedTelemetry) || telemetry.value <= 0) return;
         float cached;
         synchronized (this) {
             if (cachedKmh == null) return;

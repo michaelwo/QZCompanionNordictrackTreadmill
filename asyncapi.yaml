@@ -98,7 +98,7 @@ operations:
       $ref: "#/channels/metrics"
     description: |
       Android device publishes changed metric values to the QZ app.
-      Implemented by MetricReaderUnicastingService (port 8002).
+      Implemented by QZTelemetryUnicastingService (port 8002).
       Metrics are read from iFit via MonoStdout logcat and unicast only
       when a value changes (delta encoding).
     messages:

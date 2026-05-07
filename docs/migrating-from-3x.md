@@ -22,7 +22,7 @@ The 4.x refactor broke both files apart along their natural seams:
 - **Device knowledge** (pixel constants, quantization, hysteresis) moved into individual device classes — one file per device.
 - **Dispatch policy** (throttle, FIFO queue) moved into `CommandDispatcher`; de-dup and the treadmill speed gate remain in the device classes.
 - **Command routing** (`CommandDispatcher`) became a pure-Java, Android-free class that throttles, queues, and routes — testable without a device or emulator.
-- **Metric state** moved out of static fields and into per-`Slider` live-metric values; `SliderMetric`-keyed `applyMetric()` calls on `Device` replace the old static float bag.
+- **Metric state** moved out of static fields and into per-`Slider` live-metric values; `Telemetry`-keyed `applyTelemetry()` calls on `Device` replace the old static float bag.
 - **Service files** became thin Android glue — the business logic inside them is now independently testable.
 
 The result is ~200 pure JVM tests, a much smaller diff when adding a new device, and dispatch bugs that are reproducible without hardware.
@@ -36,10 +36,10 @@ The two main service files were renamed to say what they actually do:
 | 3.x name | 4.x name |
 |----------|----------|
 | `UDPListenerService` | `QZCommandListenerService` |
-| `QZService` | `QZMetricUnicastingService` |
+| `QZService` | `QZTelemetryUnicastingService` |
 | `MyAccessibilityService` | `GestureService` |
 
-If you're searching the codebase for something that lived in `QZService` in 3.x, look in `QZMetricUnicastingService` first, then `Device` and its `Slider` instances (metric values live there now).
+If you're searching the codebase for something that lived in `QZService` in 3.x, look in `QZTelemetryUnicastingService` first, then `Device` and its `Slider` instances (metric values live there now).
 
 ---
 
@@ -52,8 +52,8 @@ If you're searching the codebase for something that lived in `QZService` in 3.x,
 | Per-device pixel constants in `setDevice()` | Inside each device class (`device/bike/`, `device/treadmill/`) |
 | Per-device dispatch `if/else` chains | `BikeDevice.applyCommand()` / `TreadmillDevice.applyCommand()` |
 | `static long lastSwipeMs` | `CommandDispatcher.lastExecutedMs` (private, injectable-clock) |
-| `static float lastSpeedFloat` etc. | Per-`Slider` live-metric values; `Device.applyMetric(SliderMetric, float)` updates them |
-| `static boolean ifit_v2` | `MetricReader.forIfitV2()` — no flag; format adaptation is on the reader |
+| `static float lastSpeedFloat` etc. | Per-`Slider` live-metric values; `Device.applyTelemetry(Telemetry, float)` updates them |
+| `static boolean ifit_v2` | `TelemetryReader.forIfitV2()` — no flag; format adaptation is on the reader |
 | OCR-based calibration in `QZService` + `CalibrationActivity` | Replaced by in-app guided calibration using Accessibility gestures and `mono-stdout` metrics; `DeviceCalibration` loads the resulting `qz-calibration.json`, and `tools/discover-device.py` remains an external fallback |
 | Device selection in `MainActivity` (RadioGroup) | `DeviceAdapter` (RecyclerView, sectioned by type) |
 
@@ -161,7 +161,7 @@ In 3.x, pixel constants (`y1Speed`, `y1Inclination`, `y1Resistance`) were module
 
 In 4.x, a `Slider` encapsulates everything about one physical axis. `Slider` is abstract; four typed subclasses cover each axis kind:
 
-| Subclass | `SliderMetric` | `commandFor()` returns |
+| Subclass | `Telemetry` | `commandFor()` returns |
 |----------|---------------|----------------------|
 | `InclineSlider` | `GRADE` | `InclineCommand` |
 | `SpeedSlider` | `KPH` | `SpeedCommand` |
@@ -213,7 +213,7 @@ static float lastResistanceFloat = 0;
 
 Any class that needed current speed or incline imported `QZService` and read these directly. This made the coupling invisible and the state globally mutable.
 
-**4.x:** Metric values are tracked inside each `Slider` as a live float, updated via `Device.applyMetric(SliderMetric, float)` which iterates `sliders()` and calls `s.applyIfMatch()`. Live-mode sliders (`.live()` factory) read back this value before each swipe via `currentThumbY()` to correct drift. The speed gate in `SpeedSlider` uses the same live value — when `KPH > 0` arrives, `applyIfMatch()` flushes any cached speed immediately — no cross-service import needed.
+**4.x:** Metric values are tracked inside each `Slider` as a live float, updated via `Device.applyTelemetry(Telemetry, float)` which iterates `sliders()` and calls `s.applyTelemetry()`. Live-mode sliders (`.live()` factory) read back this value before each swipe via `currentThumbY()` to correct drift. The speed gate in `SpeedSlider` uses the same live value — when `KPH > 0` arrives, `applyTelemetry()` flushes any cached speed immediately — no cross-service import needed.
 
 ---
 
@@ -233,7 +233,7 @@ The combination of per-device reading strategy × iFit version produced a matrix
 
 **4.x:** All of that is replaced by a single approach: `logcat -s mono-stdout`. This works because iFit's fitness logic runs inside a **Xamarin/.NET (Mono) runtime** — it's a .NET application hosted by the Android APK. The Mono runtime unconditionally routes all `.NET stdout` output to the Android logcat tag `mono-stdout`, regardless of iFit version or the device model running it. There is no file path to discover, no version to detect, and no per-device strategy to configure.
 
-`MonoStdoutMetricReader` opens a `logcat -s mono-stdout` process, streams its output line by line, and parses keyword patterns (`"Changed KPH"`, `"Changed Grade"`, `"Changed Resistance"`, etc.) to emit a `QZMetricPacket` for each changed value. `QZMetricUnicastingService` creates one `MonoStdoutMetricReader` directly — no factory, no variants, no flag. Device classes are completely unaware of iFit versions or log formats.
+`MonoStdoutTelemetryReader` opens a `logcat -s mono-stdout` process, streams its output line by line, and parses keyword patterns (`"Changed KPH"`, `"Changed Grade"`, `"Changed Resistance"`, etc.) to emit a `QZMetricPacket` for each changed value. `QZTelemetryUnicastingService` creates one `MonoStdoutTelemetryReader` directly — no factory, no variants, no flag. Device classes are completely unaware of iFit versions or log formats.
 
 ---
 
@@ -245,7 +245,7 @@ There were no tests in 3.x. The 4.x codebase has 310 tests across 12 test classe
 ./run-tests.sh
 ```
 
-Full details — test file inventory, how swipe assertions work, the `MonoStdoutMetricReader` test pattern, and a step-by-step guide for adding tests when you add a new device — are in [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
+Full details — test file inventory, how swipe assertions work, the `MonoStdoutTelemetryReader` test pattern, and a step-by-step guide for adding tests when you add a new device — are in [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 ---
 

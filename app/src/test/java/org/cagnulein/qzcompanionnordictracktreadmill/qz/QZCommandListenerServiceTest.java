@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
 
 import static org.junit.Assert.*;
 
@@ -83,7 +83,7 @@ public class QZCommandListenerServiceTest {
         // Speed drains first; incline stays queued. Latch fires on the speed swipe.
         // X11i speed: speedX=1205, initialSpeedY=600, targetSpeedY(8.0)=447
         X11iDevice x11i = new X11iDevice();
-        x11i.applyMetric(SliderMetric.KPH, 5.0f);
+        x11i.applyTelemetry(new SpeedTelemetry(5.0f));
         CountDownLatch latch = new CountDownLatch(1);
         x11i.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
 
@@ -136,7 +136,7 @@ public class QZCommandListenerServiceTest {
     public void sentinel_message_noCommandProduced() throws Exception {
         // "-1;-100" is the all-sentinel message — no values to apply.
         X11iDevice x11i2 = new X11iDevice();
-        x11i2.applyMetric(SliderMetric.KPH, 5.0f);
+        x11i2.applyTelemetry(new SpeedTelemetry(5.0f));
         CountDownLatch latch = new CountDownLatch(1);
         x11i2.commandExecutor = cmd -> { lastCommand = cmd; latch.countDown(); };
 

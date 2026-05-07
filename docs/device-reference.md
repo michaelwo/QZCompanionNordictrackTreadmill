@@ -14,7 +14,7 @@ For the full dispatch pipeline see [architecture.md](architecture.md). For how t
 
 ## All Devices at a Glance
 
-All 44 devices use `AccessibilityService` for swipe injection and `MonoStdoutMetricReader` for metric reading.
+All 44 devices use `AccessibilityService` for swipe injection and `MonoStdoutTelemetryReader` for metric reading.
 
 | DeviceId | Display name |
 |----------|-------------|

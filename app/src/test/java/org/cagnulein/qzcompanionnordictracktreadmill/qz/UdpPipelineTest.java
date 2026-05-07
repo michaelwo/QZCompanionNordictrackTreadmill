@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
 
 import org.junit.After;
 import org.junit.Before;
@@ -74,7 +74,7 @@ public class UdpPipelineTest {
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
-                device.applyMetric(SliderMetric.KPH, speedKmh);
+                device.applyTelemetry(new SpeedTelemetry(speedKmh));
                 ctrl.onPacket(QZCommandPacket.parse(message));
                 latch.countDown();
             } catch (Exception e) {
@@ -142,7 +142,7 @@ public class UdpPipelineTest {
                 DatagramPacket pkt = new DatagramPacket(buf, buf.length);
                 serverSocket.receive(pkt);
                 String message = new String(pkt.getData(), 0, pkt.getLength()).trim();
-                device.applyMetric(SliderMetric.KPH, 5.0f);
+                device.applyTelemetry(new SpeedTelemetry(5.0f));
                 ctrl.onPacket(QZCommandPacket.parse(message));
                 latch.countDown();
             } catch (Exception e) { /* closed */ }

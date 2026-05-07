@@ -11,16 +11,16 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
-public class QZMetricUnicastingService extends Service {
+public class QZTelemetryUnicastingService extends Service {
     private static final String LOG_TAG = "QZ:MetricSvc";
     IBinder binder;
     boolean allowRebind;
@@ -31,19 +31,10 @@ public class QZMetricUnicastingService extends Service {
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
     /** Shared mono-stdout subscription — the hub owns the single process-wide reader. */
-    private MonoStdoutMetricHub.Subscription metricSubscription = null;
+    private MonoStdoutTelemetryHub.Subscription telemetrySubscription = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
-    private static volatile QZMetricUnicastingService instance;
-
-    /** Subscriber that receives decoded slider metrics. Set by DeviceController via setSubscriber(). */
-    private volatile QZMetricSubscriber subscriber = null;
-
-    /**
-     * Holds a subscriber set before the service instance exists — same race as QZCommandListenerService.
-     * Applied in onCreate() so device selection from MainActivity always takes effect.
-     */
-    private static volatile QZMetricSubscriber pendingSubscriber = null;
+    private static volatile QZTelemetryUnicastingService instance;
 
     /** LAN broadcast address computed once at startup; used when QZ has not yet been discovered. */
     private static InetAddress broadcastAddress = null;
@@ -54,16 +45,10 @@ public class QZMetricUnicastingService extends Service {
     @Override
     public void onCreate() {
         instance = this;
-        if (pendingSubscriber != null) subscriber = pendingSubscriber;
         broadcastAddress = computeBroadcastAddress();
         Log.i(LOG_TAG, "service created");
         writeLog("Service onCreate");
         applyDeviceInternal();
-    }
-
-    public static void setSubscriber(QZMetricSubscriber s) {
-        pendingSubscriber = s;
-        if (instance != null) instance.subscriber = s;
     }
 
     private InetAddress computeBroadcastAddress() {
@@ -81,34 +66,23 @@ public class QZMetricUnicastingService extends Service {
     }
 
     private void applyDeviceInternal() {
-        MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
-        MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
+        MonoStdoutTelemetryReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
+        MonoStdoutTelemetryReader.onLine  = line -> writeLog("ifit: " + line);
         try {
-            metricSubscription = MonoStdoutMetricHub.shared().subscribe(this::publishMetric);
-            Log.i(LOG_TAG, "metric reader streaming active");
-            writeLog("Metric reader: streaming active");
+            telemetrySubscription = MonoStdoutTelemetryHub.shared().subscribe(this::publishTelemetry);
+            Log.i(LOG_TAG, "telemetry reader streaming active");
+            writeLog("Telemetry reader: streaming active");
         } catch (IOException e) {
             Log.e(LOG_TAG, "stream start failed", e);
         }
     }
 
-    private void publishMetric(QZMetricPacket packet) {
+    private void publishTelemetry(Telemetry telemetry) {
+        QZMetricPacket packet = QZTelemetryEncoder.encode(telemetry);
+        if (packet == null) return;
         String msg = packet.serialize();
         logMetric(msg);
         sendUnicast(msg);
-        SliderMetric sliderMetric = toSliderMetric(packet.metric);
-        if (sliderMetric != null && subscriber != null)
-            subscriber.onMetric(sliderMetric, packet.value);
-    }
-
-    private static SliderMetric toSliderMetric(QZMetricPacket.Metric metric) {
-        switch (metric) {
-            case KPH:          return SliderMetric.KPH;
-            case GRADE:        return SliderMetric.GRADE;
-            case RESISTANCE:   return SliderMetric.RESISTANCE;
-            case CURRENT_GEAR: return SliderMetric.CURRENT_GEAR;
-            default:           return null;
-        }
     }
 
     private static void logMetric(String msg) {
@@ -170,12 +144,12 @@ public class QZMetricUnicastingService extends Service {
 
     @Override
     public void onDestroy() {
-        if (metricSubscription != null) {
-            metricSubscription.close();
-            metricSubscription = null;
+        if (telemetrySubscription != null) {
+            telemetrySubscription.close();
+            telemetrySubscription = null;
         }
         instance = null;
-        Log.i(LOG_TAG, "metric service stopped");
+        Log.i(LOG_TAG, "telemetry service stopped");
     }
 
     private static void writeLog(String msg) {

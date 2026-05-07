@@ -8,7 +8,7 @@ import android.content.Intent;
 import android.os.Build;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
 
 public class ServiceRestartReceiver extends BroadcastReceiver
 {
@@ -17,7 +17,7 @@ public class ServiceRestartReceiver extends BroadcastReceiver
     {
         Intent inServer = new Intent(context, QZCommandListenerService.class);
         context.startService(inServer);
-        Intent in = new Intent(context, QZMetricUnicastingService.class);
+        Intent in = new Intent(context, QZTelemetryUnicastingService.class);
         context.startService(in);
         setAlarm(context);
     }

@@ -4,17 +4,18 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
 
 public class InclineSlider extends Slider {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     public InclineSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, SliderMetric.GRADE);
+        super(trackX, initialThumbY, formula, InclineTelemetry.class);
     }
 
     protected InclineSlider(int initialThumbY) {
-        super(0, initialThumbY, null, SliderMetric.GRADE);
+        super(0, initialThumbY, null, InclineTelemetry.class);
     }
 
     @Override

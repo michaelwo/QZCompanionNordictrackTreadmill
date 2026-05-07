@@ -1,6 +1,13 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.CadenceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.HeartRateTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.WattsTelemetry;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,15 +15,15 @@ import java.io.InputStreamReader;
 import java.util.function.Consumer;
 
 /**
- * Streams {@code logcat -s mono-stdout} in a daemon thread, emitting a {@link QZMetricPacket}
+ * Streams {@code logcat -s mono-stdout} in a daemon thread, emitting {@link Telemetry}
  * for each matched line. {@code mono-stdout} is the logcat tag emitted by the Xamarin/Mono
- * runtime for all {@code com.ifit.standalone} (iFit APK) metric changes — present on every
+ * runtime for all {@code com.ifit.standalone} (iFit APK) telemetry changes — present on every
  * supported device.
  *
  * The stream is started lazily on the first {@link #read} call and restarts automatically
  * if the underlying logcat process exits.
  */
-public class MonoStdoutMetricReader implements MetricReader {
+public class MonoStdoutTelemetryReader implements TelemetryReader {
 
     private static final String OWN_LOG_TAG = "QZ:Service";
 
@@ -38,7 +45,7 @@ public class MonoStdoutMetricReader implements MetricReader {
      *  the service sets this to a logger when verbose mode is on. */
     public static volatile Consumer<String> onLine = s -> {};
 
-    private volatile Consumer<QZMetricPacket> listener;
+    private volatile Consumer<Telemetry> listener;
     private Thread readerThread;
 
     @Override
@@ -47,7 +54,7 @@ public class MonoStdoutMetricReader implements MetricReader {
     }
 
     @Override
-    public boolean subscribe(Consumer<QZMetricPacket> l) {
+    public boolean subscribe(Consumer<Telemetry> l) {
         this.listener = l;
         return true;
     }
@@ -84,26 +91,26 @@ public class MonoStdoutMetricReader implements MetricReader {
     }
 
     private void parseLine(String line) {
-        QZMetricPacket packet = null;
+        Telemetry telemetry = null;
         if (containsAny(line, KPH_KEYWORDS)) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.KPH, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new SpeedTelemetry(v);
         } else if (containsAny(line, GRADE_KEYWORDS)) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.GRADE, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new InclineTelemetry(v);
         } else if (line.contains("Changed Watts")) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.WATTS, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new WattsTelemetry(v);
         } else if (line.contains("Changed RPM")) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.RPM, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new CadenceTelemetry(v);
         } else if (line.contains("Changed CurrentGear")) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.CURRENT_GEAR, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new GearTelemetry(v);
         } else if (line.contains("Changed Resistance")) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.RESISTANCE, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new ResistanceTelemetry(v);
         } else if (line.contains("HeartRateDataUpdate")) {
-            Float v = lastFloat(line); if (v != null) packet = new QZMetricPacket(QZMetricPacket.Metric.HEART_RATE, v);
+            Float v = lastFloat(line); if (v != null) telemetry = new HeartRateTelemetry(v);
         }
-        if (packet != null) {
+        if (telemetry != null) {
             onLine.accept(line);
-            Consumer<QZMetricPacket> l = listener;
-            if (l != null) l.accept(packet);
+            Consumer<Telemetry> l = listener;
+            if (l != null) l.accept(telemetry);
         }
     }
 

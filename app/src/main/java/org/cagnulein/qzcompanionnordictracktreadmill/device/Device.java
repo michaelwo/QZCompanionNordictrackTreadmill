@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.List;
@@ -22,9 +22,9 @@ public abstract class Device {
     /** Routes a parsed command to the appropriate handler on this device. */
     public final void applyCommand(Command cmd) { cmd.applyTo(this); }
 
-    /** Routes a live slider metric update to all matching sliders on this device. */
-    public final void applyMetric(SliderMetric metric, float value) {
-        for (Slider s : sliders()) s.applyIfMatch(metric, value, this);
+    /** Routes a live telemetry update to all matching sliders on this device. */
+    public final void applyTelemetry(Telemetry telemetry) {
+        for (Slider s : sliders()) s.applyTelemetry(telemetry, this);
     }
 
     /** Functional interface so the executor can be set without Android imports. */

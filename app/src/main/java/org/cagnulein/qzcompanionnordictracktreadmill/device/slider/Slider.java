@@ -4,6 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 /**
  * Represents one physical slider on the fitness device's touch screen.
@@ -12,7 +13,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
  *   - a fixed horizontal track position ({@link #trackX})
  *   - a movable thumb whose current vertical position is tracked in {@link #thumbY}
  *   - a formula mapping a metric value to a target Y coordinate ({@link #targetThumbY})
- *   - an optional live metric value ({@link #liveValue}) updated via {@link #applyIfMatch}
+ *   - an optional live telemetry value ({@link #liveValue}) updated via {@link #applyTelemetry}
  *
  * Concrete subclasses ({@code InclineSlider}, {@code SpeedSlider}, {@code ResistanceSlider},
  * {@code GearSlider}) implement {@link #handle} and {@link #commandFor}, encapsulating
@@ -32,15 +33,16 @@ public abstract class Slider {
     private final ThumbYFormula formula;
     private int thumbY;
     private Float lastApplied = null;
-    private SliderMetric metric;
+    private Class<? extends Telemetry> telemetryType;
     protected volatile Float liveValue = null;
 
-    protected Slider(int trackX, int originThumbY, ThumbYFormula formula, SliderMetric metric) {
+    protected Slider(int trackX, int originThumbY, ThumbYFormula formula,
+                     Class<? extends Telemetry> telemetryType) {
         this.trackX       = trackX;
         this.originThumbY = originThumbY;
         this.thumbY       = originThumbY;
         this.formula      = formula;
-        this.metric       = metric;
+        this.telemetryType = telemetryType;
     }
 
     // ── Abstract API ───────────────────────────────────────────────────────────
@@ -51,18 +53,16 @@ public abstract class Slider {
     /** Create the matching Command type for this slider with the given value. */
     public abstract Command commandFor(double value);
 
-    /** The metric value corresponding to this slider's physical origin (e.g. 0f for incline, 1f for resistance). */
+    /** The telemetry value corresponding to this slider's physical origin (e.g. 0f for incline, 1f for resistance). */
     protected abstract float originValue();
 
-    // ── Live metric ownership ──────────────────────────────────────────────────
+    // ── Live telemetry ownership ───────────────────────────────────────────────
 
-    public void applyIfMatch(SliderMetric m, float value) {
-        if (metric != null && metric == m) liveValue = value;
-    }
-
-    /** 3-arg overload called by {@link Device#applyMetric}; default delegates to 2-arg. */
-    public void applyIfMatch(SliderMetric m, float value, Device device) {
-        applyIfMatch(m, value);
+    /** Called by {@link Device#applyTelemetry}; subclasses may override for custom routing. */
+    public void applyTelemetry(Telemetry telemetry, Device device) {
+        if (telemetryType != null && telemetryType.isInstance(telemetry)) {
+            liveValue = telemetry.value;
+        }
     }
 
     public float liveValueOrZero() { return liveValue != null ? liveValue : 0f; }
@@ -72,7 +72,7 @@ public abstract class Slider {
     /** Fixed horizontal pixel coordinate of this slider's track on screen. */
     public int trackX() { return trackX; }
 
-    /** Pixel Y coordinate the thumb should move to for the given metric {@code value}. */
+    /** Pixel Y coordinate the thumb should move to for the given telemetry {@code value}. */
     public int targetThumbY(double v) { return formula.apply(v); }
 
     /**

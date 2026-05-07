@@ -1,10 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;
@@ -44,10 +45,10 @@ public class S22iDevice extends BikeDevice {
                             ? targetThumbY(liveValue) : thumbY();
                 }
                 @Override
-                public void applyIfMatch(SliderMetric m, float value, Device device) {
+                public void applyTelemetry(Telemetry telemetry, Device device) {
                     // S22i reports resistance via CURRENT_GEAR, not RESISTANCE
-                    if (m == SliderMetric.CURRENT_GEAR && value >= 1) liveValue = value;
-                    else super.applyIfMatch(m, value, device);
+                    if (telemetry instanceof GearTelemetry && telemetry.value >= 1) liveValue = telemetry.value;
+                    else super.applyTelemetry(telemetry, device);
                 }
             }
         );

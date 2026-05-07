@@ -4,9 +4,9 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.util.function.LongSupplier;
  * Guided incline + optional resistance calibration runner.
  *
  * Runs off the UI thread, drives the incline slider with Accessibility gestures,
- * consumes the shared mono-stdout metric stream, fits Y = origin - scale * metric,
+ * consumes the shared mono-stdout telemetry stream, fits Y = origin - scale * metric,
  * writes qz-calibration.json, and updates DeviceCalibration.current immediately.
  */
 public final class CalibrationRunner {
@@ -74,7 +74,7 @@ public final class CalibrationRunner {
     private final int screenHeight;
     private final Config config;
     private final Gestures gestures;
-    private final CalibrationMetricCollector metrics;
+    private final CalibrationTelemetryCollector metrics;
     private final MetricSubscriptionSource subscriptionSource;
     private final Sleeper sleeper;
     private final LongSupplier clock;
@@ -84,13 +84,13 @@ public final class CalibrationRunner {
 
     public CalibrationRunner(DisplayMetrics displayMetrics) {
         this(displayMetrics.widthPixels, displayMetrics.heightPixels,
-                new Config(), new CalibrationGestureDriver(), new CalibrationMetricCollector(),
-                subscriber -> MonoStdoutMetricHub.shared().subscribe(subscriber),
+                new Config(), new CalibrationGestureDriver(), new CalibrationTelemetryCollector(),
+                subscriber -> MonoStdoutTelemetryHub.shared().subscribe(subscriber),
                 Thread::sleep, System::currentTimeMillis);
     }
 
     public CalibrationRunner(int screenWidth, int screenHeight, Config config,
-                             Gestures gestures, CalibrationMetricCollector metrics,
+                             Gestures gestures, CalibrationTelemetryCollector metrics,
                              MetricSubscriptionSource subscriptionSource, Sleeper sleeper,
                              LongSupplier clock) {
         this.screenWidth = screenWidth;
@@ -120,7 +120,7 @@ public final class CalibrationRunner {
     }
 
     void run(Listener listener) {
-        MonoStdoutMetricHub.Subscription subscription = null;
+        MonoStdoutTelemetryHub.Subscription subscription = null;
         try {
             state(listener, State.PREFLIGHT, "Checking Accessibility gestures and metric stream");
             if (!gestures.isReady()) {
@@ -350,7 +350,7 @@ public final class CalibrationRunner {
 
     @FunctionalInterface
     public interface MetricSubscriptionSource {
-        MonoStdoutMetricHub.Subscription subscribe(Consumer<QZMetricPacket> subscriber)
+        MonoStdoutTelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber)
                 throws IOException;
     }
 
@@ -373,19 +373,19 @@ public final class CalibrationRunner {
 
     private enum MetricTarget {
         INCLINE("grade") {
-            @Override Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs) {
+            @Override Float waitFresh(CalibrationTelemetryCollector metrics, long ts, long timeoutMs) {
                 return metrics.waitFreshGrade(ts, timeoutMs);
             }
-            @Override Float waitStable(CalibrationMetricCollector metrics, long ts,
+            @Override Float waitStable(CalibrationTelemetryCollector metrics, long ts,
                                        long settleMs, long timeoutMs) {
                 return metrics.waitStableGrade(ts, settleMs, timeoutMs);
             }
         },
         RESISTANCE("resistance") {
-            @Override Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs) {
+            @Override Float waitFresh(CalibrationTelemetryCollector metrics, long ts, long timeoutMs) {
                 return metrics.waitFreshResistance(ts, timeoutMs);
             }
-            @Override Float waitStable(CalibrationMetricCollector metrics, long ts,
+            @Override Float waitStable(CalibrationTelemetryCollector metrics, long ts,
                                        long settleMs, long timeoutMs) {
                 return metrics.waitStableResistance(ts, settleMs, timeoutMs);
             }
@@ -397,8 +397,8 @@ public final class CalibrationRunner {
             this.logName = logName;
         }
 
-        abstract Float waitFresh(CalibrationMetricCollector metrics, long ts, long timeoutMs);
-        abstract Float waitStable(CalibrationMetricCollector metrics, long ts,
+        abstract Float waitFresh(CalibrationTelemetryCollector metrics, long ts, long timeoutMs);
+        abstract Float waitStable(CalibrationTelemetryCollector metrics, long ts,
                                   long settleMs, long timeoutMs);
     }
 }

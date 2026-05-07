@@ -31,7 +31,7 @@ Chaos replay artifact: `app/build/reports/perf/ride-chaos.json`
 
 | File | Tests | What it covers |
 |------|------:|----------------|
-| `MetricReaderTest` | 4 | `MonoStdoutMetricReader` stream parsing and push subscription; malformed lines |
+| `TelemetryReaderTest` | 4 | `MonoStdoutTelemetryReader` stream parsing and push subscription; malformed lines |
 | `BikeDeviceTest` | 64 | All bike device subclasses: `targetY()` formula at representative values, FIFO queue, de-dup, null resistance slider, negative incline, hysteresis overshoot, `decodeCommands` sentinel/boundary cases |
 | `TreadmillDeviceTest` | 143 | All treadmill device subclasses: `targetY()` formula at representative values, speed gate, belt-gate self-flush, FIFO queue, negative incline, `decodeCommands` sentinel/boundary cases |
 | `QZCommandPacketTest` | 23 | `QZCommandPacket` parsing: all command types, malformed input, locale separators, boundary values |
@@ -44,7 +44,7 @@ Chaos replay artifact: `app/build/reports/perf/ride-chaos.json`
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `QZCommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `QZCommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
 | `QZCommandListenerChaosTest` | 2 | Robolectric: destructive UDP service lifecycle — repeated start/stop socket rebind and rapid no-subscriber packets |
-| `QZMetricUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
+| `QZTelemetryUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
 | `GestureServiceTest` | 2 | Robolectric: accessibility gesture helpers fail safely when the service is not connected |
 | `RidePerformanceReplayTest` | 1 | Deterministic CI performance replay: fake iFit `mono-stdout`, QZ command fixture, injected time, broad heap/thread/wall-clock budgets, JSON report artifact |
 | `RideStressReplayTest` | 1 | Scheduled/manual stress suite: long soak, burst overload, sentinel drain, noisy iFit stream, metric reader restart, JSON report artifact |
@@ -74,7 +74,7 @@ Expected Y values are derived analytically from the device's `targetY()` formula
 
 `CommandDispatcher` tests inject a `Clock` lambda (`() -> time[0]`) and advance `time[0]` directly — no `Thread.sleep()` anywhere in the test suite.
 
-`MonoStdoutMetricReader` tests inject a fake `ProcessFactory` that returns a process backed by a `ByteArrayInputStream`, then call `reader.awaitCurrentStream()` to drain the daemon thread before asserting on the snapshot.
+`MonoStdoutTelemetryReader` tests inject a fake `ProcessFactory` that returns a process backed by a `ByteArrayInputStream`, then call `reader.awaitCurrentStream()` to drain the daemon thread before asserting on the snapshot.
 
 ---
 
@@ -141,6 +141,6 @@ The helper methods `dev()`, `applyIncline()`, `applySpeed()`, and `assertSwipe()
 |------|--------|-------|
 | `FtmsPacket` | Not tested | Pure Java; `parseControlPoint()` and `response()` have no unit tests. Straightforward to add. |
 | `BleCanaryService` | Not tested | Android BLE stack; would require Robolectric + shadow classes. Low priority while the canary is in pre-production. |
-| `MetricReader` error paths | Partially tested | Malformed lines and truncation boundary covered; duplicate-field and extreme-value edge cases are not. |
+| `TelemetryReader` error paths | Partially tested | Malformed lines and truncation boundary covered; duplicate-field and extreme-value edge cases are not. |
 | `discover-device.py` sweep output | Not tested | The calibration script is validated via the unattended test plan (`tools/test-calibration-unattended.md`), not a unit test. |
 | Accessibility swipe path | Not tested | `GestureService.performSwipe()` requires an Android runtime; no Robolectric coverage yet. |

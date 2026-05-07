@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.qz;
 /**
  * Represents a single outbound metric update sent to the QZ app via UDP (port 8002).
  *
- * Wire format is byte-for-byte identical to what QZMetricUnicastingService
+ * Wire format is byte-for-byte identical to what QZTelemetryUnicastingService
  * previously produced via raw string concatenation:
  *
  *   Float metrics: prefix + Float.toString(value)   e.g. "Changed KPH 12.5"

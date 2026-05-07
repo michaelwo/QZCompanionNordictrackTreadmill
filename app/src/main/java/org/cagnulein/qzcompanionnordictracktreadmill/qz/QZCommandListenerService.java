@@ -58,7 +58,7 @@ public class QZCommandListenerService extends Service {
         if (MainActivity.isDebugLog()) {
             MainActivity.writeLog(command);
             Log.i(LOG_TAG, command);
-            QZMetricUnicastingService.sendUnicast(command);
+            QZTelemetryUnicastingService.sendUnicast(command);
         }
     }
 

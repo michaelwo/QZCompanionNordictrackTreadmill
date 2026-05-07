@@ -86,7 +86,7 @@ Three mechanisms filter commands before a swipe is issued:
 |-----------|-------|-----------|
 | **Throttle** | `CommandDispatcher` | Incoming Commands are enqueued in a FIFO queue (capacity 5). One Command drains per 500ms throttle window, oldest first — driven by a background `QZ:DrainThread` and by each `enqueue()` call. Sentinel packets (empty command list) call `drain()` directly so they still flush the queue. Excess Commands are dropped. |
 | **De-dup** | `XxxSlider.handle()` | If the quantized value equals `lastApplied`, the swipe is skipped entirely. |
-| **Speed gate** | `SpeedSlider` | Speed commands are held in a one-slot cache while `liveValueOrZero() <= 0` (belt stopped). The cache self-flushes when `applyIfMatch(KPH, >0, device)` fires. |
+| **Speed gate** | `SpeedSlider` | Speed commands are held in a one-slot cache while `liveValueOrZero() <= 0` (belt stopped). The cache self-flushes when `applyTelemetry(KPH, >0, device)` fires. |
 
 ### Outbound: Hardware → Zwift
 
@@ -100,24 +100,25 @@ iFit firmware
         │            files/.valinorlogs/log.latest.txt
         │
         ▼
-QZMetricUnicastingService
+MonoStdoutTelemetryHub
         │
-        │  reader.subscribe(packet →)          ← push path (MonoStdoutMetricReader)
-        │    → delivers QZMetricPacket{metric, value} per changed field
+        │  TelemetryReader.subscribe(telemetry →)  ← push path (MonoStdoutTelemetryReader)
+        │    → delivers Telemetry per changed field
         │
-        │  toSliderMetric(packet.metric) → SliderMetric (or null if unmapped)
-        │  subscriber.onMetric(sliderMetric, packet.value)
+        ├─ QZTelemetryUnicastingService
+        │    → QZTelemetryEncoder.encode(telemetry)
+        │    → sendUnicast(): drops packet if no heartbeat in last 30 s
+        │
+        └─ DeviceController.onTelemetry(telemetry)
         ▼
-DeviceController.onMetric(metric, value)
-        │  device.applyMetric(metric, value)
-        │    → iterates sliders(), calls s.applyIfMatch(metric, value, device)
-        │    → SpeedSlider.applyIfMatch() flushes cached speed if KPH > 0 (belt started)
+Device.applyTelemetry(telemetry)
+        │    → iterates sliders(), calls s.applyTelemetry(telemetry, device)
+        │    → SpeedSlider.applyTelemetry() flushes cached speed if KPH > 0 (belt started)
         │    → live-mode Sliders update their liveValue for currentThumbY tracking
         ▼
-QZMetricUnicastingService (continued)
+QZTelemetryUnicastingService (continued)
         │
-        │  delta check: only changed fields are sent
-        │  sendUnicast(): drops packet if no heartbeat in last 30 s
+        │  QZMetricPacket.serialize()
         ▼
 UDP unicast → qzAddress:8002   (qzAddress = source IP of last -100; heartbeat)
         │  "Changed KPH <value>"
@@ -132,7 +133,7 @@ QZ App (phone/tablet)
 Zwift (PC/console)
 ```
 
-`MonoStdoutMetricReader` pushes metric updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. Only fields that changed since the last unicast are sent — unchanged metrics produce no UDP traffic. Metric packets are addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. The `DeviceController.onMetric()` call closes the feedback loop for the inbound path: `SpeedSlider`'s speed gate blocks treadmill speed swipes while the belt is stopped, and when `KPH` first rises above zero any cached speed is applied immediately — the swipe fires the moment the belt starts, independent of incoming UDP packets. Sliders constructed with the `.live()` factory re-derive their starting position from live observed metrics rather than tracking internal state.
+`MonoStdoutTelemetryReader` pushes telemetry updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. `MonoStdoutTelemetryHub` owns that single reader and fans domain telemetry out to independent consumers. `QZTelemetryUnicastingService` encodes telemetry into `QZMetricPacket` wire messages addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. `DeviceController.onTelemetry()` closes the feedback loop for the inbound path: `SpeedSlider`'s speed gate blocks treadmill speed swipes while the belt is stopped, and when `SpeedTelemetry > 0` first arrives any cached speed is applied immediately. Sliders constructed with the `.live()` factory re-derive their starting position from live observed telemetry rather than tracking internal state.
 
 ---
 
@@ -142,10 +143,10 @@ Zwift (PC/console)
 
 ```
 org.cagnulein.qzcompanionnordictracktreadmill
-├── qz/               QZCommandListenerService, QZMetricUnicastingService,
+├── qz/               QZCommandListenerService, QZTelemetryUnicastingService,
 │                     QZCommandPacket, QZMetricPacket,
-│                     QZCommandSubscriber, QZMetricSubscriber
-├── console/          MetricReader hierarchy, MonoStdoutMetricReader,
+│                     QZCommandSubscriber, QZTelemetryEncoder
+├── console/          TelemetryReader hierarchy, MonoStdoutTelemetryReader,
 │                     GestureService
 ├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
@@ -153,7 +154,9 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │   ├── treadmill/    One class per treadmill device
 │   ├── command/      Command, SpeedCommand, InclineCommand, ResistanceCommand,
 │   │                 GearCommand, CommandDispatcher, RawSwipeCommand
-│   └── slider/       Slider, SliderMetric, InclineSlider, SpeedSlider,
+│   ├── telemetry/    Telemetry, SpeedTelemetry, InclineTelemetry,
+│   │                 ResistanceTelemetry, GearTelemetry, etc.
+│   └── slider/       Slider, InclineSlider, SpeedSlider,
 │                     ResistanceSlider, GearSlider
 ├── platform/         Android platform helpers
 │   ├── crash/        CrashHandler
@@ -170,11 +173,11 @@ org.cagnulein.qzcompanionnordictracktreadmill
 - `applyCommand(Command)` — calls `cmd.applyTo(this)`; throttle is handled upstream by `CommandDispatcher` via `DeviceController`
 - `sliders()` — abstract; returns the list of typed `Slider` instances owned by this device
 - `sliderOf(Class<S>)` — final generic lookup; returns the first slider of the given subtype, or `null`
-- `applyMetric(SliderMetric, float)` — final; iterates `sliders()` calling `s.applyIfMatch(metric, value, this)` on each
+- `applyTelemetry(Telemetry)` — final; iterates `sliders()` calling `s.applyTelemetry(telemetry, this)` on each
 
 **`BikeDevice`** (abstract, extends `Device`) — controls one or two typed `Slider` instances (incline + optional resistance/gear). Implements `sliders()` returning the non-null sliders. `decodeCommands()` calls `incline.commandFor(v)` and `resistance.commandFor(v)` so each slider produces its own matching `Command` type. De-duplication is handled inside each slider's `handle()` method.
 
-**`TreadmillDevice`** (abstract, extends `Device`) — controls `SpeedSlider` and `InclineSlider` instances. Implements `sliders()` returning both. Speed-gate logic lives in `SpeedSlider`: commands are held in a one-slot cache while the belt is stopped, and flushed the moment `KPH > 0` arrives via `applyIfMatch`.
+**`TreadmillDevice`** (abstract, extends `Device`) — controls `SpeedSlider` and `InclineSlider` instances. Implements `sliders()` returning both. Speed-gate logic lives in `SpeedSlider`: commands are held in a one-slot cache while the belt is stopped, and flushed the moment `KPH > 0` arrives via `applyTelemetry`.
 
 **`Slider`** (abstract) — represents one physical slider on the iFit touchscreen. Four typed subclasses exist: `InclineSlider` (metric: `GRADE`), `SpeedSlider` (metric: `KPH`), `ResistanceSlider` (metric: `RESISTANCE`), and `GearSlider` (metric: `CURRENT_GEAR`). Each typed slider is constructed as `new InclineSlider(trackX, initialThumbY, formula)` etc., where `trackX` is a `ScreenProfile` constant, `initialThumbY` equals `formula(0)`, and `formula` is a `ThumbYFormula` method reference. When `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding, an anonymous typed-slider subclass is used. Each typed slider also provides a `.live()` static factory that overrides `currentThumbY()` to re-derive starting position from its live metric value. Overridable behaviours:
 - `targetThumbY(double v)` — (supplied via `ThumbYFormula`) converts a metric value to a logical pixel Y coordinate
@@ -190,7 +193,7 @@ Each typed slider implements two abstract methods:
 
 **`ScreenProfile`** (enum) — encodes the horizontal pixel coordinates of the left and right slider tracks for each iFit screen width (W1920, W1280, W1024, W800). Constants are derived from iFit APK 2.6.90 (versionCode 4963, `com.ifit.standalone`): `workout_slider_margin=12 dp`, `workout_slider_width=125 dp` → track centre at `12 + 62.5 = 74.5 dp`. Left and right values are stored independently because dp→px rounding can be asymmetric at the pixel boundary. If the iFit app is updated, re-derive these constants from the new APK's `res/values/dimens.xml` before touching any device class.
 
-**`DeviceController`** — the seam between the two services and the device layer. Implements both `QZMetricSubscriber` and `QZCommandSubscriber`. Owns the selected `Device`, an internal `CalibrationDevice`, and a `CommandDispatcher`. `onPacket()` first asks `CalibrationDevice.decodeCommands()` to translate `CALSWIPE:x:fromY:toY` packets into `RawSwipeCommand`; if no calibration command is produced, it falls back to `device.decodeCommands()`. It enqueues each resulting `Command` and calls `dispatcher.drain()` for empty (sentinel) packets. `onMetric()` forwards directly to `device.applyMetric()`. `MainActivity` creates a new `DeviceController` on device selection and registers it with both services via `QZCommandListenerService.setSubscriber()` and `QZMetricUnicastingService.setSubscriber()`.
+**`DeviceController`** — the seam between command packets, telemetry, and the device layer. Implements `QZCommandSubscriber`. Owns the selected `Device`, an internal `CalibrationDevice`, a `CommandDispatcher`, and a `MonoStdoutTelemetryHub` subscription. `onPacket()` first asks `CalibrationDevice.decodeCommands()` to translate `CALSWIPE:x:fromY:toY` packets into `RawSwipeCommand`; if no calibration command is produced, it falls back to `device.decodeCommands()`. It enqueues each resulting `Command` and calls `dispatcher.drain()` for empty (sentinel) packets. `onTelemetry()` forwards directly to `device.applyTelemetry()`. `MainActivity` creates a new `DeviceController` on device selection, registers it with `QZCommandListenerService`, and shuts the old controller down so its telemetry subscription is closed.
 
 **`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `QZCommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
@@ -210,7 +213,7 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 ### Command Dispatch
 
-**`QZCommandListenerService`** — pure publisher. Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and calls `subscriber.onPacket()` for each datagram. Records `qzAddress` and `lastQzHeartbeatMs` from normal QZ command/heartbeat packets so `QZMetricUnicastingService` knows where to send metric updates; `CALSWIPE` packets are routed to the subscriber without updating heartbeat state. `CALSWIPE_PREFIX` is defined in `QZCommandPacket` (wire-format knowledge belongs there). Subscriber is set via `QZCommandListenerService.setSubscriber(QZCommandSubscriber)` after the service starts.
+**`QZCommandListenerService`** — pure publisher. Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and calls `subscriber.onPacket()` for each datagram. Records `qzAddress` and `lastQzHeartbeatMs` from normal QZ command/heartbeat packets so `QZTelemetryUnicastingService` knows where to send metric updates; `CALSWIPE` packets are routed to the subscriber without updating heartbeat state. `CALSWIPE_PREFIX` is defined in `QZCommandPacket` (wire-format knowledge belongs there). Subscriber is set via `QZCommandListenerService.setSubscriber(QZCommandSubscriber)` after the service starts.
 
 **`CommandDispatcher`** — pure throttle and queue. Accepts a `Consumer<Command> executor` at construction; has no device knowledge. Commands are enqueued via `enqueue(Command)` and drained one per 500 ms throttle window via `executor.accept(cmd)`. Drain happens on two paths: `enqueue()` attempts an immediate drain when the window is open, and a background `ScheduledExecutorService` (`QZ:DrainThread`) fires every 500 ms. `drain()` is called directly by `DeviceController` for sentinel packets (empty command list). Both paths synchronize on `this` to prevent double-drain. `shutdown()` stops the background thread. Has an injectable `Clock` interface so tests can drive time without sleeping — the test constructor starts no background thread.
 
@@ -222,15 +225,13 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 **`QZCommandPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`), and `CALSWIPE_PREFIX`. The `;` split is not exposed outside this class.
 
-**`QZMetricPacket`** — typed wrapper for an outbound UDP metric message. The `Metric` enum encodes both the wire-format prefix string and whether the value serialises as an integer or float. `serialize()` produces the raw string sent over UDP; `parse()` reconstructs the object from a raw string (used in tests). `QZMetricUnicastingService` constructs one instance per changed metric and calls `serialize()` before passing the result to `sendUnicast()`.
+**`QZMetricPacket`** — typed wrapper for an outbound UDP metric message. The `Metric` enum encodes both the wire-format prefix string and whether the value serialises as an integer or float. `serialize()` produces the raw string sent over UDP; `parse()` reconstructs the object from a raw string (used in tests). `QZTelemetryEncoder` constructs one instance from domain telemetry before `QZTelemetryUnicastingService` calls `sendUnicast()`.
 
 ### Metric Reading
 
-**`QZMetricUnicastingService`** — pure publisher. Background service that starts `MonoStdoutMetricReader` once unconditionally in `onCreate()`. On each reading it calls `toSliderMetric(packet.metric)` to map the wire-format metric to a domain type, then `subscriber.onMetric(sliderMetric, value)` if the metric is mapped and a subscriber is set. Unicasts changed metrics to `qzAddress:8002`. Silently drops sends until `QZCommandListenerService` has seen a QZ heartbeat within the last 30 s. Subscriber is set via `QZMetricUnicastingService.setSubscriber(QZMetricSubscriber)`.
+**`QZTelemetryUnicastingService`** — UDP output adapter. Background service that subscribes to `MonoStdoutTelemetryHub` in `onCreate()`, encodes each domain telemetry value with `QZTelemetryEncoder`, and unicasts the resulting metric packet to `qzAddress:8002`. Silently drops sends until `QZCommandListenerService` has seen a QZ heartbeat within the last 30 s.
 
-**`QZMetricSubscriber`** — single-method interface: `onMetric(SliderMetric metric, float value)`. Implemented by `DeviceController`.
-
-The `MetricReader` interface and its implementations are described in the [Design Decisions](#design-decisions) and [Reference](#reference) sections below.
+The `TelemetryReader` interface and its implementations are described in the [Design Decisions](#design-decisions) and [Reference](#reference) sections below.
 
 ### Swipe Execution Paths
 
@@ -238,7 +239,7 @@ All 44 devices use `GestureService.performSwipe()` via `Slider.moveTo()`. There 
 
 ### Calibration
 
-Device-specific slider calibration is performed once per physical device from inside QZCompanion. The guided calibration screen runs on the iFit tablet, uses `GestureService` gestures to sweep incline and resistance, subscribes to the shared `MonoStdoutMetricHub`, fits `Y = origin − scale × value`, writes `/sdcard/qz-calibration.json`, updates `DeviceCalibration.current`, and selects `custom_calibrated` without an app restart.
+Device-specific slider calibration is performed once per physical device from inside QZCompanion. The guided calibration screen runs on the iFit tablet, uses `GestureService` gestures to sweep incline and resistance, subscribes to the shared `MonoStdoutTelemetryHub`, fits `Y = origin − scale × value`, writes `/sdcard/qz-calibration.json`, updates `DeviceCalibration.current`, and selects `custom_calibrated` without an app restart.
 
 `DeviceCalibration` remains the compatibility boundary. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `DeviceCalibration.load(SharedPreferences)` provides a legacy fallback.
 
@@ -262,23 +263,23 @@ The fitted constants from `qz-calibration.json` are also the exact values a cont
 
 The iFit app (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) application. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`. This is consistent across every NordicTrack and ProForm device running the same Xamarin stack, which covers all hardware supported by this project.
 
-Subscribing to `mono-stdout` via a persistent `logcat -s mono-stdout` process is strictly better than the per-device polling strategies used by the legacy codebase (`tail`/`grep` on a log file, `cat`, full logcat dumps): no repeated shell process spawning, no 250 ms poll lag, and no device-specific reader selection to maintain. `MonoStdoutMetricReader` is now the universal default for all 44 devices.
+Subscribing to `mono-stdout` via a persistent `logcat -s mono-stdout` process is strictly better than the per-device polling strategies used by the legacy codebase (`tail`/`grep` on a log file, `cat`, full logcat dumps): no repeated shell process spawning, no 250 ms poll lag, and no device-specific reader selection to maintain. `MonoStdoutTelemetryReader` is now the universal default for all 44 devices.
 
 ---
 
 ## Reference
 
-### MetricReader Interface
+### TelemetryReader Interface
 
-All 44 devices use `MonoStdoutMetricReader`. The `MetricReader` interface has a `subscribe(Consumer<QZMetricPacket>)` method that `MonoStdoutMetricReader` implements by starting a background thread; `QZMetricUnicastingService` calls `subscribe()` once on startup rather than polling. Each `QZMetricPacket` carries a single wire-format metric field and its float value.
+All 44 devices use `MonoStdoutTelemetryReader`. The `TelemetryReader` interface has a `subscribe(Consumer<Telemetry>)` method that `MonoStdoutTelemetryReader` implements by starting a background thread; `MonoStdoutTelemetryHub` owns the single reader and fans telemetry out to QZ UDP output, the active `DeviceController`, and calibration.
 
-### MonoStdoutMetricReader
+### MonoStdoutTelemetryReader
 
-The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) app. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`, one value per line. `MonoStdoutMetricReader` opens `logcat -s mono-stdout` as a persistent child process in a daemon thread and parses each line as it arrives. Latency from firmware change to cached snapshot update is under 10 ms. The thread restarts automatically if the logcat process exits.
+The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) app. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`, one value per line. `MonoStdoutTelemetryReader` opens `logcat -s mono-stdout` as a persistent child process in a daemon thread and parses each line as it arrives. Latency from firmware change to cached snapshot update is under 10 ms. The thread restarts automatically if the logcat process exits.
 
 `read()` starts the logcat background thread; it returns immediately. There are no file or shell arguments.
 
-`QZMetricUnicastingService` calls `subscribe(snapshot →)` once when a device is selected. `MonoStdoutMetricReader` stores the listener and invokes it on every parsed update; the service then unicasts only the changed fields to `qzAddress:8002`.
+`MonoStdoutTelemetryHub` calls `subscribe(telemetry -> ...)` on the reader once. Consumers subscribe to the hub, not the reader, so QZ UDP output, device feedback, and calibration share one process-wide logcat stream.
 
 **Parsed line keywords** (last whitespace-delimited token on each line is the value):
 
@@ -294,7 +295,7 @@ The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform
 
 ### QZMetricPacket Fields
 
-`QZMetricPacket` carries a single metric enum value and its float reading. `QZMetricUnicastingService` receives one packet per changed field, re-unicasts the last known value for unchanged fields, and maps the wire-format metric to the device-domain `SliderMetric`; `DeviceController.onMetric()` forwards it to `device.applyMetric(SliderMetric, float)`, which routes the value to the matching `Slider` via `applyIfMatch()` and updates its live state.
+`QZMetricPacket` carries a single metric enum value and its float reading. It is a QZ UDP adapter type only. `QZTelemetryEncoder` maps domain telemetry to this wire type, and `QZTelemetryUnicastingService` serializes it. Device and slider code consume `Telemetry` objects directly and do not import `QZMetricPacket`.
 
 | `QZMetricPacket.Metric` | Unit |
 |----------------|------|

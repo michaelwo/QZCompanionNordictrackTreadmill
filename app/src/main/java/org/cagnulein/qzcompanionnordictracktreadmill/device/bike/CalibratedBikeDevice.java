@@ -2,9 +2,12 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 /**
  * Bike device whose swipe formulas are loaded at runtime from DeviceCalibration
@@ -107,12 +110,13 @@ public class CalibratedBikeDevice extends BikeDevice {
             }
 
             @Override
-            public void applyIfMatch(SliderMetric m, float value) {
-                if (m == SliderMetric.CURRENT_GEAR && value >= 1) {
+            public void applyTelemetry(Telemetry telemetry, Device device) {
+                if (telemetry instanceof GearTelemetry && telemetry.value >= 1) {
                     currentGearSeen = true;
-                    liveValue = value;
-                } else if (m == SliderMetric.RESISTANCE && value >= 1 && !currentGearSeen) {
-                    liveValue = value;
+                    liveValue = telemetry.value;
+                } else if (telemetry instanceof ResistanceTelemetry
+                        && telemetry.value >= 1 && !currentGearSeen) {
+                    liveValue = telemetry.value;
                 }
             }
         };

@@ -185,7 +185,7 @@ public class QZMetricPacketTest {
         }
     }
 
-    // ── wire-format identity: mirrors legacy QZMetricUnicastingService ────
+    // ── wire-format identity: mirrors legacy QZTelemetryUnicastingService ────
 
     @Test
     public void serialize_kph_matchesLegacyFloatConcatenation() {

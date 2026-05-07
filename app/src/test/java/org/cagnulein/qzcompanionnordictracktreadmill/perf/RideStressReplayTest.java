@@ -1,11 +1,11 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.perf;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
 
 import org.junit.After;
 import org.junit.Test;
@@ -38,10 +38,10 @@ public class RideStressReplayTest {
 
     @After
     public void restoreStaticState() throws IOException {
-        MonoStdoutMetricReader.factory = () -> Runtime.getRuntime().exec(
+        MonoStdoutTelemetryReader.factory = () -> Runtime.getRuntime().exec(
                 new String[]{"logcat", "-s", "mono-stdout"});
-        MonoStdoutMetricReader.onError = e -> {};
-        MonoStdoutMetricReader.onLine = s -> {};
+        MonoStdoutTelemetryReader.onError = e -> {};
+        MonoStdoutTelemetryReader.onLine = s -> {};
         writeReports();
     }
 
@@ -178,11 +178,11 @@ public class RideStressReplayTest {
             totalLines++;
         }
 
-        List<QZMetricPacket> packets = new ArrayList<>();
+        List<Telemetry> packets = new ArrayList<>();
         AtomicInteger errors = new AtomicInteger();
-        MonoStdoutMetricReader.factory = () -> fakeProcess(stream.toString());
-        MonoStdoutMetricReader.onError = e -> errors.incrementAndGet();
-        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        MonoStdoutTelemetryReader.factory = () -> fakeProcess(stream.toString());
+        MonoStdoutTelemetryReader.onError = e -> errors.incrementAndGet();
+        MonoStdoutTelemetryReader reader = new MonoStdoutTelemetryReader();
         reader.subscribe(packets::add);
         reader.read();
         reader.awaitStream();
@@ -199,14 +199,14 @@ public class RideStressReplayTest {
 
         AtomicInteger launches = new AtomicInteger();
         AtomicInteger errors = new AtomicInteger();
-        List<QZMetricPacket> packets = new ArrayList<>();
-        MonoStdoutMetricReader.onError = e -> errors.incrementAndGet();
+        List<Telemetry> packets = new ArrayList<>();
+        MonoStdoutTelemetryReader.onError = e -> errors.incrementAndGet();
 
-        MonoStdoutMetricReader reader = new MonoStdoutMetricReader();
+        MonoStdoutTelemetryReader reader = new MonoStdoutTelemetryReader();
         reader.subscribe(packets::add);
         for (int i = 0; i < 20; i++) {
             final int value = i;
-            MonoStdoutMetricReader.factory = () -> {
+            MonoStdoutTelemetryReader.factory = () -> {
                 launches.incrementAndGet();
                 return fakeProcess("V/mono-stdout(2174): [Trace:FitPro] Changed RPM to: " + value + "\n");
             };
@@ -214,7 +214,7 @@ public class RideStressReplayTest {
             reader.awaitStream();
         }
         for (int i = 0; i < 5; i++) {
-            MonoStdoutMetricReader.factory = () -> { throw new IOException("synthetic stream failure"); };
+            MonoStdoutTelemetryReader.factory = () -> { throw new IOException("synthetic stream failure"); };
             reader.read();
             reader.awaitStream();
         }

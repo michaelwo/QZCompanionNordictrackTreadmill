@@ -3,11 +3,12 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.GearCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
 
 public class GearSlider extends Slider {
 
     public GearSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, SliderMetric.CURRENT_GEAR);
+        super(trackX, initialThumbY, formula, GearTelemetry.class);
     }
 
     @Override

@@ -22,7 +22,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
-        <service android:name=".qz.QZMetricUnicastingService"/>
+        <service android:name=".qz.QZTelemetryUnicastingService"/>
         <service android:name=".qz.QZCommandListenerService"/>
 
         <service
