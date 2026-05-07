@@ -23,6 +23,8 @@ Performance replay artifact: `app/build/reports/perf/ride-performance.json`
 
 Stress replay artifact: `app/build/reports/perf/ride-stress.json`
 
+Chaos replay artifact: `app/build/reports/perf/ride-chaos.json`
+
 ---
 
 ## Test Files
@@ -41,10 +43,13 @@ Stress replay artifact: `app/build/reports/perf/ride-stress.json`
 | `HillyRouteReplayTest` | 1 | Parameterised replay of a recorded Hilly Route (31 intervals) against S22i; verifies de-dup fires correctly on repeated grades |
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `QZCommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `QZCommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
+| `QZCommandListenerChaosTest` | 2 | Robolectric: destructive UDP service lifecycle — repeated start/stop socket rebind and rapid no-subscriber packets |
 | `QZMetricUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
+| `GestureServiceTest` | 2 | Robolectric: accessibility gesture helpers fail safely when the service is not connected |
 | `RidePerformanceReplayTest` | 1 | Deterministic CI performance replay: fake iFit `mono-stdout`, QZ command fixture, injected time, broad heap/thread/wall-clock budgets, JSON report artifact |
 | `RideStressReplayTest` | 1 | Scheduled/manual stress suite: long soak, burst overload, sentinel drain, noisy iFit stream, metric reader restart, JSON report artifact |
-| **Total** | **328** | |
+| `RideChaosReplayTest` | 1 | Scheduled/manual destructive suite: packet fuzzing, numeric extremes, queue/sentinel chaos, metric reader abuse, JSON report artifact |
+| **Total** | **333** | |
 
 ---
 

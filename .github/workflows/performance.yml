@@ -17,8 +17,8 @@ jobs:
           java-version: 17
           distribution: temurin
 
-      - name: Run deterministic ride replay and stress suite
-        run: ./gradlew testDebugUnitTest --tests '*RidePerformanceReplayTest' --tests '*RideStressReplayTest' -PversionCode=${{ github.run_number }}
+      - name: Run deterministic ride replay, stress suite, and chaos suite
+        run: ./gradlew testDebugUnitTest --tests '*RidePerformanceReplayTest' --tests '*RideStressReplayTest' --tests '*RideChaosReplayTest' -PversionCode=${{ github.run_number }}
 
       - name: Archive JVM performance artifacts
         if: always()

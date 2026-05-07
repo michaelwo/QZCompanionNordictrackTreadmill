@@ -51,6 +51,10 @@ public class GestureService extends AccessibilityService {
     }
 
     public static void performTap(float x, float y) {
+        if (instance == null) {
+            Log.e(TAG, "performTap: AccessibilityService not connected");
+            return;
+        }
         Path path = new Path();
         path.moveTo(x, y);
 
@@ -70,6 +74,10 @@ public class GestureService extends AccessibilityService {
     }
 
     public static void performSwipe(float startX, float startY, float endX, float endY, long duration) {
+        if (instance == null) {
+            Log.e(TAG, "performSwipe: AccessibilityService not connected");
+            return;
+        }
         Path path = new Path();
         path.moveTo(startX, startY);
         path.lineTo(endX, endY);
