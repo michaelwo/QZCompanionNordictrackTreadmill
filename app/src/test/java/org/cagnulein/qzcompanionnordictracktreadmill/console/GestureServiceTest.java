@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.gesture;
+package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

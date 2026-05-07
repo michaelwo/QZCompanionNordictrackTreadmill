@@ -105,7 +105,7 @@ QZMetricUnicastingService
         │  reader.subscribe(packet →)          ← push path (MonoStdoutMetricReader)
         │    → delivers QZMetricPacket{metric, value} per changed field
         │
-        │  SliderMetric.from(packet.metric) → SliderMetric (or null if unmapped)
+        │  toSliderMetric(packet.metric) → SliderMetric (or null if unmapped)
         │  subscriber.onMetric(sliderMetric, packet.value)
         ▼
 DeviceController.onMetric(metric, value)
@@ -146,15 +146,15 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZMetricSubscriber
 ├── console/          MetricReader hierarchy, MonoStdoutMetricReader,
-│                     SliderMetric, IfitConsoleSnapshot
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceController,
+│                     IfitConsoleSnapshot, GestureService
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, SliderMetric,
+│                     DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── bike/         One class per bike device
 │   ├── treadmill/    One class per treadmill device
 │   ├── command/      Command, SpeedCommand, InclineCommand, ResistanceCommand,
 │   │                 GearCommand, CommandDispatcher, RawSwipeCommand
-│   ├── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
-│   └── gesture/      GestureService
+│   └── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
 └── ui/               MainActivity, DeviceAdapter
 ```
 
@@ -223,7 +223,7 @@ Full methodology, per-screen-width tables, and documentation of known anomalies 
 
 ### Metric Reading
 
-**`QZMetricUnicastingService`** — pure publisher. Background service that starts `MonoStdoutMetricReader` once unconditionally in `onCreate()`. On each reading it calls `SliderMetric.from(packet.metric)` to map the wire-format metric to a domain type, then `subscriber.onMetric(sliderMetric, value)` if the metric is mapped and a subscriber is set. Unicasts changed metrics to `qzAddress:8002`. Silently drops sends until `QZCommandListenerService` has seen a QZ heartbeat within the last 30 s. Subscriber is set via `QZMetricUnicastingService.setSubscriber(QZMetricSubscriber)`.
+**`QZMetricUnicastingService`** — pure publisher. Background service that starts `MonoStdoutMetricReader` once unconditionally in `onCreate()`. On each reading it calls `toSliderMetric(packet.metric)` to map the wire-format metric to a domain type, then `subscriber.onMetric(sliderMetric, value)` if the metric is mapped and a subscriber is set. Unicasts changed metrics to `qzAddress:8002`. Silently drops sends until `QZCommandListenerService` has seen a QZ heartbeat within the last 30 s. Subscriber is set via `QZMetricUnicastingService.setSubscriber(QZMetricSubscriber)`.
 
 **`QZMetricSubscriber`** — single-method interface: `onMetric(SliderMetric metric, float value)`. Implemented by `DeviceController`.
 
@@ -267,7 +267,7 @@ Subscribing to `mono-stdout` via a persistent `logcat -s mono-stdout` process is
 
 ### MetricReader Interface
 
-All 44 devices use `MonoStdoutMetricReader`. The `MetricReader` interface has a `subscribe(Consumer<QZMetricPacket>)` method that `MonoStdoutMetricReader` implements by starting a background thread; `QZMetricUnicastingService` calls `subscribe()` once on startup rather than polling. Each `QZMetricPacket` carries a single `SliderMetric` field and its float value.
+All 44 devices use `MonoStdoutMetricReader`. The `MetricReader` interface has a `subscribe(Consumer<QZMetricPacket>)` method that `MonoStdoutMetricReader` implements by starting a background thread; `QZMetricUnicastingService` calls `subscribe()` once on startup rather than polling. Each `QZMetricPacket` carries a single wire-format metric field and its float value.
 
 ### MonoStdoutMetricReader
 
@@ -291,14 +291,14 @@ The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform
 
 ### QZMetricPacket Fields
 
-`QZMetricPacket` carries a single `SliderMetric` enum value and its float reading. `QZMetricUnicastingService` receives one packet per changed field and re-unicasts the last known value for unchanged fields. `SliderMetric.from(QZMetricPacket.Metric)` maps the wire-format metric to the domain type; `DeviceController.onMetric()` forwards it to `device.applyMetric(SliderMetric, float)`, which routes the value to the matching `Slider` via `applyIfMatch()` and updates its live state.
+`QZMetricPacket` carries a single metric enum value and its float reading. `QZMetricUnicastingService` receives one packet per changed field, re-unicasts the last known value for unchanged fields, and maps the wire-format metric to the device-domain `SliderMetric`; `DeviceController.onMetric()` forwards it to `device.applyMetric(SliderMetric, float)`, which routes the value to the matching `Slider` via `applyIfMatch()` and updates its live state.
 
-| `SliderMetric` | Unit |
+| `QZMetricPacket.Metric` | Unit |
 |----------------|------|
 | `KPH` | km/h |
 | `GRADE` | % |
 | `WATTS` | W |
 | `RPM` | RPM |
-| `GEAR` | level |
+| `CURRENT_GEAR` | level |
 | `RESISTANCE` | level |
 | `HEART_RATE` | BPM |

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
 
 import static org.junit.Assert.*;
 

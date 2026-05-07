@@ -41,7 +41,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationFit;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.IfitConsoleSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -233,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void rebindAccessibilityService() {
-        String svc = getPackageName() + "/.device.gesture.GestureService";
+        String svc = getPackageName() + "/.console.GestureService";
         try {
             Settings.Secure.putString(getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, svc);

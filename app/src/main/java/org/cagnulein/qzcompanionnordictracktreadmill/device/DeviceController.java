@@ -5,7 +5,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispa
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricSubscriber;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 import java.util.List;
 

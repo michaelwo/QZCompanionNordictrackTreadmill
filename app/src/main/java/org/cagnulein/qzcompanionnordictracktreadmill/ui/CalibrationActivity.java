@@ -32,7 +32,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResu
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
 
 import java.util.Locale;
 

@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.gesture;
+package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.IfitConsoleSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.ui.MainActivity;
 
 import java.util.List;

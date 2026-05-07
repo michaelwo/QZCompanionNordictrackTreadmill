@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
 
 public final class RawSwipeCommand extends Command {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;

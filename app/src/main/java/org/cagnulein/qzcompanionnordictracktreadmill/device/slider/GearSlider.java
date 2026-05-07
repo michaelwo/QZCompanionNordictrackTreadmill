@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;

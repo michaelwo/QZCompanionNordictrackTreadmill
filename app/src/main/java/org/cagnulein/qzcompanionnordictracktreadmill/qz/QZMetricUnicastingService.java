@@ -13,7 +13,7 @@ import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -96,9 +96,19 @@ public class QZMetricUnicastingService extends Service {
         String msg = packet.serialize();
         logMetric(msg);
         sendUnicast(msg);
-        SliderMetric sliderMetric = SliderMetric.from(packet.metric);
+        SliderMetric sliderMetric = toSliderMetric(packet.metric);
         if (sliderMetric != null && subscriber != null)
             subscriber.onMetric(sliderMetric, packet.value);
+    }
+
+    private static SliderMetric toSliderMetric(QZMetricPacket.Metric metric) {
+        switch (metric) {
+            case KPH:          return SliderMetric.KPH;
+            case GRADE:        return SliderMetric.GRADE;
+            case RESISTANCE:   return SliderMetric.RESISTANCE;
+            case CURRENT_GEAR: return SliderMetric.CURRENT_GEAR;
+            default:           return null;
+        }
     }
 
     private static void logMetric(String msg) {

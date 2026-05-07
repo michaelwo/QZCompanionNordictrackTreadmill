@@ -7,7 +7,7 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 - `app/src/main/java/.../qz/QZCommandListenerService.java` — UDP listener (port 8003); pure publisher — calls `QZCommandSubscriber.onPacket()` or `onCalibrationSwipe()` for each received datagram
 - `app/src/main/java/.../qz/QZMetricUnicastingService.java` — streams iFit metrics via MonoStdout, unicasts changes over UDP (port 8002); pure publisher — calls `QZMetricSubscriber.onMetric()` for each reading
 - `app/src/main/java/.../device/DeviceController.java` — owns `Device` + `CommandDispatcher`; implements both `QZMetricSubscriber` and `QZCommandSubscriber`; the single seam between the two services and the device layer
-- `app/src/main/java/.../device/gesture/GestureService.java` — performs swipe gestures for all devices via the Android Accessibility API
+- `app/src/main/java/.../console/GestureService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../ui/MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
 - `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
 - `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
@@ -24,14 +24,14 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── qz/               QZCommandListenerService, QZMetricUnicastingService,
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZMetricSubscriber
-├── console/          MetricReader, MonoStdoutMetricReader, SliderMetric,
-│                     IfitConsoleSnapshot
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, DeviceController,
+├── console/          MetricReader, MonoStdoutMetricReader, IfitConsoleSnapshot,
+│                     GestureService
+├── device/           Device, BikeDevice, TreadmillDevice, Slider, SliderMetric,
+│                     DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── command/      CommandDispatcher, Command, SpeedCommand, InclineCommand,
 │   │                 ResistanceCommand, GearCommand, CalibrationSwipeCommand
 │   ├── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
-│   ├── gesture/      GestureService
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
 └── ui/               MainActivity, DeviceAdapter

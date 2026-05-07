@@ -1,5 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;

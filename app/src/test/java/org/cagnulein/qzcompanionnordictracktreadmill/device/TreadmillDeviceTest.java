@@ -28,7 +28,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iDevice
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39019Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X32iNtl39221Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X9iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
