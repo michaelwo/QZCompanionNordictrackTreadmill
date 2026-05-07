@@ -19,6 +19,10 @@ Run all tests with:
 
 Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 
+Performance replay artifact: `app/build/reports/perf/ride-performance.json`
+
+Stress replay artifact: `app/build/reports/perf/ride-stress.json`
+
 ---
 
 ## Test Files
@@ -38,7 +42,9 @@ Results: `app/build/reports/tests/testDebugUnitTest/index.html`
 | `ZwiftRideRobolectricTest` | 5 | Robolectric: real `QZCommandListenerService` started in an Android runtime, real UDP datagrams sent to port 8003, swipes captured via injectable executor |
 | `QZCommandListenerServiceTest` | 7 | Robolectric: service lifecycle — onCreate/onDestroy, WakeLock acquire/release, socket rebind |
 | `QZMetricUnicastingServiceTest` | 5 | Robolectric: service lifecycle and binding contract |
-| **Total** | **326** | |
+| `RidePerformanceReplayTest` | 1 | Deterministic CI performance replay: fake iFit `mono-stdout`, QZ command fixture, injected time, broad heap/thread/wall-clock budgets, JSON report artifact |
+| `RideStressReplayTest` | 1 | Scheduled/manual stress suite: long soak, burst overload, sentinel drain, noisy iFit stream, metric reader restart, JSON report artifact |
+| **Total** | **328** | |
 
 ---
 
