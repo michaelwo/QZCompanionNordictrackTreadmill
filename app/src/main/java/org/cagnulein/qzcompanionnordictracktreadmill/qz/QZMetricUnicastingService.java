@@ -84,7 +84,7 @@ public class QZMetricUnicastingService extends Service {
         MonoStdoutMetricReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutMetricReader.onLine  = line -> writeLog("ifit: " + line);
         try {
-            metricSubscription = MonoStdoutMetricHub.shared().subscribe(this::applyAndUnicast);
+            metricSubscription = MonoStdoutMetricHub.shared().subscribe(this::publishMetric);
             Log.i(LOG_TAG, "metric reader streaming active");
             writeLog("Metric reader: streaming active");
         } catch (IOException e) {
@@ -92,7 +92,7 @@ public class QZMetricUnicastingService extends Service {
         }
     }
 
-    private void applyAndUnicast(QZMetricPacket packet) {
+    private void publishMetric(QZMetricPacket packet) {
         String msg = packet.serialize();
         logMetric(msg);
         sendUnicast(msg);
