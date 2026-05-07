@@ -43,7 +43,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResu
 import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.IfitConsoleSnapshot;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
@@ -397,8 +396,6 @@ public class MainActivity extends AppCompatActivity {
         if (list == null || activeController == null) return;
         list.removeAllViews();
 
-        Device device = activeController.device();
-
         boolean ok = isAccessibilityServiceEnabled(this, GestureService.class);
         addRequirementRow(list, ok,
                 "Accessibility service",
@@ -431,20 +428,6 @@ public class MainActivity extends AppCompatActivity {
                         ? "BLE advertising supported — install QZ or connect Zwift directly to your device"
                         : "BLE advertising not supported — QZCompanion is the right approach",
                 null);
-
-        IfitConsoleSnapshot snap = IfitConsoleSnapshot.load(sharedPreferences);
-        if (snap != null && snap.isValid()) {
-            String detail = snap.machineType + "  ·  Part# " + snap.partNumber;
-            if (snap.maxKph != null) detail += "  ·  Max " + snap.maxKph + " kph";
-            addRequirementRow(list, true, "iFit Hardware", detail, null);
-        } else {
-            addRequirementRow(list, false,
-                    "iFit Hardware",
-                    "Open iFit → Settings → Equipment Info → Machine Info  ›",
-                    v -> {
-                        launchIfit();
-                    });
-        }
     }
 
     private void launchIfit() {

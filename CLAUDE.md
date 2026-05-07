@@ -24,8 +24,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── qz/               QZCommandListenerService, QZMetricUnicastingService,
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZMetricSubscriber
-├── console/          MetricReader, MonoStdoutMetricReader, IfitConsoleSnapshot,
-│                     GestureService
+├── console/          MetricReader, MonoStdoutMetricReader, GestureService
 ├── device/           Device, BikeDevice, TreadmillDevice, Slider, SliderMetric,
 │                     DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
