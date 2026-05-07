@@ -25,7 +25,7 @@ download-build.sh~
 download-build.sh
 signapk.sh
 QZCompanionNordictrackTreadmill/
-.claude/settings.local.json
+/.claude/
 
 # Calibration and research artifacts
 /calibration/
