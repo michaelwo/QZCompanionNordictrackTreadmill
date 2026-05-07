@@ -25,12 +25,12 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZTelemetryEncoder
 ├── console/          TelemetryReader, MonoStdoutTelemetryReader, GestureService
+├── telemetry/        Telemetry, SpeedTelemetry, InclineTelemetry,
+│                     ResistanceTelemetry, GearTelemetry
 ├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── command/      CommandDispatcher, Command, SpeedCommand, InclineCommand,
 │   │                 ResistanceCommand, GearCommand, CalibrationSwipeCommand
-│   ├── telemetry/    Telemetry, SpeedTelemetry, InclineTelemetry,
-│   │                 ResistanceTelemetry, GearTelemetry
 │   ├── slider/       Slider, InclineSlider, SpeedSlider,
 │   │                 ResistanceSlider, GearSlider
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)

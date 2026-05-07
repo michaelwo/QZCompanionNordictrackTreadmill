@@ -36,7 +36,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineComma
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 import org.junit.After;
 import org.junit.Before;

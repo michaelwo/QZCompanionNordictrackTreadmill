@@ -4,8 +4,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 public class S22iDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY    = 622;

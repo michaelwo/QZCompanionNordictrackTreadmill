@@ -13,7 +13,7 @@ import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

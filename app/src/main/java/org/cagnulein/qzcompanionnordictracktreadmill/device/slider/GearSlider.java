@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.GearCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
 
 public class GearSlider extends Slider {
 

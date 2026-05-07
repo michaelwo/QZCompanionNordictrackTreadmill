@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 

@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry;
+package org.cagnulein.qzcompanionnordictracktreadmill.telemetry;
 
 public abstract class Telemetry {
     public final float value;

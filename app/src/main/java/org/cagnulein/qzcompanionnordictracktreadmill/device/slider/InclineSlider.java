@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
 
 public class InclineSlider extends Slider {
 

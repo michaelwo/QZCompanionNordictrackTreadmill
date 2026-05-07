@@ -5,9 +5,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 /**
  * Bike device whose swipe formulas are loaded at runtime from DeviceCalibration

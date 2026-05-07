@@ -1,9 +1,9 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.GearTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.util.function.Consumer;
 

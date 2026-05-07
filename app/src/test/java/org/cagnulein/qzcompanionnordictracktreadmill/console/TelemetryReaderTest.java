@@ -1,12 +1,12 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.CadenceTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.HeartRateTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.ResistanceTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.SpeedTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.WattsTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.CadenceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.HeartRateTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.WattsTelemetry;
 
 import org.junit.After;
 import org.junit.Before;

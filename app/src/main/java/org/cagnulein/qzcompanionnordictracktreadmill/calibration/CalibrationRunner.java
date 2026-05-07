@@ -6,7 +6,7 @@ import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.File;
 import java.io.IOException;

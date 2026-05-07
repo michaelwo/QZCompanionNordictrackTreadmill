@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.InclineTelemetry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.junit.Test;
 
 import java.io.IOException;

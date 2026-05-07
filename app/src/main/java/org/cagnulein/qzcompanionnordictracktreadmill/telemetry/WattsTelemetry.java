@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.telemetry;
+package org.cagnulein.qzcompanionnordictracktreadmill.telemetry;
 
 public final class WattsTelemetry extends Telemetry {
     public WattsTelemetry(float value) {
