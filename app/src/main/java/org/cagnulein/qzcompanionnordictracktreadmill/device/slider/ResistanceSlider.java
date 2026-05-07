@@ -2,11 +2,14 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 
 public class ResistanceSlider extends Slider {
+
+    private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     public ResistanceSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
         super(trackX, initialThumbY, formula, SliderMetric.RESISTANCE);
@@ -32,12 +35,12 @@ public class ResistanceSlider extends Slider {
     @Override
     public void handle(double lvl, Device device) {
         Float last = lastApplied();
-        device.logger.log(Device.Logger.VERBOSE, "QZ:Dispatch", "requestResistance: " + lvl + " last=" + last);
+        device.logger.log(Device.Logger.VERBOSE, LOG_TAG, "requestResistance: " + lvl + " last=" + last);
         if (last == null || !Float.valueOf((float) lvl).equals(last)) {
             moveTo(lvl, device);
-            device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch", "applyResistance: " + lvl);
+            device.logger.log(Device.Logger.DEBUG, LOG_TAG, "applyResistance: " + lvl);
         } else {
-            device.logger.log(Device.Logger.VERBOSE, "QZ:Dispatch", "de-dup: skipping resistance " + lvl + " (already at " + last + ")");
+            device.logger.log(Device.Logger.VERBOSE, LOG_TAG, "de-dup: skipping resistance " + lvl + " (already at " + last + ")");
         }
     }
 

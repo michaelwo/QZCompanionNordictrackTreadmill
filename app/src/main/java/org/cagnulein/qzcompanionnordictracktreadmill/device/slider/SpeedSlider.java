@@ -2,11 +2,14 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 
 public class SpeedSlider extends Slider {
+
+    private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     private volatile Float cachedKmh = null;
 
@@ -30,15 +33,15 @@ public class SpeedSlider extends Slider {
     @Override
     public void handle(double kmh, Device device) {
         synchronized (this) {
-            device.logger.log(Device.Logger.VERBOSE, "QZ:Dispatch", "requestSpeed: " + kmh + " beltKph=" + liveValueOrZero() + " cached=" + cachedKmh);
+            device.logger.log(Device.Logger.VERBOSE, LOG_TAG, "requestSpeed: " + kmh + " beltKph=" + liveValueOrZero() + " cached=" + cachedKmh);
             if (liveValueOrZero() <= 0) {
-                device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch", "speed gate: held " + kmh + " (belt stopped)");
+                device.logger.log(Device.Logger.DEBUG, LOG_TAG, "speed gate: held " + kmh + " (belt stopped)");
                 cachedKmh = (float) kmh;
                 return;
             }
             cachedKmh = null;
         }
-        device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch", "applySpeed: " + kmh);
+        device.logger.log(Device.Logger.DEBUG, LOG_TAG, "applySpeed: " + kmh);
         moveTo(kmh, device);
     }
 
@@ -52,7 +55,7 @@ public class SpeedSlider extends Slider {
             cached = cachedKmh;
             cachedKmh = null;
         }
-        device.logger.log(Device.Logger.INFO, "QZ:Dispatch", "belt-gate flush: applySpeed " + cached);
+        device.logger.log(Device.Logger.INFO, LOG_TAG, "belt-gate flush: applySpeed " + cached);
         moveTo(cached, device);
     }
 

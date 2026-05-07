@@ -15,6 +15,8 @@ import java.util.List;
  */
 public final class CalibrationDevice extends Device {
 
+    private static final String LOG_TAG = DeviceLogTags.DISPATCH;
+
     @Override
     public List<Slider> sliders() {
         return Collections.emptyList();
@@ -34,7 +36,7 @@ public final class CalibrationDevice extends Device {
 
         String[] parts = raw.split(":", -1);
         if (parts.length != 4) {
-            logger.log(Logger.ERROR, "QZ:Dispatch", "CALSWIPE parse error: expected 3 coordinates");
+            logger.log(Logger.ERROR, LOG_TAG, "CALSWIPE parse error: expected 3 coordinates");
             return Collections.emptyList();
         }
 
@@ -42,7 +44,7 @@ public final class CalibrationDevice extends Device {
         Float fromY = QZCommandPacket.parseField(parts[2]);
         Float toY = QZCommandPacket.parseField(parts[3]);
         if (x == null || fromY == null || toY == null) {
-            logger.log(Logger.ERROR, "QZ:Dispatch", "CALSWIPE parse error: invalid coordinate");
+            logger.log(Logger.ERROR, LOG_TAG, "CALSWIPE parse error: invalid coordinate");
             return Collections.emptyList();
         }
 

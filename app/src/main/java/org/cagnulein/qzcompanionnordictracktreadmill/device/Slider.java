@@ -19,6 +19,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.gesture.GestureServi
  */
 public abstract class Slider {
 
+    private static final String LOG_TAG = DeviceLogTags.SLIDER;
+
     @FunctionalInterface
     public interface ThumbYFormula {
         int apply(double v);
@@ -107,11 +109,11 @@ public abstract class Slider {
         int swipeY = (h > 0 && toY != fromY) ? (toY < fromY ? toY - h : toY + h) : toY;
         String cmd = "input swipe " + trackX() + " " + fromY + " " + trackX() + " " + swipeY
                    + " " + GestureService.SWIPE_DURATION_MS;
-        device.logger.log(Device.Logger.DEBUG, "QZ:Slider", "swipe -> " + cmd);
+        device.logger.log(Device.Logger.DEBUG, LOG_TAG, "swipe -> " + cmd);
         if (GestureService.isConnected()) {
             GestureService.performSwipe(trackX(), fromY, trackX(), swipeY, GestureService.SWIPE_DURATION_MS);
         } else {
-            device.logger.log(Device.Logger.ERROR, "QZ:Slider", "swipe dropped: AccessibilityService not connected");
+            device.logger.log(Device.Logger.ERROR, LOG_TAG, "swipe dropped: AccessibilityService not connected");
         }
         device.commandExecutor.send(cmd);
         thumbY      = toY;
@@ -119,11 +121,11 @@ public abstract class Slider {
     }
 
     public void snapToOrigin(Device device) {
-        device.logger.log(Device.Logger.DEBUG, "QZ:Slider", "snapToOrigin: tap at y=" + originThumbY);
+        device.logger.log(Device.Logger.DEBUG, LOG_TAG, "snapToOrigin: tap at y=" + originThumbY);
         if (GestureService.isConnected()) {
             GestureService.performTap(trackX(), originThumbY);
         } else {
-            device.logger.log(Device.Logger.ERROR, "QZ:Slider", "snapToOrigin dropped: AccessibilityService not connected");
+            device.logger.log(Device.Logger.ERROR, LOG_TAG, "snapToOrigin dropped: AccessibilityService not connected");
         }
         thumbY      = originThumbY;
         liveValue   = originValue();

@@ -11,6 +11,8 @@ import java.util.List;
 
 public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber {
 
+    private static final String LOG_TAG = DeviceLogTags.DISPATCH;
+
     private final Device device;
     private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
@@ -31,7 +33,7 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
     }
 
     private void executeCommand(Command cmd) {
-        device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch", "drain: " + cmd);
+        device.logger.log(Device.Logger.DEBUG, LOG_TAG, "drain: " + cmd);
         device.applyCommand(cmd);
     }
 
@@ -48,10 +50,10 @@ public class DeviceController implements QZMetricSubscriber, QZCommandSubscriber
         for (Command cmd : commands) {
             int depth = dispatcher.enqueue(cmd);
             if (depth >= 0)
-                device.logger.log(Device.Logger.DEBUG, "QZ:Dispatch",
+                device.logger.log(Device.Logger.DEBUG, LOG_TAG,
                         "enqueue: " + cmd + " depth=" + depth + "/" + CommandDispatcher.QUEUE_CAPACITY);
             else
-                device.logger.log(Device.Logger.WARN, "QZ:Dispatch",
+                device.logger.log(Device.Logger.WARN, LOG_TAG,
                         "drop: " + cmd + " (queue full at " + CommandDispatcher.QUEUE_CAPACITY + ")");
         }
         // Sentinel packets (empty command list) still act as passive drain drivers.
