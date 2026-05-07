@@ -6,7 +6,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider
 public class Tdf10Device extends BikeDevice {
 
     public Tdf10Device() {
-        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).
         super(new InclineSlider(ScreenProfile.W1280.rightTrackX, 604, v -> (int)(619.91 - 15.913 * v)), null);
     }
 

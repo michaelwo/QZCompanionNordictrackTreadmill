@@ -25,14 +25,17 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZMetricSubscriber
 ├── console/          MetricReader, MonoStdoutMetricReader, GestureService
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, SliderMetric,
-│                     DeviceController,
+├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── command/      CommandDispatcher, Command, SpeedCommand, InclineCommand,
 │   │                 ResistanceCommand, GearCommand, CalibrationSwipeCommand
-│   ├── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
+│   ├── slider/       Slider, SliderMetric, InclineSlider, SpeedSlider,
+│   │                 ResistanceSlider, GearSlider
 │   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
 │   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
+├── platform/         Android platform helpers
+│   ├── crash/        CrashHandler
+│   └── receiver/     BootReceiver, ServiceRestartReceiver
 └── ui/               MainActivity, DeviceAdapter
 ```
 
@@ -119,7 +122,7 @@ Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a
 
 Most docs live in `docs/`. Two live adjacent to the code they describe:
 
-- `app/src/main/java/.../device/device-reference.md` — per-device pixel formulas, ScreenProfile table, validator notes; edit alongside device classes
+- `docs/device-reference.md` — per-device pixel formulas, ScreenProfile table, validator notes; edit alongside device classes
 - `app/src/test/java/.../testing-methodology.md` — test file inventory, swipe assertion patterns, how to add tests for a new device; edit alongside test files
 
 ---

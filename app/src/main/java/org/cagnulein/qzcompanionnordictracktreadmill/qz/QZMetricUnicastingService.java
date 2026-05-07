@@ -13,7 +13,7 @@ import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutMetricReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 
 import java.io.IOException;
 import java.net.DatagramPacket;

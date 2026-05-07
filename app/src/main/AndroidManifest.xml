@@ -37,8 +37,8 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
-        <receiver android:name=".AlarmReceiver" android:process=":remote" />
-        <receiver android:enabled="true" android:name=".BootUpReceiver"
+        <receiver android:name=".platform.receiver.ServiceRestartReceiver" android:process=":remote" />
+        <receiver android:enabled="true" android:name=".platform.receiver.BootReceiver"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED"
             android:exported="true">
             <intent-filter>

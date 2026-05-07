@@ -1,5 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
@@ -13,7 +13,7 @@ public class S22iDevice extends BikeDevice {
     public S22iDevice() { this(0, 0); }
 
     protected S22iDevice(int hystLong, int hystShort) {
-        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).
         super(
             new InclineSlider(ScreenProfile.W1920.leftTrackX, ORIGIN_INCLINE_THUMBY, S22iDevice::offsetInclineThumbY) {
                 // Calibration 2026-04-19 (positive) + 2026-04-22 (negative):

@@ -3,6 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.CalibratedBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 import org.junit.After;
 import org.junit.Test;
 import static org.junit.Assert.*;

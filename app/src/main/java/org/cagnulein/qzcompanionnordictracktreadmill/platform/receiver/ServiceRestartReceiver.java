@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.platform.receiver;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -10,7 +10,7 @@ import android.os.Build;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZMetricUnicastingService;
 
-public class AlarmReceiver extends BroadcastReceiver
+public class ServiceRestartReceiver extends BroadcastReceiver
 {
     @Override
     public void onReceive(Context context, Intent intent)
@@ -25,7 +25,7 @@ public class AlarmReceiver extends BroadcastReceiver
     public void setAlarm(Context context)
     {
         AlarmManager am =( AlarmManager)context.getSystemService(Context.ALARM_SERVICE);
-        Intent i = new Intent(context, AlarmReceiver.class);
+        Intent i = new Intent(context, ServiceRestartReceiver.class);
         PendingIntent pi = PendingIntent.getBroadcast(context, 0, i, PendingIntent.FLAG_IMMUTABLE);
         assert am != null;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {

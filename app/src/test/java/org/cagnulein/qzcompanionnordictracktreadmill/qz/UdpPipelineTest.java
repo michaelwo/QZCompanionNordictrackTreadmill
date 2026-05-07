@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 
 import org.junit.After;
 import org.junit.Before;

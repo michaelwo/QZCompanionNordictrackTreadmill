@@ -21,7 +21,7 @@ Checks performed
   C  formula monotonicity — higher metric should map to lower Y (upward swipe)
   D  Sindarin global caps — formula at MaxIncline/MaxKph/MaxResistance stays on-screen
 
-Usage: python3 tools/validate_swipe_targets.py
+Usage: python3 tools/discover-device/validate_swipe_targets.py
 Exit : 0 = clean (warnings only);  1 = at least one ERROR
 """
 
@@ -37,7 +37,7 @@ from typing import Optional
 # Paths
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = Path(__file__).parent.parent.resolve()
+REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
 DEVICE_BIKE_DIR      = REPO_ROOT / "app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/bike"
 DEVICE_TREADMILL_DIR = REPO_ROOT / "app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/treadmill"
 IFIT_DIMENS_BASE     = REPO_ROOT / "QZCompanionNordictrackTreadmill/ifit/ifit/ifit_decoded/res"

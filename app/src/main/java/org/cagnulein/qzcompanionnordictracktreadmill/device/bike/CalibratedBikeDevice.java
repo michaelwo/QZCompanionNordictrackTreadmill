@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.SliderMetric;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SliderMetric;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
 

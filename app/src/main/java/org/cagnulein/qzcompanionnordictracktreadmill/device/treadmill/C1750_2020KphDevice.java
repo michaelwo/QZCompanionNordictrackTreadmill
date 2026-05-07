@@ -16,7 +16,7 @@ public class C1750_2020KphDevice extends TreadmillDevice {
     };
 
     public C1750_2020KphDevice() {
-        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).
         super(
             InclineSlider.live(ScreenProfile.W1280.leftTrackX,  525, C1750_2020KphDevice::offsetInclineThumbY),
             SpeedSlider.live(  ScreenProfile.W1280.rightTrackX, 598, C1750_2020KphDevice::offsetSpeedThumbY)

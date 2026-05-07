@@ -7,7 +7,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 public class OtherDevice extends TreadmillDevice {
 
     public OtherDevice() {
-        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Screen: 1280px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).
         // Fallback device. initialThumbY=0 for both sliders — no initial position assumed; first swipe starts from Y=0.
         super(
             new InclineSlider(ScreenProfile.W1280.leftTrackX,  0, v -> (int)(520.11 - 21.804 * v)),

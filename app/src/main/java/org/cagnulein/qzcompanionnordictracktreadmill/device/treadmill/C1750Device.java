@@ -7,7 +7,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 public class C1750Device extends TreadmillDevice {
 
     public C1750Device() {
-        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/validate_swipe_targets.py).
+        // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).
         // Incline trackX=79 is 4.5px off APK-expected 74.5; matches hardware calibration.
         super(
             new InclineSlider(ScreenProfile.W1920.leftTrackX,  700, v -> (int)(700 - 34.9 * v)),

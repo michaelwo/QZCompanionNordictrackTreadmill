@@ -1,7 +1,9 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 
 /**
  * Represents one physical slider on the fitness device's touch screen.

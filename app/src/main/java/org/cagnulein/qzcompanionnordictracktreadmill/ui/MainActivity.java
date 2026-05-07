@@ -49,7 +49,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.R;
-import org.cagnulein.qzcompanionnordictracktreadmill.MyExceptionHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.platform.crash.CrashHandler;
 
 import androidx.appcompat.app.AlertDialog;
 
@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         checkPermissions();
-        Thread.setDefaultUncaughtExceptionHandler(new MyExceptionHandler(this));
+        Thread.setDefaultUncaughtExceptionHandler(new CrashHandler(this));
         sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
         loadCalibration();
         initLogFile();

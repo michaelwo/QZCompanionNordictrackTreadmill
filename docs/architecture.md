@@ -147,14 +147,17 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │                     QZCommandSubscriber, QZMetricSubscriber
 ├── console/          MetricReader hierarchy, MonoStdoutMetricReader,
 │                     GestureService
-├── device/           Device, BikeDevice, TreadmillDevice, Slider, SliderMetric,
-│                     DeviceController,
+├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
 │                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
 │   ├── bike/         One class per bike device
 │   ├── treadmill/    One class per treadmill device
 │   ├── command/      Command, SpeedCommand, InclineCommand, ResistanceCommand,
 │   │                 GearCommand, CommandDispatcher, RawSwipeCommand
-│   └── slider/       InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
+│   └── slider/       Slider, SliderMetric, InclineSlider, SpeedSlider,
+│                     ResistanceSlider, GearSlider
+├── platform/         Android platform helpers
+│   ├── crash/        CrashHandler
+│   └── receiver/     BootReceiver, ServiceRestartReceiver
 └── ui/               MainActivity, DeviceAdapter
 ```
 
@@ -191,19 +194,19 @@ Each typed slider implements two abstract methods:
 
 **`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `QZCommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
 
-For per-device pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md).
+For per-device pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](device-reference.md).
 
 ### Coordinate Validation
 
-All trackX constants are standardised to **iFit APK 2.6.90** (versionCode 4963) and expressed via the `ScreenProfile` enum — the single source of truth for slider track positions. `tools/validate_swipe_targets.py` reads the decoded APK (`ifit_decoded/res/`) and all device Java files, then checks that each slider's trackX matches the position implied by the APK's `workout_slider_margin` (12 dp) and `workout_slider_width` (125 dp) dimension resources. At the iFit tablet's mdpi density (1 dp = 1 px), this yields an expected left-slider trackX of 74.5 px and a right-slider trackX of `screen_width − 74.5` px. The script also checks formula monotonicity, initial-thumb plausibility, and formula bounds against Sindarin's protocol limits.
+All trackX constants are standardised to **iFit APK 2.6.90** (versionCode 4963) and expressed via the `ScreenProfile` enum — the single source of truth for slider track positions. `tools/discover-device/validate_swipe_targets.py` reads the decoded APK (`ifit_decoded/res/`) and all device Java files, then checks that each slider's trackX matches the position implied by the APK's `workout_slider_margin` (12 dp) and `workout_slider_width` (125 dp) dimension resources. At the iFit tablet's mdpi density (1 dp = 1 px), this yields an expected left-slider trackX of 74.5 px and a right-slider trackX of `screen_width − 74.5` px. The script also checks formula monotonicity, initial-thumb plausibility, and formula bounds against Sindarin's protocol limits.
 
 Run it before and after editing any device class:
 
 ```bash
-python3 tools/validate_swipe_targets.py   # exits 0 if clean
+python3 tools/discover-device/validate_swipe_targets.py   # exits 0 if clean
 ```
 
-Full methodology, per-screen-width tables, and documentation of known anomalies are in [device-reference.md](../app/src/main/java/org/cagnulein/qzcompanionnordictracktreadmill/device/device-reference.md).
+Full methodology, per-screen-width tables, and documentation of known anomalies are in [device-reference.md](device-reference.md).
 
 ### Command Dispatch
 

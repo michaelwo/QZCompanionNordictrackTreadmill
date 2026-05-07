@@ -8,7 +8,7 @@ input swipe <trackX> <fromY> <trackX> <targetThumbY(v)> 200
 
 Swipe duration is always 200 ms. `fromY` is the slider's current tracked position; `targetThumbY(v)` is computed from the formula for the requested value `v`. Sliders constructed with the `.live()` factory override `currentThumbY()` to re-derive the starting position from the slider's internally tracked live metric value before each swipe, correcting drift.
 
-For the full dispatch pipeline see [architecture.md](../../../../../../../../docs/architecture.md). For how to add a device and write formula tests see the steps at the bottom of this file and [testing-methodology.md](../../../../../../test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
+For the full dispatch pipeline see [architecture.md](architecture.md). For how to add a device and write formula tests see the steps at the bottom of this file and [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 ---
 
@@ -472,7 +472,7 @@ Fallback device. Uses ProForm 2000 geometry without `currentThumbY`. Useful for 
 3. Override `displayName()`. There is no `requiresAdb()` or `requiresAccessibility()` to implement — all devices use `AccessibilityService` exclusively and `Slider.moveTo()` handles gesture dispatch.
 4. Add a `DeviceId` enum value to `DeviceRegistry.DeviceId` and a `m.put(DeviceId.my_device, new MyDevice())` line in `DeviceRegistry.DEVICES`.
 5. Add the `DeviceId` to the appropriate list in `DeviceAdapter` — `BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`. The UI is not automatic; if you skip this step the device will not appear in the app.
-6. Add formula tests in `BikeDeviceTest` or `TreadmillDeviceTest`. See [testing-methodology.md](../../../../../../test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for the pattern.
+6. Add formula tests in `BikeDeviceTest` or `TreadmillDeviceTest`. See [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for the pattern.
 
 See `S22iDevice` + `BikeDevice` for the canonical bike example and `X11iDevice` + `TreadmillDevice` for treadmill.
 
@@ -499,7 +499,7 @@ To observe current slider positions, take a screenshot: `adb shell screencap -p 
 All `trackX` and `offsetXxxThumbY()` values can be cross-checked against the iFit APK's Android layout resources without hardware. Run:
 
 ```bash
-python3 tools/validate_swipe_targets.py
+python3 tools/discover-device/validate_swipe_targets.py
 ```
 
 Exit code 0 means all checks pass. The script reads the decoded APK (`ifit_decoded/res/`) and all device Java files.

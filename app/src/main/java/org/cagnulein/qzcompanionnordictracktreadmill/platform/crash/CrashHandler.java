@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill;
+package org.cagnulein.qzcompanionnordictracktreadmill.platform.crash;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -7,10 +7,10 @@ import android.util.Log;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
-public class MyExceptionHandler implements Thread.UncaughtExceptionHandler {
+public class CrashHandler implements Thread.UncaughtExceptionHandler {
     private Context context;
 
-    public MyExceptionHandler(Context context) {
+    public CrashHandler(Context context) {
         this.context = context;
     }
 
