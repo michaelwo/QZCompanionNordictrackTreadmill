@@ -1,308 +1,263 @@
 # Architecture
 
-## Overview
+QZ Companion is an Android app that runs on a NordicTrack/ProForm iFit tablet. It
+bridges the QZ app to the physical machine:
 
-QZCompanion is an Android app that runs on the NordicTrack/ProForm iFit embedded tablet and acts as the bridge between the Zwift training ecosystem and the physical hardware. It has two concurrent jobs: **accepting control commands** (grade, resistance, speed) forwarded from the QZ app and translating them into touch gestures on the iFit screen, and **reading live metrics** (speed, incline, cadence, watts) from the iFit firmware and unicasting them back to the QZ app so Zwift stays in sync with what the machine is actually doing.
+- QZ receives Zwift FTMS control over BLE on a phone, tablet, or computer.
+- QZ forwards control targets to QZ Companion over UDP.
+- QZ Companion turns those targets into Android accessibility swipe gestures on
+  the iFit screen.
+- QZ Companion reads live iFit telemetry from `mono-stdout` logcat output and
+  unicasts changed metrics back to QZ.
+- QZ relays those metrics to Zwift over BLE.
 
----
-
-## Context
-
-### Why can't Zwift connect directly to some NordicTrack devices?
-
-Zwift requires **BLE hardware and a full FTMS (Fitness Machine Service) software implementation** on the fitness device — both to receive grade and resistance commands and to report metrics back. The NordicTrack and ProForm machines supported by this project have neither: the iFit 1/2 embedded tablet has no BLE radio dedicated to fitness machine control, and the iFit firmware does not implement the FTMS profile.
-
-The **QZ app** satisfies Zwift's FTMS requirement by running on a separate device that *does* have BLE — a phone, laptop, or computer. Zwift pairs with QZ over BLE as if it were the fitness machine. QZ then forwards Zwift's grade and resistance commands over UDP (Wi-Fi) to QZCompanion, which runs on the iFit tablet itself and drives the hardware by injecting touch gestures on the iFit screen. Metrics travel the reverse path: QZCompanion reads them from the iFit firmware log and unicasts them back to QZ, which relays them to Zwift over BLE.
-
-### Why swipe simulation?
-
-**No programmable control surface exists** on NordicTrack/ProForm iFit 1/2 devices. Swipe simulation is the last resort after a systematic investigation ruled out every other approach.
-
-| Surface | Verdict |
-|---------|---------|
-| FTMS Control Point (BLE) | Not implemented in iFit firmware — the device advertises BLE metrics but the Control Point write characteristic is absent |
-| TCP socket (Sindarin engine) | The Xamarin DLL `Sindarin.FitPro1.Tcp.dll` connects *outbound* to iFit's cloud; it does not listen on any local port |
-| Local IPC (ContentProvider / AIDL / Intent) | No exported ContentProvider, no AIDL interface, no broadcast receiver that accepts incline or resistance targets from third-party apps |
-| USB HID | The motor controller communicates over USB, but Android restricts HID access to the process that opened the USB device — `com.ifit.standalone` holds that exclusive handle; no other app can send HID reports |
-| ADB `input swipe` / Accessibility API | Works — the iFit app cannot distinguish injected touch events from real finger gestures |
-
-The iFit application is a standard Android app (a Xamarin.Android / Wolf hybrid). It reads touch input through the normal Android `MotionEvent` pipeline. Both `adb shell input swipe` and `AccessibilityService.dispatchGesture()` inject events at the same level, so the iFit UI responds identically to an injected drag as it does to a physical finger.
-
-The full investigation — methodology, decompilation output, and per-surface conclusions — is documented in [iFit Control Surface Investigation](ifit-control-surface-investigation.md).
+This document is the contributor map: where code lives, which classes own each
+part of the system, and where to go next for deeper reference.
 
 ---
 
-## Data Flows
+## System Flow
 
-### Inbound: Zwift → Hardware
+### Control: Zwift to hardware
 
-Zwift grade and resistance targets travel through the QZ app and arrive as UDP datagrams. QZCompanion translates them into swipe gestures on the iFit touchscreen.
-
-```
-Zwift (PC/console)
-        │
-        │  FTMS control point (BLE)
-        ▼
-QZ App (phone/tablet)
-        │
-        │  UDP datagram, port 8003
-        │  format: "speedKmh;inclinePct"  (treadmill)
-        │       or  "inclinePct;?"        (2-part bike)
-        │       or  "resistanceLvl"       (1-part bike)
-        ▼
-QZCommandListenerService.listenAndWaitAndThrowIntent()
-        │  records qzAddress from -100; heartbeat packets
-        │  calls subscriber.onPacket(QZCommandPacket.parse(msg))
-        ▼
-DeviceController.onPacket(packet)
-        │
-        │  device.decodeCommands(pkt)
-        │    → produces List<Command>, one per actionable field
-        │      (e.g. "8.0;3.0" → [speedCmd(8.0), inclineCmd(3.0)])
-        │
-        │  dispatcher.enqueue(cmd) for each command
-        │  sentinel packets (empty list) call dispatcher.drain()
-        ▼
-CommandDispatcher   [throttle + FIFO queue, 500ms window, capacity 5]
-        │  drains one Command per open window, oldest first
-        │  executor.accept(cmd) → DeviceController.executeCommand(cmd)
-        ▼
-device.applyCommand(cmd)  →  cmd.applyTo(device)
-        │  cmd calls device.sliderOf(XxxSlider.class)
-        ▼
-XxxSlider.handle(value, device)   [de-dup / speed gate in SpeedSlider]
-        │
-        │  Slider.moveTo(value, device)
-        │    quantize(value)        → snap to physical increments
-        │    targetThumbY(value)    → compute logical pixel Y coordinate
-        │    hysteresisPixels()     → directional overshoot in px (0 for most sliders)
-        ▼
-GestureService.performSwipe(x, fromY, x, swipeY, 200)   [swipeY may differ from targetThumbY]
+```text
+Zwift
+  -> BLE FTMS control
+QZ app
+  -> UDP 8003, for example "speedKmh;inclinePct" or "resistanceLvl"
+QZCommandListenerService
+  -> parses QZCommandPacket and publishes to QZCommandSubscriber
+DeviceController
+  -> asks the selected Device to decode Commands
+CommandDispatcher
+  -> throttles and drains a small FIFO queue
+Device / Slider
+  -> quantizes, de-duplicates, applies speed gating, computes screen Y
+GestureService
+  -> injects AccessibilityService swipe gestures into iFit
 ```
 
-Three mechanisms filter commands before a swipe is issued:
+The dispatch path has three important filters:
 
-| Mechanism | Where | Behaviour |
-|-----------|-------|-----------|
-| **Throttle** | `CommandDispatcher` | Incoming Commands are enqueued in a FIFO queue (capacity 5). One Command drains per 500ms throttle window, oldest first — driven by a background `QZ:DrainThread` and by each `enqueue()` call. Sentinel packets (empty command list) call `drain()` directly so they still flush the queue. Excess Commands are dropped. |
-| **De-dup** | `XxxSlider.handle()` | If the quantized value equals `lastApplied`, the swipe is skipped entirely. |
-| **Speed gate** | `SpeedSlider` | Speed commands are held in a one-slot cache while `liveValueOrZero() <= 0` (belt stopped). The cache self-flushes when `applyTelemetry(KPH, >0, device)` fires. |
+| Filter | Owner | Purpose |
+|--------|-------|---------|
+| Throttle and queue | `CommandDispatcher` | Sends one command per 500 ms window and drops excess queue entries. |
+| De-duplication | Typed `Slider` classes | Skips a swipe when the quantized target is already applied. |
+| Treadmill speed gate | `SpeedSlider` | Caches speed commands while the belt is stopped and releases the latest command when live speed becomes positive. |
 
-### Outbound: Hardware → Zwift
+### Telemetry: hardware to Zwift
 
-The iFit firmware writes speed, incline, cadence, and other metrics to a log file on the device. QZCompanion reads that file continuously, extracts changed values, and broadcasts them back to the QZ app.
-
-```
-iFit firmware
-        │
-        │  writes to log file every ~1 s
-        │  e.g. /sdcard/android/data/com.ifit.glassos_service/
-        │            files/.valinorlogs/log.latest.txt
-        │
-        ▼
+```text
+iFit / Xamarin runtime
+  -> logcat tag mono-stdout
+MonoStdoutTelemetryReader
+  -> parses changed speed, grade, watts, cadence, resistance, gear, HR
 MonoStdoutTelemetryHub
-        │
-        │  TelemetryReader.subscribe(telemetry →)  ← push path (MonoStdoutTelemetryReader)
-        │    → delivers Telemetry per changed field
-        │
-        ├─ QZTelemetryUnicastingService
-        │    → QZTelemetryEncoder.encode(telemetry)
-        │    → sendUnicast(): drops packet if no heartbeat in last 30 s
-        │
-        └─ DeviceController.onTelemetry(telemetry)
-        ▼
-Device.applyTelemetry(telemetry)
-        │    → iterates sliders(), calls s.applyTelemetry(telemetry, device)
-        │    → SpeedSlider.applyTelemetry() flushes cached speed if KPH > 0 (belt started)
-        │    → live-mode Sliders update their liveValue for currentThumbY tracking
-        ▼
-QZTelemetryUnicastingService (continued)
-        │
-        │  QZMetricPacket.serialize()
-        ▼
-UDP unicast → qzAddress:8002   (qzAddress = source IP of last -100; heartbeat)
-        │  "Changed KPH <value>"
-        │  "Changed Grade <value>"
-        │  "Changed RPM <value>"
-        │  "Changed Watts <value>"   etc.
-        ▼
-QZ App (phone/tablet)
-        │
-        │  FTMS measurement characteristic (BLE notify)
-        ▼
-Zwift (PC/console)
+  -> fans Telemetry objects out to subscribers
+QZTelemetryUnicastingService
+  -> encodes QZMetricPacket and unicasts UDP 8002 to QZ's last heartbeat IP
+DeviceController
+  -> forwards Telemetry to the selected Device so live sliders can correct drift
+QZ app
+  -> BLE FTMS measurements
+Zwift
 ```
 
-`MonoStdoutTelemetryReader` pushes telemetry updates the moment the iFit firmware emits them to logcat, typically within milliseconds of the change. `MonoStdoutTelemetryHub` owns that single reader and fans domain telemetry out to independent consumers. `QZTelemetryUnicastingService` encodes telemetry into `QZMetricPacket` wire messages addressed to the IP that QZ most recently advertised via its `-100;N` heartbeat; if no heartbeat has arrived in the last 30 s the packet is silently dropped. `DeviceController.onTelemetry()` closes the feedback loop for the inbound path: `SpeedSlider`'s speed gate blocks treadmill speed swipes while the belt is stopped, and when `SpeedTelemetry > 0` first arrives any cached speed is applied immediately. Sliders constructed with the `.live()` factory re-derive their starting position from live observed telemetry rather than tracking internal state.
+`MonoStdoutTelemetryHub` owns the single process-wide reader. Consumers subscribe
+to the hub so command feedback, QZ metric output, and calibration all observe the
+same telemetry stream.
 
 ---
 
-## Components
+## Package Layout
 
-### Package Layout
+Main Java package:
 
-```
+```text
 org.cagnulein.qzcompanionnordictracktreadmill
-├── qz/               QZCommandListenerService, QZTelemetryUnicastingService,
-│                     QZCommandPacket, QZMetricPacket,
-│                     QZCommandSubscriber, QZTelemetryEncoder
-├── console/          TelemetryReader hierarchy, MonoStdoutTelemetryReader,
-│                     GestureService
-├── telemetry/        Telemetry, SpeedTelemetry, InclineTelemetry,
-│                     ResistanceTelemetry, GearTelemetry, etc.
-├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
-│                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
-│   ├── bike/         One class per bike device
-│   ├── treadmill/    One class per treadmill device
-│   ├── command/      Command, SpeedCommand, InclineCommand, ResistanceCommand,
-│   │                 GearCommand, CommandDispatcher, RawSwipeCommand
-│   └── slider/       Slider, InclineSlider, SpeedSlider,
-│                     ResistanceSlider, GearSlider
-├── platform/         Android platform helpers
-│   ├── crash/        CrashHandler
-│   └── receiver/     BootReceiver, ServiceRestartReceiver
-└── ui/               MainActivity, DeviceAdapter
+|-- qz/             UDP input/output adapters and QZ wire packet types
+|-- console/        Android console surfaces: logcat telemetry and gestures
+|-- telemetry/      Domain telemetry value objects
+|-- device/         Device model, registry, calibration, commands, sliders
+|   |-- bike/       One class per supported bike or bike-like device
+|   |-- treadmill/  One class per supported treadmill
+|   |-- command/    Command types plus CommandDispatcher
+|   `-- slider/     Typed slider abstractions for speed, incline, resistance, gear
+|-- calibration/    In-app calibration runner, fitting, telemetry collection
+|-- platform/       Boot/restart receivers and crash handling
+`-- ui/             MainActivity, CalibrationActivity, DeviceAdapter
 ```
 
-### Device Model
+Important non-code areas:
 
-**`Device`** (abstract) — base class for all fitness devices. Owns:
-- `logger` — functional interface; no-op by default, wired to `Log.i` in production
-- `commandExecutor` — functional interface; no-op by default, set by `MainActivity` to route shell commands
-- `decodeCommands(QZCommandPacket)` — abstract; returns one `Command` per actionable field in the packet (sentinels return an empty list)
-- `applyCommand(Command)` — calls `cmd.applyTo(this)`; throttle is handled upstream by `CommandDispatcher` via `DeviceController`
-- `sliders()` — abstract; returns the list of typed `Slider` instances owned by this device
-- `sliderOf(Class<S>)` — final generic lookup; returns the first slider of the given subtype, or `null`
-- `applyTelemetry(Telemetry)` — final; iterates `sliders()` calling `s.applyTelemetry(telemetry, this)` on each
+| Path | Purpose |
+|------|---------|
+| `docs/` | Contributor and investigation docs. |
+| `tools/discover-device/` | ADB-based discovery, calibration, and coordinate validation tools. |
+| `app/src/test/java/...` | JVM and Robolectric tests, plus `testing-methodology.md`. |
+| `InstallPackage/` | End-user install scripts and packaged APK assets. |
+| `version.properties` | Single source for release `versionName`. |
 
-**`BikeDevice`** (abstract, extends `Device`) — controls one or two typed `Slider` instances (incline + optional resistance/gear). Implements `sliders()` returning the non-null sliders. `decodeCommands()` calls `incline.commandFor(v)` and `resistance.commandFor(v)` so each slider produces its own matching `Command` type. De-duplication is handled inside each slider's `handle()` method.
+---
 
-**`TreadmillDevice`** (abstract, extends `Device`) — controls `SpeedSlider` and `InclineSlider` instances. Implements `sliders()` returning both. Speed-gate logic lives in `SpeedSlider`: commands are held in a one-slot cache while the belt is stopped, and flushed the moment `KPH > 0` arrives via `applyTelemetry`.
+## Core Components
 
-**`Slider`** (abstract) — represents one physical slider on the iFit touchscreen. Four typed subclasses exist: `InclineSlider` (metric: `GRADE`), `SpeedSlider` (metric: `KPH`), `ResistanceSlider` (metric: `RESISTANCE`), and `GearSlider` (metric: `CURRENT_GEAR`). Each typed slider is constructed as `new InclineSlider(trackX, initialThumbY, formula)` etc., where `trackX` is a `ScreenProfile` constant, `initialThumbY` equals `formula(0)`, and `formula` is a `ThumbYFormula` method reference. When `quantize`, `currentThumbY`, or `hysteresisPixels` also need overriding, an anonymous typed-slider subclass is used. Each typed slider also provides a `.live()` static factory that overrides `currentThumbY()` to re-derive starting position from its live metric value. Overridable behaviours:
-- `targetThumbY(double v)` — (supplied via `ThumbYFormula`) converts a metric value to a logical pixel Y coordinate
-- `quantize(float v)` — (optional) snaps to physically reachable increments
-- `currentThumbY()` — dead mode (default): returns `thumbY()` (tracked from last `moveTo`). Live mode (`.live()` factory): returns `targetThumbY(liveValue)`, correcting drift from missed commands.
-- `hysteresisPixels(fromY, toY)` — (optional) pixels of directional overshoot to compensate for physical stiction; swipe overshoots `targetThumbY` in the direction of travel while `thumbY` tracks the logical target so de-dup is unaffected. Default: 0.
+### QZ adapters
 
-Each typed slider implements two abstract methods:
-- `handle(double value, Device device)` — de-duplicates against `lastApplied()` and calls `moveTo()`; `SpeedSlider` additionally gates on `liveValueOrZero()`
-- `commandFor(double value)` — creates the matching `Command` subclass (e.g. `InclineSlider.commandFor()` returns `new InclineCommand(...)`)
+`QZCommandListenerService` is the UDP input service. It listens on port 8003,
+tracks the source IP of QZ heartbeat packets, parses datagrams into
+`QZCommandPacket`, and forwards packets to the active `QZCommandSubscriber`.
 
-`Slider.moveTo()` owns gesture dispatch: it calls `GestureService.performSwipe()` when connected and `device.commandExecutor.send()` unconditionally. `GestureService.SWIPE_DURATION_MS` (200 ms) governs gesture duration for both `moveTo()` and the calibration swipe path in `DeviceController`.
+`QZTelemetryUnicastingService` is the UDP output service. It subscribes to
+`MonoStdoutTelemetryHub`, converts domain `Telemetry` objects through
+`QZTelemetryEncoder`, and unicasts serialized `QZMetricPacket` values to
+`qzAddress:8002`. It drops sends until a recent QZ heartbeat is known.
 
-**`ScreenProfile`** (enum) — encodes the horizontal pixel coordinates of the left and right slider tracks for each iFit screen width (W1920, W1280, W1024, W800). Constants are derived from iFit APK 2.6.90 (versionCode 4963, `com.ifit.standalone`): `workout_slider_margin=12 dp`, `workout_slider_width=125 dp` → track centre at `12 + 62.5 = 74.5 dp`. Left and right values are stored independently because dp→px rounding can be asymmetric at the pixel boundary. If the iFit app is updated, re-derive these constants from the new APK's `res/values/dimens.xml` before touching any device class.
+`QZCommandPacket` and `QZMetricPacket` own the UDP wire details. Device code
+should consume commands and telemetry objects, not split raw strings itself.
 
-**`DeviceController`** — the seam between command packets, telemetry, and the device layer. Implements `QZCommandSubscriber`. Owns the selected `Device`, an internal `CalibrationDevice`, a `CommandDispatcher`, and a `MonoStdoutTelemetryHub` subscription. `onPacket()` first asks `CalibrationDevice.decodeCommands()` to translate `CALSWIPE:x:fromY:toY` packets into `RawSwipeCommand`; if no calibration command is produced, it falls back to `device.decodeCommands()`. It enqueues each resulting `Command` and calls `dispatcher.drain()` for empty (sentinel) packets. `onTelemetry()` forwards directly to `device.applyTelemetry()`. `MainActivity` creates a new `DeviceController` on device selection, registers it with `QZCommandListenerService`, and shuts the old controller down so its telemetry subscription is closed.
+### Device model
 
-**`DeviceRegistry`** — singleton `EnumMap` mapping every `DeviceId` to a pre-constructed `Device` instance. Neither `QZCommandListenerService` nor `MainActivity` reference concrete device classes — all coupling goes through `DeviceId`.
+`Device` is the abstract base for every supported machine. It decodes QZ command
+packets into typed `Command` objects, exposes its sliders, and applies telemetry
+to each slider.
 
-For per-device pixel formulas, command execution modes, and metric reader assignments, see [device-reference.md](device-reference.md).
+`BikeDevice` and `TreadmillDevice` define the common command decoding shape for
+the two main device families. Individual devices live in `device/bike/` or
+`device/treadmill/` and contain their own pixel formulas, screen profile, and
+any special slider behavior.
 
-### Coordinate Validation
+`DeviceRegistry` is the single registry of selectable devices. UI and services
+look up devices by `DeviceId`; they should not reference concrete device classes
+directly.
 
-All trackX constants are standardised to **iFit APK 2.6.90** (versionCode 4963) and expressed via the `ScreenProfile` enum — the single source of truth for slider track positions. `tools/discover-device/validate_swipe_targets.py` reads the decoded APK (`ifit_decoded/res/`) and all device Java files, then checks that each slider's trackX matches the position implied by the APK's `workout_slider_margin` (12 dp) and `workout_slider_width` (125 dp) dimension resources. At the iFit tablet's mdpi density (1 dp = 1 px), this yields an expected left-slider trackX of 74.5 px and a right-slider trackX of `screen_width − 74.5` px. The script also checks formula monotonicity, initial-thumb plausibility, and formula bounds against Sindarin's protocol limits.
+### Sliders and gestures
 
-Run it before and after editing any device class:
+A `Slider` represents one physical iFit control axis. The typed subclasses are:
 
-```bash
-python3 tools/discover-device/validate_swipe_targets.py   # exits 0 if clean
-```
+| Slider | Telemetry | Command |
+|--------|-----------|---------|
+| `InclineSlider` | grade percent | `InclineCommand` |
+| `SpeedSlider` | km/h | `SpeedCommand` |
+| `ResistanceSlider` | resistance level | `ResistanceCommand` |
+| `GearSlider` | current gear | `GearCommand` |
 
-Full methodology, per-screen-width tables, and documentation of known anomalies are in [device-reference.md](device-reference.md).
+Each slider knows its track X coordinate, current thumb Y, target formula,
+quantization rules, and optional hysteresis. `Slider.moveTo()` sends the final
+gesture through `GestureService.performSwipe()`. All supported devices use the
+accessibility gesture path.
 
-### Command Dispatch
+`ScreenProfile` stores the standard left/right slider track positions for iFit
+screen widths. Use it instead of hardcoding track X values in new device classes.
 
-**`QZCommandListenerService`** — pure publisher. Android `Service` that loops on a `DatagramSocket` (port 8003), holds a `WakeLock` per receive, and calls `subscriber.onPacket()` for each datagram. Records `qzAddress` and `lastQzHeartbeatMs` from normal QZ command/heartbeat packets so `QZTelemetryUnicastingService` knows where to send metric updates; `CALSWIPE` packets are routed to the subscriber without updating heartbeat state. `CALSWIPE_PREFIX` is defined in `QZCommandPacket` (wire-format knowledge belongs there). Subscriber is set via `QZCommandListenerService.setSubscriber(QZCommandSubscriber)` after the service starts.
+### Command dispatch
 
-**`CommandDispatcher`** — pure throttle and queue. Accepts a `Consumer<Command> executor` at construction; has no device knowledge. Commands are enqueued via `enqueue(Command)` and drained one per 500 ms throttle window via `executor.accept(cmd)`. Drain happens on two paths: `enqueue()` attempts an immediate drain when the window is open, and a background `ScheduledExecutorService` (`QZ:DrainThread`) fires every 500 ms. `drain()` is called directly by `DeviceController` for sentinel packets (empty command list). Both paths synchronize on `this` to prevent double-drain. `shutdown()` stops the background thread. Has an injectable `Clock` interface so tests can drive time without sleeping — the test constructor starts no background thread.
+`DeviceController` connects packet input, the selected device, command
+dispatching, and telemetry feedback. `MainActivity` creates a new controller when
+the selected device changes and registers it with `QZCommandListenerService`.
 
-**`QZCommandSubscriber`** — single-method interface: `onPacket(QZCommandPacket)`. Calibration and normal QZ datagrams share the same subscriber boundary.
+`CommandDispatcher` is Android-free policy code. It owns the throttle window and
+FIFO queue, accepts a `Command` executor, and has an injectable clock for tests.
 
-**`CalibrationDevice`** — internal decoder for calibration-only UDP packets. It is not registered in `DeviceRegistry` and is never user-selectable; it exists so `discover-device.py --a11y` can use the same decode/dispatch path regardless of the selected fitness device.
+Calibration-only UDP packets are decoded by `CalibrationDevice` into
+`RawSwipeCommand` so external discovery tools can use the same dispatch path as
+normal device commands.
 
-**`RawSwipeCommand`** — `Command` subclass carrying `x, fromY, toY` pixel coordinates for a calibration swipe. It dispatches directly through `GestureService.performSwipe()` and emits the equivalent `input swipe` string through `device.commandExecutor` for tests/debug capture.
+### Telemetry
 
-**`QZCommandPacket`** — structural wrapper for a single QZ UDP datagram. Owns the `;` delimiter, field access by index, named sentinel constants (`NO_COMMAND = -100`, `NO_RESISTANCE = -1`, `END_OF_RIDE`), and `CALSWIPE_PREFIX`. The `;` split is not exposed outside this class.
+`MonoStdoutTelemetryReader` starts a persistent `logcat -s mono-stdout` process
+and parses iFit metric-change lines. The iFit app is Xamarin/Mono-based, so this
+tag is the common source of live metrics across supported NordicTrack/ProForm
+devices.
 
-**`QZMetricPacket`** — typed wrapper for an outbound UDP metric message. The `Metric` enum encodes both the wire-format prefix string and whether the value serialises as an integer or float. `serialize()` produces the raw string sent over UDP; `parse()` reconstructs the object from a raw string (used in tests). `QZTelemetryEncoder` constructs one instance from domain telemetry before `QZTelemetryUnicastingService` calls `sendUnicast()`.
-
-### Metric Reading
-
-**`QZTelemetryUnicastingService`** — UDP output adapter. Background service that subscribes to `MonoStdoutTelemetryHub` in `onCreate()`, encodes each domain telemetry value with `QZTelemetryEncoder`, and unicasts the resulting metric packet to `qzAddress:8002`. Silently drops sends until `QZCommandListenerService` has seen a QZ heartbeat within the last 30 s.
-
-The `TelemetryReader` interface and its implementations are described in the [Design Decisions](#design-decisions) and [Reference](#reference) sections below.
-
-### Swipe Execution Paths
-
-All 44 devices use `GestureService.performSwipe()` via `Slider.moveTo()`. There is no per-device capability flag — all devices use `AccessibilityService` exclusively. `MainActivity` shows the "Enable Accessibility Service" prompt for all devices and does not establish an ADB connection.
+`Telemetry` subclasses are domain objects: speed, incline, resistance, gear,
+cadence, watts, and heart rate. The QZ wire format is handled later by
+`QZTelemetryEncoder`.
 
 ### Calibration
 
-Device-specific slider calibration is performed once per physical device from inside QZCompanion. The guided calibration screen runs on the iFit tablet, uses `GestureService` gestures to sweep incline and resistance, subscribes to the shared `MonoStdoutTelemetryHub`, fits `Y = origin − scale × value`, writes `/sdcard/qz-calibration.json`, updates `DeviceCalibration.current`, and selects `custom_calibrated` without an app restart.
+The in-app calibration flow lives in `ui/CalibrationActivity` and
+`calibration/`. It uses accessibility gestures to sweep a physical slider,
+collects live telemetry from `MonoStdoutTelemetryHub`, fits a linear
+`Y = origin - scale * value` formula, writes `/sdcard/qz-calibration.json`, and
+selects the `custom_calibrated` device.
 
-`DeviceCalibration` remains the compatibility boundary. It holds the fitted origin, scale, and trackX for each slider axis, plus hysteresis defaults, and exposes `targetThumbY(float grade)` for use by `CalibratedBikeDevice`. If `qz-calibration.json` is absent, `DeviceCalibration.load(SharedPreferences)` provides a legacy fallback.
-
-`tools/discover-device.py` is retained as an external fallback for contributors, recovery, unattended validation, and comparison runs. Its `qz-calibration.json` output remains compatible with the in-app loader.
-
-#### discover-device.py as a device onboarding tool
-
-Most contributors don't own every NordicTrack/ProForm variant they want to support. The in-app calibration flow is the primary mechanism for closing that gap: a user with the physical device runs the sweep, obtains working ORIGIN and scale constants for their machine, and can immediately ride with Zwift via the `custom_calibrated` device — no code changes required. `discover-device.py` remains useful when a contributor needs an ADB-run reproducible sweep.
-
-The fitted constants from `qz-calibration.json` are also the exact values a contributor needs to write a proper hardcoded device class (the `ORIGIN_INCLINE_THUMBY`, `ORIGIN_SPEED_THUMBY`, and scale factors in the `offsetXxxThumbY` formulas). The typical onboarding workflow for a new device is:
-
-1. User runs in-app calibration on their hardware, which writes `/sdcard/qz-calibration.json`, selects `custom_calibrated`, and confirms Zwift control works.
-2. User submits the resulting `qz-calibration.json` (or pastes the displayed constants) in a GitHub issue or PR.
-3. A contributor uses those constants to write the device class and register it — the user's calibration data becomes the hardcoded formula for everyone.
+`DeviceCalibration` is the compatibility boundary for saved calibration data.
+`tools/discover-device.py` can still produce compatible `qz-calibration.json`
+files when a contributor needs an ADB-driven or repeatable discovery run.
 
 ---
 
-## Design Decisions
+## Contributor Workflows
+
+### Adding a supported device
+
+1. Get fitted origin and scale constants from the in-app calibration flow, or
+   from `tools/discover-device.py` when an ADB workflow is needed.
+2. Add one self-contained class under `device/bike/` or `device/treadmill/`.
+3. Put the device's origin constants, scale formulas, screen profile, and any
+   quantization or hysteresis overrides in that class.
+4. Register the `DeviceId` and instance in `DeviceRegistry`.
+5. Make sure the device appears in the correct `DeviceRegistry.Category` so
+   `DeviceAdapter` can place it in the UI list.
+6. Add focused unit coverage for command decoding, swipe output, quantization,
+   hysteresis, or live telemetry behavior that differs from the base classes.
+7. Run `python3 tools/discover-device/validate_swipe_targets.py` after changing
+   screen coordinates or formulas.
+
+See [device-reference.md](device-reference.md) for current device formulas,
+screen profiles, and validator notes. See
+[testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md)
+for test patterns.
+
+### Changing command behavior
+
+Start at `DeviceController` to understand routing, then keep policy in the
+lowest class that owns it:
+
+- Queueing and time-based throttling belong in `CommandDispatcher`.
+- Device-family packet decoding belongs in `BikeDevice` or `TreadmillDevice`.
+- Per-axis behavior belongs in the relevant `Slider` subclass or anonymous
+  slider override.
+- Raw UDP parsing belongs in `QZCommandPacket`.
+
+### Changing telemetry behavior
+
+Keep metric parsing in `MonoStdoutTelemetryReader`, domain representation in
+`telemetry/`, and QZ UDP serialization in `QZTelemetryEncoder` or
+`QZMetricPacket`. Device and slider code should react to `Telemetry`, not QZ
+wire strings.
+
+### Changing UI behavior
+
+`MainActivity` owns app startup, selected-device lifecycle, service startup,
+status display, and menu actions. `DeviceAdapter` owns the sectioned device list.
+`CalibrationActivity` owns the guided calibration screen.
+
+---
+
+## Design Notes
+
+### Why swipe simulation?
+
+NordicTrack/ProForm iFit 1/2 devices do not expose a supported local control API
+for grade, resistance, or speed. BLE FTMS control, local sockets, Android IPC,
+and direct USB HID control were investigated and ruled out. Accessibility
+gestures work because iFit receives them through the normal Android touch event
+pipeline.
+
+The full investigation is in
+[ifit-control-surface-investigation.md](ifit-control-surface-investigation.md).
 
 ### Why mono-stdout?
 
-The iFit app (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) application. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`. This is consistent across every NordicTrack and ProForm device running the same Xamarin stack, which covers all hardware supported by this project.
+The iFit app runs fitness logic inside a Xamarin/Mono runtime. Metric changes are
+emitted to Android logcat under `mono-stdout`, which avoids per-device log-file
+polling, iFit version flags, and repeated shell process startup.
 
-Subscribing to `mono-stdout` via a persistent `logcat -s mono-stdout` process is strictly better than the per-device polling strategies used by the legacy codebase (`tail`/`grep` on a log file, `cat`, full logcat dumps): no repeated shell process spawning, no 250 ms poll lag, and no device-specific reader selection to maintain. `MonoStdoutTelemetryReader` is now the universal default for all 44 devices.
+### What should stay stable?
 
----
-
-## Reference
-
-### TelemetryReader Interface
-
-All 44 devices use `MonoStdoutTelemetryReader`. The `TelemetryReader` interface has a `subscribe(Consumer<Telemetry>)` method that `MonoStdoutTelemetryReader` implements by starting a background thread; `MonoStdoutTelemetryHub` owns the single reader and fans telemetry out to QZ UDP output, the active `DeviceController`, and calibration.
-
-### MonoStdoutTelemetryReader
-
-The iFit application (`com.ifit.standalone`) is a Xamarin.Android (Wolf platform) app. The Xamarin/Mono runtime emits every `FitPro` metric change as a logcat line under the tag `mono-stdout`, one value per line. `MonoStdoutTelemetryReader` opens `logcat -s mono-stdout` as a persistent child process in a daemon thread and parses each line as it arrives. Latency from firmware change to cached snapshot update is under 10 ms. The thread restarts automatically if the logcat process exits.
-
-`read()` starts the logcat background thread; it returns immediately. There are no file or shell arguments.
-
-`MonoStdoutTelemetryHub` calls `subscribe(telemetry -> ...)` on the reader once. Consumers subscribe to the hub, not the reader, so QZ UDP output, device feedback, and calibration share one process-wide logcat stream.
-
-**Parsed line keywords** (last whitespace-delimited token on each line is the value):
-
-| Field | Keywords |
-|-------|----------|
-| `speedKmh` | `Changed KPH`, `Changed Actual KPH` |
-| `inclinePct` | `Changed Grade`, `Changed Actual Grade`, `Grade changed` |
-| `watts` | `Changed Watts` |
-| `cadenceRpm` | `Changed RPM` |
-| `gearLevel` | `Changed CurrentGear` |
-| `resistanceLvl` | `Changed Resistance` |
-| `heartRate` | `HeartRateDataUpdate` |
-
-### QZMetricPacket Fields
-
-`QZMetricPacket` carries a single metric enum value and its float reading. It is a QZ UDP adapter type only. `QZTelemetryEncoder` maps domain telemetry to this wire type, and `QZTelemetryUnicastingService` serializes it. Device and slider code consume `Telemetry` objects directly and do not import `QZMetricPacket`.
-
-| `QZMetricPacket.Metric` | Unit |
-|----------------|------|
-| `KPH` | km/h |
-| `GRADE` | % |
-| `WATTS` | W |
-| `RPM` | RPM |
-| `CURRENT_GEAR` | level |
-| `RESISTANCE` | level |
-| `HEART_RATE` | BPM |
+- The QZ UDP command and metric wire formats are compatibility boundaries.
+- `DeviceRegistry` is the public selection map for supported devices.
+- `ScreenProfile` is the source of truth for standard slider track X positions.
+- `DeviceCalibration` is the boundary for saved calibration JSON compatibility.
