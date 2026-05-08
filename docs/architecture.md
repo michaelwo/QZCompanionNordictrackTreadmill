@@ -27,21 +27,23 @@ QZ app
 QZCommandListenerService
   -> parses QZCommandPacket and publishes to QZCommandSubscriber
 DeviceController
-  -> asks GlassOsControlTransport to apply the command first
-GlassOsControlTransport
+  -> CommandDispatcher queues and throttles; calls device.applyCommand(cmd)
+IFit2BikeDevice / IFit2TreadmillDevice
+  -> calls IFit2ControlTransport.apply(cmd)
+IFit2ControlTransport
   -> sends InclineRequest, ResistanceRequest, or SpeedRequest over mTLS gRPC
 glassos_service (localhost:54321)
   -> moves the hardware axis
 ```
 
-`GlassOsControlTransport.tryApply()` returns `true` on success. On any gRPC error it shuts the channel down and returns `false`. On a committed-iFit2 platform `gesturesEnabled=false`, so a `false` return means the command is not applied — there is no gesture fallback.
+`IFit2ControlTransport.apply()` returns `true` on success. On any gRPC error it shuts the channel down and returns `false`. On iFit2 the gesture path is never invoked — iFit2 devices route only through the transport.
 
 ### Telemetry: hardware to Zwift (iFit2)
 
 ```text
 glassos_service (localhost:54321)
   -> gRPC async subscription stream per axis (incline, resistance, speed, cadence, watts, HR)
-GlassOsTelemetryReader
+IFit2TelemetryReader
   -> wraps each stream observer, emits Telemetry domain objects
 TelemetryHub
   -> fans Telemetry objects out to all subscribers
@@ -54,11 +56,11 @@ QZ app
 Zwift
 ```
 
-`iFitPlatform.detect()` commits to exactly one reader at startup. On iFit2, `TelemetryHub` is configured with `GlassOsTelemetryReader` only — `MonoStdoutTelemetryReader` is never installed. On iFit1, the reverse. There is no runtime fallback between readers.
+`IFitPlatform.detect()` commits to exactly one reader at startup. On iFit2, `TelemetryHub` is configured with `IFit2TelemetryReader` only — `MonoStdoutTelemetryReader` is never installed. On iFit1, the reverse. There is no runtime fallback between readers.
 
 ### Credentials
 
-The gRPC channel requires mutual TLS. The CA certificate, client certificate, and private key live inside the rivendell APK as raw resources with obfuscated file paths. `GlassOsCredentials` discovers them at runtime by scanning the installed APK's `resources.arsc` for `img_icon_*` key strings, reading each resource, stripping JPEG obfuscation markers, and identifying the correct cert by its CN field (`com.ifit.rivendell`). Discovered resource names are cached in `SharedPreferences("glassos_cred_v2")` keyed by the APK's `versionCode`.
+The gRPC channel requires mutual TLS. The CA certificate, client certificate, and private key live inside the rivendell APK as raw resources with obfuscated file paths. `IFit2Credentials` discovers them at runtime by scanning the installed APK's `resources.arsc` for `img_icon_*` key strings, reading each resource, stripping JPEG obfuscation markers, and identifying the correct cert by its CN field (`com.ifit.rivendell`). Discovered resource names are cached in `SharedPreferences("glassos_cred_v2")` keyed by the APK's `versionCode`.
 
 Full details on the credential scheme and server security model are in [ifit2-control-surface-investigation.md](ifit2-control-surface-investigation.md).
 
@@ -78,8 +80,8 @@ QZ app
 QZCommandListenerService
   -> parses QZCommandPacket and publishes to QZCommandSubscriber
 DeviceController
-  -> GlassOsControlTransport returns false (not iFit2); falls through to gesture path
-Device / Slider
+  -> CommandDispatcher queues and throttles; calls device.applyCommand(cmd)
+IFit1Device / Slider
   -> quantizes, de-duplicates, applies speed gating, computes screen Y
 GestureService
   -> injects AccessibilityService swipe gestures into iFit
@@ -111,7 +113,7 @@ QZ app
 Zwift
 ```
 
-On iFit1 (committed by `iFitPlatform.detect()`), `MonoStdoutTelemetryReader` is the only configured reader.
+On iFit1 (committed by `IFitPlatform.detect()`), `MonoStdoutTelemetryReader` is the only configured reader.
 
 ---
 
@@ -122,17 +124,20 @@ Main Java package:
 ```text
 org.cagnulein.qzcompanionnordictracktreadmill
 |-- qz/             UDP input/output adapters and QZ wire packet types
-|-- console/        TelemetryHub, TelemetryReader, MonoStdoutTelemetryReader, GestureService
-|-- glassos/        GlassOS gRPC transport: credentials, telemetry reader, control transport
-|-- telemetry/      Domain telemetry value objects
-|-- device/         Device model, registry, calibration, commands, sliders
-|   |-- bike/       One class per supported bike or bike-like device
-|   |-- treadmill/  One class per supported treadmill
-|   |-- command/    Command types plus CommandDispatcher
-|   |-- control/    ControlTransport interface (gRPC or no-op)
-|   `-- slider/     Typed slider abstractions for speed, incline, resistance, gear
-|-- calibration/    In-app calibration runner, fitting, telemetry collection
-|-- platform/       Boot/restart receivers and crash handling
+|-- command/        Command, CommandDispatcher, and all typed command subclasses
+|-- console/
+|   |-- ifit1/      GestureService, MonoStdoutTelemetryReader
+|   |   `-- calibration/  CalibrationRunner and supporting classes
+|   `-- ifit2/      IFit2TelemetryReader, IFit2ControlTransport, IFit2Credentials
+|-- telemetry/      TelemetryHub, TelemetryReader, domain telemetry value objects
+|-- device/         Device (base), DeviceController
+|   |-- ifit1/      IFit1Device, BikeDevice, TreadmillDevice, DeviceRegistry,
+|   |               DeviceCalibration, ScreenProfile, SnapToOriginCommand
+|   |   |-- bike/      One class per supported bike or bike-like device
+|   |   |-- treadmill/ One class per supported treadmill
+|   |   `-- slider/    Typed slider abstractions for speed, incline, resistance, gear
+|   `-- ifit2/      IFit2BikeDevice, IFit2TreadmillDevice
+|-- platform/       IFitPlatform; boot/restart receivers and crash handling
 `-- ui/             MainActivity, CalibrationActivity, DeviceAdapter
 ```
 
@@ -162,21 +167,23 @@ Important non-code areas:
 
 `TelemetryHub` is the process-wide telemetry fanout. It holds a prioritized list of `TelemetryReader` implementations and starts the first one that succeeds. All subscribers — QZ metric output, device drift correction, calibration — observe the same stream regardless of which reader is active.
 
-`configure(TelemetryReader)` installs the single platform-committed reader. On iFit2 it receives a `GlassOsTelemetryReader`; on iFit1 a `MonoStdoutTelemetryReader`. Both `MainActivity` and `QZTelemetryUnicastingService` call `configure()` before subscribing; the configuration is idempotent once a reader has started.
+`configure(TelemetryReader)` installs the single platform-committed reader. On iFit2 it receives an `IFit2TelemetryReader`; on iFit1 a `MonoStdoutTelemetryReader`. Both `MainActivity` and `QZTelemetryUnicastingService` call `configure()` before subscribing; the configuration is idempotent once a reader has started.
 
-### GlassOS transport (iFit2)
+### iFit2 transport
 
-`GlassOsTelemetryReader` opens the gRPC channel, subscribes to `WorkoutService.WorkoutStateChanged`, and activates per-axis metric subscriptions (incline, resistance, speed, cadence, watts, HR) when the workout state transitions to `WORKOUT_STATE_RUNNING`. If the workout is already running at startup, `GetWorkoutState()` triggers immediate activation. `read()` only throws `IOException` for hard failures (credential load, channel open); a missing or not-yet-started workout is handled transparently.
+`IFit2TelemetryReader` opens the gRPC channel, subscribes to `WorkoutService.WorkoutStateChanged`, and activates per-axis metric subscriptions (incline, resistance, speed, cadence, watts, HR) when the workout state transitions to `WORKOUT_STATE_RUNNING`. If the workout is already running at startup, `GetWorkoutState()` triggers immediate activation. `read()` only throws `IOException` for hard failures (credential load, channel open); a missing or not-yet-started workout is handled transparently.
 
-`GlassOsControlTransport` implements `ControlTransport`. `DeviceController` calls `tryApply(command, device)` before the gesture path; the transport handles `InclineCommand`, `ResistanceCommand`, and `SpeedCommand` via their respective gRPC services, and returns `true` on success. On any gRPC error it shuts the channel down and returns `false`.
+`IFit2ControlTransport` is injected into `IFit2BikeDevice` and `IFit2TreadmillDevice` at construction. `DeviceController` calls `device.applyCommand(cmd)`, which delegates to `transport.apply(cmd)`. The transport handles `InclineCommand`, `ResistanceCommand`, and `SpeedCommand` via their respective gRPC services, and returns `true` on success. On any gRPC error it shuts the channel down and returns `false`.
 
-`GlassOsCredentials` loads the mTLS credentials from the installed rivendell APK and builds the `SSLContext` used by both transports.
+`IFit2Credentials` loads the mTLS credentials from the installed rivendell APK and builds the `SSLContext` used by both transports.
 
 ### Device model
 
-`Device` is the abstract base for every supported machine. It decodes QZ command packets into typed `Command` objects, exposes its sliders, and applies telemetry to each slider.
+`Device` is the abstract base for every supported machine. It exposes `applyCommand(Command)` and `applyTelemetry(Telemetry)` as overridable entry points.
 
-`BikeDevice` and `TreadmillDevice` define the common command decoding shape for the two main device families. Individual devices live in `device/bike/` or `device/treadmill/` and contain their own pixel formulas, screen profile, and any special slider behavior.
+`IFit1Device`, `BikeDevice`, and `TreadmillDevice` define the iFit1 gesture path: they fan commands through typed sliders and apply telemetry to correct drift. Individual iFit1 devices live in `device/ifit1/bike/` or `device/ifit1/treadmill/` and contain their own pixel formulas, screen profile, and any special slider behavior.
+
+`IFit2BikeDevice` and `IFit2TreadmillDevice` hold an injected `IFit2ControlTransport` and forward every command directly to it.
 
 `DeviceRegistry` is the single registry of selectable devices. UI and services look up devices by `DeviceId`; they should not reference concrete device classes directly.
 
@@ -191,13 +198,13 @@ A `Slider` represents one physical iFit control axis. The typed subclasses are:
 | `ResistanceSlider` | resistance level | `ResistanceCommand` |
 | `GearSlider` | current gear | `GearCommand` |
 
-Each slider knows its track X coordinate, current thumb Y, target formula, quantization rules, and optional hysteresis. `Slider.moveTo()` sends the final gesture through `GestureService.performSwipe()`. On iFit2 the slider path is bypassed by `GlassOsControlTransport`, so sliders are only exercised as the fallback.
+Each slider knows its track X coordinate, current thumb Y, target formula, quantization rules, and optional hysteresis. `Slider.moveTo()` sends the final gesture through `GestureService.performSwipe()`. Sliders are only exercised on iFit1 — iFit2 devices never call the slider path.
 
 `ScreenProfile` stores the standard left/right slider track positions for iFit screen widths. Use it instead of hardcoding track X values in new device classes.
 
 ### Command dispatch
 
-`DeviceController` connects packet input, the selected device, a `ControlTransport`, and telemetry feedback. `MainActivity` creates a new controller when the selected device changes and registers it with `QZCommandListenerService`.
+`DeviceController` connects packet input, the selected device, and telemetry feedback. `MainActivity` creates a new controller when the selected device changes and registers it with `QZCommandListenerService`. Command execution is a single call: `device.applyCommand(cmd)` — the device decides how to handle it (gRPC on iFit2, slider gestures on iFit1).
 
 `CommandDispatcher` is Android-free policy code. It owns the throttle window and FIFO queue, accepts a `Command` executor, and has an injectable clock for tests.
 
@@ -216,7 +223,7 @@ The in-app calibration flow lives in `ui/CalibrationActivity` and `calibration/`
 ### Adding a supported device
 
 1. Get fitted origin and scale constants from the in-app calibration flow, or from `tools/discover-device.py` when an ADB workflow is needed.
-2. Add one self-contained class under `device/bike/` or `device/treadmill/`.
+2. Add one self-contained class under `device/ifit1/bike/` or `device/ifit1/treadmill/`.
 3. Put the device's origin constants, scale formulas, screen profile, and any quantization or hysteresis overrides in that class.
 4. Register the `DeviceId` and instance in `DeviceRegistry`.
 5. Make sure the device appears in the correct `DeviceRegistry.Category` so `DeviceAdapter` can place it in the UI list.
@@ -227,14 +234,14 @@ See [device-reference.md](device-reference.md) for current device formulas, scre
 
 ### Changing command behavior
 
-Start at `DeviceController` to understand routing. There are now two execution paths:
+Start at `DeviceController` to understand routing. There are two execution paths, selected at device construction time:
 
-- **iFit2:** `GlassOsControlTransport.tryApply()` is the first stop. Changes to how gRPC commands are constructed or retried belong there.
-- **iFit1 / fallback:** if `tryApply()` returns `false`, control reaches `device.applyCommand()` and the slider path. Keep policy in the lowest class that owns it: queueing in `CommandDispatcher`, device-family decoding in `BikeDevice`/`TreadmillDevice`, per-axis behavior in the `Slider` subclass, raw UDP parsing in `QZCommandPacket`.
+- **iFit2:** `device.applyCommand()` on an iFit2 device calls `IFit2ControlTransport.apply()`. Changes to how gRPC commands are constructed or retried belong there.
+- **iFit1:** `device.applyCommand()` on an iFit1 device fans through typed sliders. Keep policy in the lowest class that owns it: queueing in `CommandDispatcher`, device-family decoding in `BikeDevice`/`TreadmillDevice`, per-axis behavior in the `Slider` subclass, raw UDP parsing in `QZCommandPacket`.
 
 ### Changing telemetry behavior
 
-Keep metric parsing in the appropriate `TelemetryReader` (`GlassOsTelemetryReader` for iFit2, `MonoStdoutTelemetryReader` for iFit1), domain representation in `telemetry/`, and QZ UDP serialization in `QZTelemetryEncoder` or `QZMetricPacket`. Device and slider code should react to `Telemetry`, not reader-specific wire formats.
+Keep metric parsing in the appropriate `TelemetryReader` (`IFit2TelemetryReader` for iFit2, `MonoStdoutTelemetryReader` for iFit1), domain representation in `telemetry/`, and QZ UDP serialization in `QZTelemetryEncoder` or `QZMetricPacket`. Device and slider code should react to `Telemetry`, not reader-specific wire formats.
 
 ### Changing UI behavior
 

@@ -7,11 +7,11 @@ Android app for controlling NordicTrack and ProForm fitness devices via Accessib
 - `app/src/main/java/.../qz/QZCommandListenerService.java` — UDP listener (port 8003); pure publisher — calls `QZCommandSubscriber.onPacket()` or `onCalibrationSwipe()` for each received datagram
 - `app/src/main/java/.../qz/QZTelemetryUnicastingService.java` — subscribes to `MonoStdoutTelemetryHub`, encodes telemetry as QZ UDP metric packets, unicasts on port 8002
 - `app/src/main/java/.../device/DeviceController.java` — owns `Device` + `CommandDispatcher` + telemetry subscription; implements `QZCommandSubscriber`; the seam between command packets, telemetry, and the device layer
-- `app/src/main/java/.../console/GestureService.java` — performs swipe gestures for all devices via the Android Accessibility API
+- `app/src/main/java/.../console/ifit1/GestureService.java` — performs swipe gestures for all devices via the Android Accessibility API
 - `app/src/main/java/.../ui/MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
-- `app/src/main/java/.../device/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
+- `app/src/main/java/.../device/ifit1/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
 - `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
-- `app/src/main/java/.../device/DeviceCalibration.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
+- `app/src/main/java/.../device/ifit1/DeviceCalibration.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
 - `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI (no radio buttons)
 - `app/build.gradle` — Android build configuration
 - `app/src/main/AndroidManifest.xml` — Android manifest
@@ -24,21 +24,25 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── qz/               QZCommandListenerService, QZTelemetryUnicastingService,
 │                     QZCommandPacket, QZMetricPacket,
 │                     QZCommandSubscriber, QZTelemetryEncoder
-├── console/          TelemetryReader, MonoStdoutTelemetryReader, GestureService
-├── telemetry/        Telemetry, SpeedTelemetry, InclineTelemetry,
-│                     ResistanceTelemetry, GearTelemetry
-├── device/           Device, BikeDevice, TreadmillDevice, DeviceController,
-│                     DeviceRegistry (+ DeviceId enum), DeviceCalibration
-│   ├── command/      CommandDispatcher, Command, SpeedCommand, InclineCommand,
-│   │                 ResistanceCommand, GearCommand, CalibrationSwipeCommand
-│   ├── slider/       Slider, InclineSlider, SpeedSlider,
-│   │                 ResistanceSlider, GearSlider
-│   ├── bike/         One class per bike device (S22iDevice, S15iDevice, …)
-│   └── treadmill/    One class per treadmill device (X11iDevice, X32iDevice, …)
-├── platform/         Android platform helpers
+├── command/          Command, CommandDispatcher, SpeedCommand, InclineCommand,
+│                     ResistanceCommand, GearCommand, RawSwipeCommand
+├── console/
+│   ├── ifit1/        GestureService, MonoStdoutTelemetryReader
+│   │   └── calibration/  CalibrationRunner and supporting classes
+│   └── ifit2/        IFit2TelemetryReader, IFit2ControlTransport, IFit2Credentials
+├── telemetry/        TelemetryHub, TelemetryReader, Telemetry, SpeedTelemetry,
+│                     InclineTelemetry, ResistanceTelemetry, GearTelemetry
+├── device/           Device, DeviceController
+│   ├── ifit1/        IFit1Device, BikeDevice, TreadmillDevice, DeviceRegistry,
+│   │                 DeviceCalibration, ScreenProfile, SnapToOriginCommand
+│   │   ├── bike/     One class per bike device (S22iDevice, S15iDevice, …)
+│   │   ├── treadmill/ One class per treadmill device (X11iDevice, X32iDevice, …)
+│   │   └── slider/   Slider, InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
+│   └── ifit2/        IFit2BikeDevice, IFit2TreadmillDevice
+├── platform/         IFitPlatform; boot/restart receivers and crash handling
 │   ├── crash/        CrashHandler
 │   └── receiver/     BootReceiver, ServiceRestartReceiver
-└── ui/               MainActivity, DeviceAdapter
+└── ui/               MainActivity, CalibrationActivity, DeviceAdapter
 ```
 
 ---
