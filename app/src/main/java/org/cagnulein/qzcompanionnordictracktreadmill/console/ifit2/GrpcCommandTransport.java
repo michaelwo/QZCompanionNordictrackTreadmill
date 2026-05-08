@@ -29,7 +29,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class IFit2ControlTransport {
+public final class GrpcCommandTransport {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
@@ -41,7 +41,7 @@ public final class IFit2ControlTransport {
     private SpeedServiceGrpc.SpeedServiceBlockingStub speed;
     private boolean disabled;
 
-    public IFit2ControlTransport(Context context) {
+    public GrpcCommandTransport(Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -91,7 +91,7 @@ public final class IFit2ControlTransport {
     private synchronized void ensureChannel() throws Exception {
         if (channel != null) return;
 
-        IFit2Credentials credentials = IFit2Credentials.load(context);
+        GrpcCredentials credentials = GrpcCredentials.load(context);
         channel = OkHttpChannelBuilder
                 .forAddress("localhost", 54321)
                 .overrideAuthority("localhost:54321")
@@ -115,7 +115,7 @@ public final class IFit2ControlTransport {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, GrpcCredentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

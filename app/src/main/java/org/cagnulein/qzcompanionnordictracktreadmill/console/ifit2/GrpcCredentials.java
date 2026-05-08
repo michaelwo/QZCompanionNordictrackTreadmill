@@ -27,7 +27,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-public final class IFit2Credentials {
+public final class GrpcCredentials {
     public static final String CLIENT_ID_HEADER_VALUE = "com.ifit.rivendell";
 
     private static final String[] RESOURCE_PACKAGES = {
@@ -37,7 +37,7 @@ public final class IFit2Credentials {
 
     private final SSLContext sslContext;
 
-    private IFit2Credentials(SSLContext sslContext) {
+    private GrpcCredentials(SSLContext sslContext) {
         this.sslContext = sslContext;
     }
 
@@ -45,7 +45,7 @@ public final class IFit2Credentials {
         return sslContext;
     }
 
-    public static IFit2Credentials load(Context context) throws Exception {
+    public static GrpcCredentials load(Context context) throws Exception {
         PackageManager pm = context.getPackageManager();
         SharedPreferences prefs = context.getSharedPreferences("glassos_cred_v2", Context.MODE_PRIVATE);
         List<Exception> failures = new ArrayList<>();
@@ -56,7 +56,7 @@ public final class IFit2Credentials {
                 String certPem = readPem(resources, packageName, keys.cert, "CERTIFICATE");
                 String keyPem  = readPem(resources, packageName, keys.key,  "PRIVATE KEY");
                 String caPem   = readPem(resources, packageName, keys.ca,   "CERTIFICATE");
-                return new IFit2Credentials(buildSslContext(certPem, keyPem, caPem));
+                return new GrpcCredentials(buildSslContext(certPem, keyPem, caPem));
             } catch (Exception e) {
                 failures.add(e);
             }

@@ -12,7 +12,7 @@ import android.os.StrictMode;
 import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.GrpcTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.platform.IFitPlatform;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
@@ -70,8 +70,8 @@ public class QZTelemetryUnicastingService extends Service {
     private void applyDeviceInternal() {
         MonoStdoutTelemetryReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutTelemetryReader.onLine  = line -> writeLog("ifit: " + line);
-        IFit2TelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
-        IFit2TelemetryReader.onLine = line -> writeLog(line);
+        GrpcTelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
+        GrpcTelemetryReader.onLine = line -> writeLog(line);
         try {
             IFitPlatform platform = IFitPlatform.detect(this);
             Log.i(LOG_TAG, "platform: " + platform.kind + " machine: " + platform.machineClass);

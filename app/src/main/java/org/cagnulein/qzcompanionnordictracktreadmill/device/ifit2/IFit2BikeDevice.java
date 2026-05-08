@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.GrpcCommandTransport;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
@@ -15,9 +15,9 @@ public final class IFit2BikeDevice extends Device {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
-    private final IFit2ControlTransport transport;
+    private final GrpcCommandTransport transport;
 
-    public IFit2BikeDevice(IFit2ControlTransport transport) {
+    public IFit2BikeDevice(GrpcCommandTransport transport) {
         this.transport = transport;
     }
 

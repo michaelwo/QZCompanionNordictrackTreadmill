@@ -9,9 +9,9 @@ import com.ifit.glassos.console.MachineType;
 import com.ifit.glassos.util.Empty;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2Credentials;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.GrpcCommandTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.GrpcCredentials;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.GrpcTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2TreadmillDevice;
@@ -48,9 +48,9 @@ public final class IFitPlatform {
 
     public static IFitPlatform detect(Context context) {
         Context appContext = context.getApplicationContext();
-        IFit2Credentials credentials;
+        GrpcCredentials credentials;
         try {
-            credentials = IFit2Credentials.load(appContext);
+            credentials = GrpcCredentials.load(appContext);
         } catch (Exception e) {
             Log.i(LOG_TAG, "iFit2 credentials unavailable — iFit1 path: " + e.getMessage());
             return new IFitPlatform(Kind.IFIT1_GESTURE, MachineClass.UNKNOWN);
@@ -60,7 +60,7 @@ public final class IFitPlatform {
         return new IFitPlatform(Kind.IFIT2_GRPC, mc);
     }
 
-    private static MachineClass queryMachineClass(IFit2Credentials credentials) {
+    private static MachineClass queryMachineClass(GrpcCredentials credentials) {
         ManagedChannel channel = null;
         try {
             channel = OkHttpChannelBuilder
@@ -102,13 +102,13 @@ public final class IFitPlatform {
 
     public TelemetryReader createTelemetryReader(Context context) {
         return kind == Kind.IFIT2_GRPC
-                ? new IFit2TelemetryReader(context.getApplicationContext())
+                ? new GrpcTelemetryReader(context.getApplicationContext())
                 : new MonoStdoutTelemetryReader();
     }
 
     public Device createDevice(Context context) {
         if (kind != Kind.IFIT2_GRPC) throw new IllegalStateException("createDevice() is only valid on iFit2");
-        IFit2ControlTransport transport = new IFit2ControlTransport(context);
+        GrpcCommandTransport transport = new GrpcCommandTransport(context);
         return machineClass == MachineClass.TREADMILL
                 ? new IFit2TreadmillDevice(transport)
                 : new IFit2BikeDevice(transport);
@@ -123,7 +123,7 @@ public final class IFitPlatform {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, GrpcCredentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

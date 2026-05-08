@@ -38,7 +38,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class IFit2TelemetryReader implements TelemetryReader {
+public final class GrpcTelemetryReader implements TelemetryReader {
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
 
@@ -51,7 +51,7 @@ public final class IFit2TelemetryReader implements TelemetryReader {
     private boolean started;
     private final AtomicBoolean workoutActive = new AtomicBoolean(false);
 
-    public IFit2TelemetryReader(Context context) {
+    public GrpcTelemetryReader(Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -59,7 +59,7 @@ public final class IFit2TelemetryReader implements TelemetryReader {
     public synchronized void read() throws IOException {
         if (started) return;
         try {
-            IFit2Credentials credentials = IFit2Credentials.load(context);
+            GrpcCredentials credentials = GrpcCredentials.load(context);
             channel = OkHttpChannelBuilder
                     .forAddress("localhost", 54321)
                     .overrideAuthority("localhost:54321")
@@ -207,7 +207,7 @@ public final class IFit2TelemetryReader implements TelemetryReader {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, GrpcCredentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

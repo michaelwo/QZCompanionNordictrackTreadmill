@@ -29,7 +29,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 ├── console/
 │   ├── ifit1/        GestureService, MonoStdoutTelemetryReader
 │   │   └── calibration/  CalibrationRunner and supporting classes
-│   └── ifit2/        IFit2TelemetryReader, IFit2ControlTransport, IFit2Credentials
+│   └── ifit2/        GrpcTelemetryReader, GrpcCommandTransport, GrpcCredentials
 ├── telemetry/        TelemetryHub, TelemetryReader, Telemetry, SpeedTelemetry,
 │                     InclineTelemetry, ResistanceTelemetry, GearTelemetry
 ├── device/           Device, DeviceController
