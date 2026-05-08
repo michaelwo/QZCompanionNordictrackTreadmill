@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 
 public final class SnapToOriginCommand extends Command {
     private final Slider slider;

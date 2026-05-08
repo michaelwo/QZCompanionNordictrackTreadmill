@@ -21,9 +21,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineComma
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.GearSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.GearSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

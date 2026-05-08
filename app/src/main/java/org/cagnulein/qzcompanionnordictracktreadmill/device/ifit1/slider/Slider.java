@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;

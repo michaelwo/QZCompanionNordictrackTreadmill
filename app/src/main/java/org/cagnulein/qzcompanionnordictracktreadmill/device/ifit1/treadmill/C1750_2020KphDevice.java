@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.SpeedSlider;
 public class C1750_2020KphDevice extends TreadmillDevice {
     private static final double[][] INCLINE_TABLE = {
         {-3.0, 592}, {-2.5, 584}, {-2.0, 576}, {-1.5, 568}, {-1.0, 560},

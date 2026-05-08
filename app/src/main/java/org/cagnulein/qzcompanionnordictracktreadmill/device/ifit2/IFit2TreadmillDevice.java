@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.ArrayList;

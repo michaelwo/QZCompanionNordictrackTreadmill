@@ -11,10 +11,10 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCo
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.GearSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.ResistanceSlider;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.GearSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.SpeedSlider;
 
 public final class IFit1CommandHandler implements CommandHandler {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;

@@ -4,7 +4,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.RawSwipeCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.Collections;

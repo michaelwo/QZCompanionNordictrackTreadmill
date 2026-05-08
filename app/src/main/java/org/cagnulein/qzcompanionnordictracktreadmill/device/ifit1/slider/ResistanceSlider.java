@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.slider;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
