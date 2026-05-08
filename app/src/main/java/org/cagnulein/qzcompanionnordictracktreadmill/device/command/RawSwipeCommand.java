@@ -6,6 +6,7 @@ public final class RawSwipeCommand extends Command {
     private final float toY;
 
     public RawSwipeCommand(float x, float fromY, float toY) {
+        super(0);
         this.x = x;
         this.fromY = fromY;
         this.toY = toY;

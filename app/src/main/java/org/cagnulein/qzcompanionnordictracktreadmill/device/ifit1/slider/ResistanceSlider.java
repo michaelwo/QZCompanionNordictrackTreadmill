@@ -11,11 +11,11 @@ public class ResistanceSlider extends Slider {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     public ResistanceSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, ResistanceTelemetry.class);
+        super(trackX, initialThumbY, formula, ResistanceTelemetry.class, ResistanceCommand.class);
     }
 
     protected ResistanceSlider(int initialThumbY) {
-        super(0, initialThumbY, null, ResistanceTelemetry.class);
+        super(0, initialThumbY, null, ResistanceTelemetry.class, ResistanceCommand.class);
     }
 
     @Override

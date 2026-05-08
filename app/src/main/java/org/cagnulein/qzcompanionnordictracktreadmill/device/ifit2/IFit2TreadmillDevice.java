@@ -1,6 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
@@ -12,7 +14,23 @@ import java.util.List;
 
 public final class IFit2TreadmillDevice extends Device {
 
+    private static final String LOG_TAG = DeviceLogTags.DISPATCH;
+
+    private final IFit2ControlTransport transport;
+
+    public IFit2TreadmillDevice(IFit2ControlTransport transport) {
+        this.transport = transport;
+    }
+
     @Override public String displayName() { return "iFit2 Treadmill"; }
+
+    @Override
+    public void applyCommand(Command cmd) {
+        if (!transport.apply(cmd, logger)) logger.log(Logger.WARN, LOG_TAG, "command rejected: " + cmd);
+    }
+
+    @Override
+    public void shutdown() { transport.shutdown(); }
 
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {

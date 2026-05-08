@@ -502,7 +502,7 @@ public class BikeDeviceTest {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.0"));
         assertEquals(1, cmds.size());
         assertTrue(cmds.get(0) instanceof ResistanceCommand);
-        assertEquals(8.0f, ((ResistanceCommand) cmds.get(0)).resistanceLvl, 0.001f);
+        assertEquals(8.0f, cmds.get(0).value, 0.001f);
     }
 
     @Test
@@ -510,14 +510,14 @@ public class BikeDeviceTest {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("5.0;unused"));
         assertEquals(1, cmds.size());
         assertTrue(cmds.get(0) instanceof InclineCommand);
-        assertEquals(5.0f, ((InclineCommand) cmds.get(0)).inclinePct, 0.001f);
+        assertEquals(5.0f, cmds.get(0).value, 0.001f);
     }
 
     @Test
     public void decodeCommands_roundsToOneDecimal() {
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("8.25"));
         assertEquals(1, cmds.size());
-        assertEquals(8.3f, ((ResistanceCommand) cmds.get(0)).resistanceLvl, 0.001f);
+        assertEquals(8.3f, cmds.get(0).value, 0.001f);
     }
 
     @Test
@@ -540,7 +540,7 @@ public class BikeDeviceTest {
         // "-1.0;0" is a legitimate Zwift grade, not the sentinel; must not be swallowed.
         java.util.List<Command> cmds = new S22iDevice().decodeCommands(QZCommandPacket.parse("-1.0;0"));
         assertEquals(1, cmds.size());
-        assertEquals(-1.0f, ((InclineCommand) cmds.get(0)).inclinePct, 0.001f);
+        assertEquals(-1.0f, cmds.get(0).value, 0.001f);
     }
 
     @Test

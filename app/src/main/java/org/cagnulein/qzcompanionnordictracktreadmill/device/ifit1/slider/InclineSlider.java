@@ -11,11 +11,11 @@ public class InclineSlider extends Slider {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 
     public InclineSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, InclineTelemetry.class);
+        super(trackX, initialThumbY, formula, InclineTelemetry.class, InclineCommand.class);
     }
 
     protected InclineSlider(int initialThumbY) {
-        super(0, initialThumbY, null, InclineTelemetry.class);
+        super(0, initialThumbY, null, InclineTelemetry.class, InclineCommand.class);
     }
 
     @Override

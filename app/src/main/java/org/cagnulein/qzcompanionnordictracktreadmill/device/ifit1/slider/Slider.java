@@ -34,15 +34,18 @@ public abstract class Slider {
     private int thumbY;
     private Float lastApplied = null;
     private Class<? extends Telemetry> telemetryType;
+    private Class<? extends Command> commandType;
     protected volatile Float liveValue = null;
 
     protected Slider(int trackX, int originThumbY, ThumbYFormula formula,
-                     Class<? extends Telemetry> telemetryType) {
-        this.trackX       = trackX;
-        this.originThumbY = originThumbY;
-        this.thumbY       = originThumbY;
-        this.formula      = formula;
+                     Class<? extends Telemetry> telemetryType,
+                     Class<? extends Command> commandType) {
+        this.trackX        = trackX;
+        this.originThumbY  = originThumbY;
+        this.thumbY        = originThumbY;
+        this.formula       = formula;
         this.telemetryType = telemetryType;
+        this.commandType   = commandType;
     }
 
     // ── Abstract API ───────────────────────────────────────────────────────────
@@ -63,6 +66,11 @@ public abstract class Slider {
         if (telemetryType != null && telemetryType.isInstance(telemetry)) {
             liveValue = telemetry.value;
         }
+    }
+
+    /** Called by {@link IFit1Device#applyCommand}; symmetric with {@link #applyTelemetry}. */
+    public void applyCommand(Command cmd, Device device) {
+        if (commandType != null && commandType.isInstance(cmd)) handle(cmd.value, device);
     }
 
     public float liveValueOrZero() { return liveValue != null ? liveValue : 0f; }

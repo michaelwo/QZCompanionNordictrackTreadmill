@@ -14,7 +14,7 @@ public class SpeedSlider extends Slider {
     private volatile Float cachedKmh = null;
 
     public SpeedSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, SpeedTelemetry.class);
+        super(trackX, initialThumbY, formula, SpeedTelemetry.class, SpeedCommand.class);
     }
 
     @Override

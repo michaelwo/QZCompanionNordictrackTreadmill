@@ -204,7 +204,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void configurePickerForiFit2() {
-        selectedDeviceLabel.setText(platform.createDevice().displayName());
+        selectedDeviceLabel.setText(platform.createDevice(this).displayName());
         devicePickerChevron.setVisibility(View.GONE);
         devicePickerCard.setOnClickListener(null);
         deviceListContainer.setVisibility(View.GONE);
@@ -581,14 +581,14 @@ public class MainActivity extends AppCompatActivity {
      *  On iFit1, {@code device} is the user's picker selection. */
     private void selectDevice(Device device) {
         Device effectiveDevice = (platform != null && platform.kind == IFitPlatform.Kind.IFIT2_GRPC)
-                ? platform.createDevice()
+                ? platform.createDevice(this)
                 : device;
         if (effectiveDevice == null) return;
         Log.i("QZ:Main", "device selected: " + effectiveDevice.displayName());
         TelemetryHub.configure(platform.createTelemetryReader(this));
         effectiveDevice.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
-        activeController = new DeviceController(effectiveDevice, platform.createCommandHandler(this));
+        activeController = new DeviceController(effectiveDevice);
         QZCommandListenerService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();

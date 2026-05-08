@@ -2,16 +2,13 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.io.IOException;
-
 import java.util.List;
 
 public class DeviceController implements QZCommandSubscriber {
@@ -21,36 +18,28 @@ public class DeviceController implements QZCommandSubscriber {
     private final Device device;
     private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
-    private final CommandHandler commandHandler;
     private final TelemetryHub.Subscription telemetrySubscription;
 
     public DeviceController(Device device) {
-        this(device, new IFit1CommandHandler());
-    }
-
-    public DeviceController(Device device, CommandHandler commandHandler) {
-        this.device     = device;
+        this.device            = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
-        this.commandHandler = commandHandler;
-        this.dispatcher = new CommandDispatcher(this::executeCommand);
+        this.dispatcher        = new CommandDispatcher(this::executeCommand);
         this.telemetrySubscription = subscribeTelemetry();
     }
 
     /** Test constructor: injectable clock, no background drain thread. */
     public DeviceController(Device device, CommandDispatcher.Clock clock) {
-        this.device     = device;
+        this.device            = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
-        this.commandHandler = new IFit1CommandHandler();
-        this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
+        this.dispatcher        = new CommandDispatcher(this::executeCommand, clock);
         this.telemetrySubscription = null;
     }
 
     private void executeCommand(Command cmd) {
         device.logger.log(Device.Logger.DEBUG, LOG_TAG, "drain: " + cmd);
-        if (commandHandler.apply(cmd, device)) return;
-        device.logger.log(Device.Logger.WARN, LOG_TAG, "command rejected: " + cmd);
+        device.applyCommand(cmd);
     }
 
     public void onTelemetry(Telemetry telemetry) {
@@ -79,7 +68,7 @@ public class DeviceController implements QZCommandSubscriber {
 
     public void shutdown() {
         if (telemetrySubscription != null) telemetrySubscription.close();
-        commandHandler.shutdown();
+        device.shutdown();
         dispatcher.shutdown();
     }
 

@@ -8,7 +8,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
 public class GearSlider extends Slider {
 
     public GearSlider(int trackX, int initialThumbY, ThumbYFormula formula) {
-        super(trackX, initialThumbY, formula, GearTelemetry.class);
+        super(trackX, initialThumbY, formula, GearTelemetry.class, GearCommand.class);
     }
 
     @Override

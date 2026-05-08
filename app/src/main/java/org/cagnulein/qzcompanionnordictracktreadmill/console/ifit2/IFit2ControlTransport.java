@@ -16,7 +16,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
 
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +29,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class IFit2ControlTransport implements CommandHandler {
+public final class IFit2ControlTransport {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
@@ -46,8 +45,7 @@ public final class IFit2ControlTransport implements CommandHandler {
         this.context = context.getApplicationContext();
     }
 
-    @Override
-    public boolean apply(Command command, Device device) {
+    public boolean apply(Command command, Device.Logger logger) {
         if (!(command instanceof InclineCommand) && !(command instanceof ResistanceCommand) && !(command instanceof SpeedCommand)) {
             return false;
         }
@@ -57,34 +55,29 @@ public final class IFit2ControlTransport implements CommandHandler {
             ensureChannel();
             WorkoutResult result;
             if (command instanceof InclineCommand) {
-                double value = ((InclineCommand) command).inclinePct;
                 result = incline.withDeadlineAfter(2, TimeUnit.SECONDS)
-                        .setIncline(InclineRequest.newBuilder().setPercent(value).build());
+                        .setIncline(InclineRequest.newBuilder().setPercent(command.value).build());
             } else if (command instanceof ResistanceCommand) {
-                double value = ((ResistanceCommand) command).resistanceLvl;
                 result = resistance.withDeadlineAfter(2, TimeUnit.SECONDS)
-                        .setResistance(ResistanceRequest.newBuilder().setResistance(value).build());
+                        .setResistance(ResistanceRequest.newBuilder().setResistance(command.value).build());
             } else {
-                double value = ((SpeedCommand) command).speedKmh;
                 result = speed.withDeadlineAfter(2, TimeUnit.SECONDS)
-                        .setSpeed(SpeedRequest.newBuilder().setKph(value).build());
+                        .setSpeed(SpeedRequest.newBuilder().setKph(command.value).build());
             }
 
             if (result.hasSuccess() && result.getSuccess()) {
-                device.logger.log(Device.Logger.DEBUG, LOG_TAG, "glassos applied: " + command);
+                logger.log(Device.Logger.DEBUG, LOG_TAG, "glassos applied: " + command);
                 return true;
             }
-            device.logger.log(Device.Logger.WARN, LOG_TAG, "glassos rejected: " + command);
+            logger.log(Device.Logger.WARN, LOG_TAG, "glassos rejected: " + command);
             return false;
         } catch (Exception e) {
-            device.logger.log(Device.Logger.WARN, LOG_TAG,
-                    "glassos channel error: " + e.getMessage());
+            logger.log(Device.Logger.WARN, LOG_TAG, "glassos channel error: " + e.getMessage());
             shutdown();
             return false;
         }
     }
 
-    @Override
     public synchronized void shutdown() {
         if (channel != null) {
             channel.shutdownNow();

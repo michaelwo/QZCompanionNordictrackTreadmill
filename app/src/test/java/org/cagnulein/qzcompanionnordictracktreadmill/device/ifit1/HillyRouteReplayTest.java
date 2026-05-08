@@ -1,7 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.junit.Test;
@@ -79,12 +78,11 @@ public class HillyRouteReplayTest {
     public void hillyRoute_replayAt50pctZwiftScaling_dispatchesCorrectSwipes() {
         List<String> dispatched = new ArrayList<>();
         S22iDevice dev = new S22iDevice();
-        IFit1CommandHandler handler = new IFit1CommandHandler();
         dev.commandExecutor = cmd -> dispatched.add(cmd);
 
         for (int i = 0; i < ACTUAL_GRADES.length; i++) {
             int sizeBefore = dispatched.size();
-            handler.apply(new InclineCommand(QZCommandPacket.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f)), dev);
+            dev.applyCommand(new InclineCommand(QZCommandPacket.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f)));
 
             if (EXPECTED[i] == null) {
                 assertEquals("interval " + (i + 1) + " should be de-duped — no command expected",

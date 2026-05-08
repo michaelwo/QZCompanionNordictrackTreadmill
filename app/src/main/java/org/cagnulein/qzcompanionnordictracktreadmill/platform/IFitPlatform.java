@@ -14,8 +14,6 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2Credenti
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryReader;
 
@@ -108,17 +106,12 @@ public final class IFitPlatform {
                 : new MonoStdoutTelemetryReader();
     }
 
-    public CommandHandler createCommandHandler(Context context) {
-        return kind == Kind.IFIT2_GRPC
-                ? new IFit2ControlTransport(context)
-                : new IFit1CommandHandler();
-    }
-
-    public Device createDevice() {
+    public Device createDevice(Context context) {
         if (kind != Kind.IFIT2_GRPC) throw new IllegalStateException("createDevice() is only valid on iFit2");
+        IFit2ControlTransport transport = new IFit2ControlTransport(context);
         return machineClass == MachineClass.TREADMILL
-                ? new IFit2TreadmillDevice()
-                : new IFit2BikeDevice();
+                ? new IFit2TreadmillDevice(transport)
+                : new IFit2BikeDevice(transport);
     }
 
     private static ClientInterceptor clientIdInterceptor() {

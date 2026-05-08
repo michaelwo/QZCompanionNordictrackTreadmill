@@ -36,4 +36,10 @@ public abstract class Device {
 
     /** Handles a live telemetry update. Devices without telemetry-driven controls can ignore it. */
     public void applyTelemetry(Telemetry telemetry) {}
+
+    /** Applies a command to this device. Routes to sliders (iFit1) or gRPC (iFit2). */
+    public void applyCommand(Command cmd) {}
+
+    /** Releases any resources held by this device (e.g. gRPC channel). */
+    public void shutdown() {}
 }
