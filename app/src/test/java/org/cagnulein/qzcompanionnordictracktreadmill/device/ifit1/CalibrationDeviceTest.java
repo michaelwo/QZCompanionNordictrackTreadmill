@@ -1,5 +1,7 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
