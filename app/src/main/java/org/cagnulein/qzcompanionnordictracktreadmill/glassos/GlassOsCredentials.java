@@ -19,7 +19,6 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -36,8 +35,6 @@ final class GlassOsCredentials {
             "com.ifit.glassos_service"
     };
 
-    private static final String RAW_ENTRY_PREFIX = "res/raw/img_icon_";
-
     private final SSLContext sslContext;
 
     private GlassOsCredentials(SSLContext sslContext) {
@@ -50,7 +47,7 @@ final class GlassOsCredentials {
 
     static GlassOsCredentials load(Context context) throws Exception {
         PackageManager pm = context.getPackageManager();
-        SharedPreferences prefs = context.getSharedPreferences("glassos_cred_v1", Context.MODE_PRIVATE);
+        SharedPreferences prefs = context.getSharedPreferences("glassos_cred_v2", Context.MODE_PRIVATE);
         List<Exception> failures = new ArrayList<>();
         for (String packageName : RESOURCE_PACKAGES) {
             try {
@@ -71,7 +68,7 @@ final class GlassOsCredentials {
 
     private static DiscoveredKeys resolveKeys(PackageManager pm, SharedPreferences prefs,
             String packageName) throws Exception {
-        long currentVersion = pm.getPackageInfo(packageName, 0).getLongVersionCode();
+        long currentVersion = pm.getPackageInfo(packageName, 0).versionCode;
         long cachedVersion  = prefs.getLong(packageName + "_version", -1);
 
         if (cachedVersion == currentVersion) {
@@ -91,37 +88,36 @@ final class GlassOsCredentials {
         return keys;
     }
 
-    // Scans the installed APK for raw resources that decode as X.509 certs or RSA private keys,
-    // then identifies the CA cert (self-signed), client cert (signed by CA), and matching private
-    // key by comparing RSA moduli. No hardcoded resource names needed.
+    // Discovers the CA cert, client cert, and matching private key for the gRPC mTLS channel.
+    // Enumerates img_icon_* raw resources via the resources.arsc key string pool (works regardless
+    // of whether the APK uses full paths like res/raw/img_icon_x or obfuscated paths like res/I6.jpg),
+    // then identifies the correct three resources by their cryptographic properties.
     private static DiscoveredKeys discoverKeys(PackageManager pm, String packageName) throws Exception {
         String apkPath = pm.getApplicationInfo(packageName, 0).sourceDir;
+        Resources resources = pm.getResourcesForApplication(packageName);
 
         List<CandidateCert> certCandidates = new ArrayList<>();
         List<CandidateKey>  keyCandidates  = new ArrayList<>();
 
-        try (ZipFile apk = new ZipFile(apkPath)) {
-            Enumeration<? extends ZipEntry> entries = apk.entries();
-            while (entries.hasMoreElements()) {
-                ZipEntry entry = entries.nextElement();
-                if (!entry.getName().startsWith(RAW_ENTRY_PREFIX)) continue;
+        byte[] arsc = readArsc(apkPath);
+        for (String fullName : extractImgIconNames(arsc)) {
+            int id = resources.getIdentifier(fullName, "raw", packageName);
+            if (id <= 0) continue;
+            String key = fullName.substring("img_icon_".length());
+            String content = stripJpegMarkers(
+                    new String(readFully(resources.openRawResource(id)), StandardCharsets.UTF_8));
 
-                String resourceName = resourceNameFromEntry(entry.getName());
-                String content = stripJpegMarkers(
-                        new String(readFully(apk.getInputStream(entry)), StandardCharsets.UTF_8));
+            try {
+                String pem = "-----BEGIN CERTIFICATE-----\n" + content + "-----END CERTIFICATE-----\n";
+                X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509")
+                        .generateCertificate(bytes(pem));
+                certCandidates.add(new CandidateCert(key, cert));
+            } catch (Exception ignored) {}
 
-                try {
-                    String pem = "-----BEGIN CERTIFICATE-----\n" + content + "-----END CERTIFICATE-----\n";
-                    X509Certificate cert = (X509Certificate) CertificateFactory.getInstance("X.509")
-                            .generateCertificate(bytes(pem));
-                    certCandidates.add(new CandidateCert(resourceName, cert));
-                } catch (Exception ignored) {}
-
-                try {
-                    String pem = "-----BEGIN PRIVATE KEY-----\n" + content + "-----END PRIVATE KEY-----\n";
-                    keyCandidates.add(new CandidateKey(resourceName, parsePrivateKey(pem)));
-                } catch (Exception ignored) {}
-            }
+            try {
+                String pem = "-----BEGIN PRIVATE KEY-----\n" + content + "-----END PRIVATE KEY-----\n";
+                keyCandidates.add(new CandidateKey(key, parsePrivateKey(pem)));
+            } catch (Exception ignored) {}
         }
 
         CandidateCert ca     = findCa(certCandidates, packageName);
@@ -129,6 +125,36 @@ final class GlassOsCredentials {
         CandidateKey  key    = findMatchingKey(keyCandidates, client, packageName);
 
         return new DiscoveredKeys(client.name, key.name, ca.name);
+    }
+
+    private static byte[] readArsc(String apkPath) throws Exception {
+        try (ZipFile apk = new ZipFile(apkPath)) {
+            ZipEntry entry = apk.getEntry("resources.arsc");
+            if (entry == null) throw new Exception("resources.arsc not found in " + apkPath);
+            return readFully(apk.getInputStream(entry));
+        }
+    }
+
+    // Scans the binary resources.arsc for img_icon_* key strings. These are stored as UTF-8 in the
+    // package key string pool, so a simple byte scan finds them regardless of obfuscated file paths.
+    private static List<String> extractImgIconNames(byte[] arsc) {
+        List<String> names = new ArrayList<>();
+        byte[] prefix = "img_icon_".getBytes(StandardCharsets.UTF_8);
+        outer:
+        for (int i = 0; i <= arsc.length - prefix.length; i++) {
+            for (int j = 0; j < prefix.length; j++) {
+                if (arsc[i + j] != prefix[j]) continue outer;
+            }
+            int end = i + prefix.length;
+            while (end < arsc.length) {
+                byte b = arsc[end];
+                if ((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f')) end++;
+                else break;
+            }
+            String name = new String(arsc, i, end - i, StandardCharsets.UTF_8);
+            if (!names.contains(name)) names.add(name);
+        }
+        return names;
     }
 
     private static CandidateCert findCa(List<CandidateCert> certs, String pkg) throws Exception {
@@ -139,11 +165,25 @@ final class GlassOsCredentials {
 
     private static CandidateCert findClientCert(List<CandidateCert> certs, CandidateCert ca,
             String pkg) throws Exception {
+        CandidateCert first = null;
         for (CandidateCert c : certs) {
             if (c == ca) continue;
-            try { c.cert.verify(ca.cert.getPublicKey()); return c; } catch (Exception ignored) {}
+            try {
+                c.cert.verify(ca.cert.getPublicKey());
+                if (CLIENT_ID_HEADER_VALUE.equals(certCn(c.cert))) return c;
+                if (first == null) first = c;
+            } catch (Exception ignored) {}
         }
+        if (first != null) return first;
         throw new Exception("No client certificate signed by CA found in " + pkg);
+    }
+
+    private static String certCn(X509Certificate cert) {
+        for (String part : cert.getSubjectX500Principal().getName().split(",")) {
+            part = part.trim();
+            if (part.startsWith("CN=")) return part.substring(3);
+        }
+        return "";
     }
 
     private static CandidateKey findMatchingKey(List<CandidateKey> keys, CandidateCert client,
@@ -157,12 +197,6 @@ final class GlassOsCredentials {
         throw new Exception("No RSA private key matching client cert found in " + pkg);
     }
 
-    private static String resourceNameFromEntry(String entryName) {
-        String basename = entryName.substring(RAW_ENTRY_PREFIX.length());
-        int dot = basename.lastIndexOf('.');
-        return dot >= 0 ? basename.substring(0, dot) : basename;
-    }
-
     private static String stripJpegMarkers(String content) {
         StringBuilder sb = new StringBuilder();
         for (String line : content.split("\n")) {
@@ -173,13 +207,15 @@ final class GlassOsCredentials {
     }
 
     private static byte[] readFully(InputStream in) throws Exception {
-        try (in) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try {
             byte[] buf = new byte[8192];
             int n;
             while ((n = in.read(buf)) >= 0) out.write(buf, 0, n);
-            return out.toByteArray();
+        } finally {
+            in.close();
         }
+        return out.toByteArray();
     }
 
     private static String readPem(Resources resources, String packageName, String key, String type)

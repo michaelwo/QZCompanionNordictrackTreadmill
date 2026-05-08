@@ -75,6 +75,8 @@ public final class TelemetryHub {
                 started = true;
                 return;
             } catch (IOException e) {
+                android.util.Log.w("QZ:TelemetryHub",
+                        reader.getClass().getSimpleName() + " failed: " + e.getMessage(), e);
                 lastError = e;
             }
         }
