@@ -1,5 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.glassos;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 
@@ -46,11 +48,13 @@ final class GlassOsCredentials {
         return sslContext;
     }
 
-    static GlassOsCredentials load(PackageManager pm) throws Exception {
+    static GlassOsCredentials load(Context context) throws Exception {
+        PackageManager pm = context.getPackageManager();
+        SharedPreferences prefs = context.getSharedPreferences("glassos_cred_v1", Context.MODE_PRIVATE);
         List<Exception> failures = new ArrayList<>();
         for (String packageName : RESOURCE_PACKAGES) {
             try {
-                DiscoveredKeys keys = discoverKeys(pm, packageName);
+                DiscoveredKeys keys = resolveKeys(pm, prefs, packageName);
                 Resources resources = pm.getResourcesForApplication(packageName);
                 String certPem = readPem(resources, packageName, keys.cert, "CERTIFICATE");
                 String keyPem  = readPem(resources, packageName, keys.key,  "PRIVATE KEY");
@@ -63,6 +67,28 @@ final class GlassOsCredentials {
         Exception e = new Exception("GlassOS credential resources not found in any known package");
         for (Exception f : failures) e.addSuppressed(f);
         throw e;
+    }
+
+    private static DiscoveredKeys resolveKeys(PackageManager pm, SharedPreferences prefs,
+            String packageName) throws Exception {
+        long currentVersion = pm.getPackageInfo(packageName, 0).getLongVersionCode();
+        long cachedVersion  = prefs.getLong(packageName + "_version", -1);
+
+        if (cachedVersion == currentVersion) {
+            String cert = prefs.getString(packageName + "_cert", null);
+            String key  = prefs.getString(packageName + "_key",  null);
+            String ca   = prefs.getString(packageName + "_ca",   null);
+            if (cert != null && key != null && ca != null) return new DiscoveredKeys(cert, key, ca);
+        }
+
+        DiscoveredKeys keys = discoverKeys(pm, packageName);
+        prefs.edit()
+                .putLong(packageName + "_version", currentVersion)
+                .putString(packageName + "_cert", keys.cert)
+                .putString(packageName + "_key",  keys.key)
+                .putString(packageName + "_ca",   keys.ca)
+                .apply();
+        return keys;
     }
 
     // Scans the installed APK for raw resources that decode as X.509 certs or RSA private keys,

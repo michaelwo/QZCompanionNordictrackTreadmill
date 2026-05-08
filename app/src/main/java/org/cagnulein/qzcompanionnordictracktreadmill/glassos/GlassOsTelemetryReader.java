@@ -54,7 +54,7 @@ public final class GlassOsTelemetryReader implements TelemetryReader {
     public synchronized void read() throws IOException {
         if (started) return;
         try {
-            GlassOsCredentials credentials = GlassOsCredentials.load(context.getPackageManager());
+            GlassOsCredentials credentials = GlassOsCredentials.load(context);
             channel = OkHttpChannelBuilder
                     .forAddress("localhost", 54321)
                     .overrideAuthority("localhost:54321")
