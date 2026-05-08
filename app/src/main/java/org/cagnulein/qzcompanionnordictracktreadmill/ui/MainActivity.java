@@ -44,9 +44,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.C
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.platform.IFitPlatform;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;

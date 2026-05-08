@@ -3,7 +3,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.perf;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S22iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 

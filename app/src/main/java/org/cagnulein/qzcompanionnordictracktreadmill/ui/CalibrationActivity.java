@@ -30,8 +30,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.R;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationFit;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationResult;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationRunner;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 
 import java.util.Locale;

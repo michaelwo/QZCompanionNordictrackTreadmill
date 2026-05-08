@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.qz;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S22iDevice;
 
 import org.junit.Before;
 import org.junit.Test;

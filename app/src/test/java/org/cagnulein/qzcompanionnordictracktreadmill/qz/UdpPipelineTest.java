@@ -2,8 +2,8 @@ package org.cagnulein.qzcompanionnordictracktreadmill.qz;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S15iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S15iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
 
 import org.junit.After;

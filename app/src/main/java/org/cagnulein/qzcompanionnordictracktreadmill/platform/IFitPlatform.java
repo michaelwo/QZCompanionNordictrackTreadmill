@@ -13,9 +13,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlT
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2Credentials;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.iFit2BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.iFit2TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryReader;
 
 import java.util.concurrent.TimeUnit;
@@ -116,8 +116,8 @@ public final class IFitPlatform {
     public Device createDevice() {
         if (kind != Kind.IFIT2_GRPC) throw new IllegalStateException("createDevice() is only valid on iFit2");
         return machineClass == MachineClass.TREADMILL
-                ? new iFit2TreadmillDevice()
-                : new iFit2BikeDevice();
+                ? new IFit2TreadmillDevice()
+                : new IFit2BikeDevice();
     }
 
     private static ClientInterceptor clientIdInterceptor() {

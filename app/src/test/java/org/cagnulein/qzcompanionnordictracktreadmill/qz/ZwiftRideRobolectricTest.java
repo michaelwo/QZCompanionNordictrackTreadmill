@@ -20,8 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.S22iDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.X11iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
 
 import static org.junit.Assert.*;

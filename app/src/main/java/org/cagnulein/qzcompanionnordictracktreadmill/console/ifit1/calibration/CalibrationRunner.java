@@ -5,7 +5,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.File;

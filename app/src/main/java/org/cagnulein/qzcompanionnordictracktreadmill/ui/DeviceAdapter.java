@@ -6,8 +6,8 @@ import android.view.ViewGroup;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry.DeviceId;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceRegistry.DeviceId;
 
 import java.util.ArrayList;
 import java.util.Collections;

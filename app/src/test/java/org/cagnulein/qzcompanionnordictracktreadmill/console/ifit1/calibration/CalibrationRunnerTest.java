@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;

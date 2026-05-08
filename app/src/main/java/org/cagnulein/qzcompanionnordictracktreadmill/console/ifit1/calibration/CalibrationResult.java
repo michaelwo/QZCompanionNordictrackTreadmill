@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
 import org.json.JSONException;
 import org.json.JSONObject;
 
