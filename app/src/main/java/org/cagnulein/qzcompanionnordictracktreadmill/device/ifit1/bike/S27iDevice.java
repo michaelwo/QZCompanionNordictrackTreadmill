@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
 
-public class S27iDevice extends BikeDevice {
+public class S27iDevice extends GestureBikeDevice {
 
     public S27iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).

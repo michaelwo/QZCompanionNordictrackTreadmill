@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureTreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.SpeedSlider;
 
-public class X22iDevice extends TreadmillDevice {
+public class X22iDevice extends GestureTreadmillDevice {
 
     public X22iDevice() { this(785, 11.304347826086957, 785, 23.636363636363636); }
 

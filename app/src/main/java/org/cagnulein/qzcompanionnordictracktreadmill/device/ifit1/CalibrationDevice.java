@@ -15,7 +15,7 @@ import java.util.List;
  * This is not a registry device. It exists so CALSWIPE uses the same
  * decodeCommands -> CommandDispatcher -> Command path as regular device control.
  */
-public final class CalibrationDevice extends IFit1Device {
+public final class CalibrationDevice extends GestureDevice {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 

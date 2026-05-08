@@ -11,7 +11,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.util.List;
 
-public abstract class IFit1Device extends Device {
+public abstract class GestureDevice extends Device {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 

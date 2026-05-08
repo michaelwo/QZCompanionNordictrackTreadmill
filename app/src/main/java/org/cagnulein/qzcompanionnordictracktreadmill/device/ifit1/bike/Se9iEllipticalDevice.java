@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
 
-public class Se9iEllipticalDevice extends BikeDevice {
+public class Se9iEllipticalDevice extends GestureBikeDevice {
 
     public Se9iEllipticalDevice() {
         // Screen: assumed 1920px, but both trackX values deviate from APK-expected:

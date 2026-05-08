@@ -68,7 +68,7 @@ public abstract class Slider {
         }
     }
 
-    /** Called by {@link IFit1Device#applyCommand}; symmetric with {@link #applyTelemetry}. */
+    /** Called by {@link GestureDevice#applyCommand}; symmetric with {@link #applyTelemetry}. */
     public void applyCommand(Command cmd, Device device) {
         if (commandType != null && commandType.isInstance(cmd)) handle(cmd.value, device);
     }

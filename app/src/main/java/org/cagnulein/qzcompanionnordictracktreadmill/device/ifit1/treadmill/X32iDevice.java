@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureTreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.SpeedSlider;
 
-public class X32iDevice extends TreadmillDevice {
+public class X32iDevice extends GestureTreadmillDevice {
 
     public X32iDevice() {
         // Screen: 1920px wide — trackX confirmed against iFit APK layout XML (tools/discover-device/validate_swipe_targets.py).

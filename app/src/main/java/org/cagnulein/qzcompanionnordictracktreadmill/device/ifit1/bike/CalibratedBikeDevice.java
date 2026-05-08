@@ -1,7 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -20,7 +20,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
  * Falls back gracefully when DeviceCalibration.current is null or resistance data
  * is absent: incline defaults to S22i constants, resistance slider is omitted.
  */
-public class CalibratedBikeDevice extends BikeDevice {
+public class CalibratedBikeDevice extends GestureBikeDevice {
 
     private static final int    S22I_DEFAULT_NEUTRAL_Y      = 622;
     private static final double S22I_DEFAULT_INCLINE_SCALE  = 14.8;

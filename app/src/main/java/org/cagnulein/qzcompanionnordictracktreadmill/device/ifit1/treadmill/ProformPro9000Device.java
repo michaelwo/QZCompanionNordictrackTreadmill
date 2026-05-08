@@ -1,10 +1,10 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureTreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.SpeedSlider;
 
-public class ProformPro9000Device extends TreadmillDevice {
+public class ProformPro9000Device extends GestureTreadmillDevice {
 
     public ProformPro9000Device() {
         // Screen: 1920px wide — updated to iFit APK 2.6.90 standard

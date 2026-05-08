@@ -15,14 +15,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class TreadmillDevice extends IFit1Device {
+public abstract class GestureTreadmillDevice extends GestureDevice {
 
     protected static final double KMH_TO_MPH = 0.621371;
 
     private final InclineSlider incline;
     private final SpeedSlider speed;
 
-    protected TreadmillDevice(InclineSlider incline, SpeedSlider speed) {
+    protected GestureTreadmillDevice(InclineSlider incline, SpeedSlider speed) {
         this.incline = incline;
         this.speed   = speed;
     }

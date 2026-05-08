@@ -19,7 +19,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.S40D
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T65sDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T85sDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T95sDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureTreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X14iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X22iDevice;
@@ -44,7 +44,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Verifies that TreadmillDevice subclasses generate correct "input swipe" commands
+ * Verifies that GestureTreadmillDevice subclasses generate correct "input swipe" commands
  * for speed and incline gestures.
  *
  * Tests install a capturing CommandExecutor so no Android or ADB calls happen.
@@ -123,7 +123,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x11i_isInstanceOfTreadmillDevice() {
-        assertTrue(new X11iDevice() instanceof TreadmillDevice);
+        assertTrue(new X11iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -135,7 +135,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x32i_isInstanceOfTreadmillDevice() {
-        assertTrue(new X32iDevice() instanceof TreadmillDevice);
+        assertTrue(new X32iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -147,21 +147,21 @@ public class TreadmillDeviceTest {
 
     @Test
     public void nordictrack2950_isInstanceOfTreadmillDevice() {
-        assertTrue(new Nordictrack2950Device() instanceof TreadmillDevice);
+        assertTrue(new Nordictrack2950Device() instanceof GestureTreadmillDevice);
     }
 
     // ── C1750Device ───────────────────────────────────────────────────────────
 
     @Test
     public void c1750_isInstanceOfTreadmillDevice() {
-        assertTrue(new C1750Device() instanceof TreadmillDevice);
+        assertTrue(new C1750Device() instanceof GestureTreadmillDevice);
     }
 
     // ── T65sDevice ────────────────────────────────────────────────────────────
 
     @Test
     public void t65s_isInstanceOfTreadmillDevice() {
-        assertTrue(new T65sDevice() instanceof TreadmillDevice);
+        assertTrue(new T65sDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -173,7 +173,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void elite1000_isInstanceOfTreadmillDevice() {
-        assertTrue(new Elite1000Device() instanceof TreadmillDevice);
+        assertTrue(new Elite1000Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -388,7 +388,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x22i_isInstanceOfTreadmillDevice() {
-        assertTrue(new X22iDevice() instanceof TreadmillDevice);
+        assertTrue(new X22iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -437,7 +437,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x9i_isInstanceOfTreadmillDevice() {
-        assertTrue(new X9iDevice() instanceof TreadmillDevice);
+        assertTrue(new X9iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -486,7 +486,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void s40_isInstanceOfTreadmillDevice() {
-        assertTrue(new S40Device() instanceof TreadmillDevice);
+        assertTrue(new S40Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -534,7 +534,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t85s_isInstanceOfTreadmillDevice() {
-        assertTrue(new T85sDevice() instanceof TreadmillDevice);
+        assertTrue(new T85sDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -565,7 +565,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void exp7i_isInstanceOfTreadmillDevice() {
-        assertTrue(new Exp7iDevice() instanceof TreadmillDevice);
+        assertTrue(new Exp7iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -596,7 +596,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void nordictrack2450_isInstanceOfTreadmillDevice() {
-        assertTrue(new Nordictrack2450Device() instanceof TreadmillDevice);
+        assertTrue(new Nordictrack2450Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -627,7 +627,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void nordictrack2950MaxSpeed22_isInstanceOfTreadmillDevice() {
-        assertTrue(new Nordictrack2950MaxSpeed22Device() instanceof TreadmillDevice);
+        assertTrue(new Nordictrack2950MaxSpeed22Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -659,7 +659,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void proform2000_isInstanceOfTreadmillDevice() {
-        assertTrue(new Proform2000Device() instanceof TreadmillDevice);
+        assertTrue(new Proform2000Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -699,7 +699,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void proformCarbonT14_isInstanceOfTreadmillDevice() {
-        assertTrue(new ProformCarbonT14Device() instanceof TreadmillDevice);
+        assertTrue(new ProformCarbonT14Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -739,7 +739,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void proformPro9000_isInstanceOfTreadmillDevice() {
-        assertTrue(new ProformPro9000Device() instanceof TreadmillDevice);
+        assertTrue(new ProformPro9000Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -770,7 +770,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void c1750_2020_isInstanceOfTreadmillDevice() {
-        assertTrue(new C1750_2020Device() instanceof TreadmillDevice);
+        assertTrue(new C1750_2020Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -802,7 +802,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void c1750_2021_isInstanceOfTreadmillDevice() {
-        assertTrue(new C1750_2021Device() instanceof TreadmillDevice);
+        assertTrue(new C1750_2021Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -841,7 +841,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void c1750MphMinus3Grade_isInstanceOfTreadmillDevice() {
-        assertTrue(new C1750MphMinus3GradeDevice() instanceof TreadmillDevice);
+        assertTrue(new C1750MphMinus3GradeDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -872,7 +872,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void c1750Ntl14122_isInstanceOfTreadmillDevice() {
-        assertTrue(new C1750Ntl14122Device() instanceof TreadmillDevice);
+        assertTrue(new C1750Ntl14122Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -902,7 +902,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x14i_isInstanceOfTreadmillDevice() {
-        assertTrue(new X14iDevice() instanceof TreadmillDevice);
+        assertTrue(new X14iDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -941,7 +941,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x22iV2_isInstanceOfTreadmillDevice() {
-        assertTrue(new X22iV2Device() instanceof TreadmillDevice);
+        assertTrue(new X22iV2Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -990,7 +990,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x32iNtl39019_isInstanceOfTreadmillDevice() {
-        assertTrue(new X32iNtl39019Device() instanceof TreadmillDevice);
+        assertTrue(new X32iNtl39019Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -1039,7 +1039,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void x32iNtl39221_isInstanceOfTreadmillDevice() {
-        assertTrue(new X32iNtl39221Device() instanceof TreadmillDevice);
+        assertTrue(new X32iNtl39221Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -1070,7 +1070,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void elite900_isInstanceOfTreadmillDevice() {
-        assertTrue(new Elite900Device() instanceof TreadmillDevice);
+        assertTrue(new Elite900Device() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -1167,7 +1167,7 @@ public class TreadmillDeviceTest {
 
     @Test
     public void t95s_isInstanceOfTreadmillDevice() {
-        assertTrue(new T95sDevice() instanceof TreadmillDevice);
+        assertTrue(new T95sDevice() instanceof GestureTreadmillDevice);
     }
 
     @Test
@@ -1175,7 +1175,7 @@ public class TreadmillDeviceTest {
         assertEquals("T9.5s Treadmill", new T95sDevice().displayName());
     }
 
-    // ── TreadmillDevice.decodeCommands ───────────────────────────────────────
+    // ── GestureTreadmillDevice.decodeCommands ───────────────────────────────────────
 
     @Test
     public void decodeCommands_twoParts_setsBothFields() {

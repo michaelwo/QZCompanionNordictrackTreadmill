@@ -121,7 +121,7 @@ When you add a device class, add at least three formula tests — a floor value,
 
 ```java
 @Test public void myNewBike_incline_midRange() {
-    BikeDevice dev = dev(new MyNewDevice());
+    GestureBikeDevice dev = dev(new MyNewDevice());
     applyIncline(dev, 5.0);
     assertSwipe("input swipe <trackX> <y1> <trackX> <targetY(5.0)> 200");
 }

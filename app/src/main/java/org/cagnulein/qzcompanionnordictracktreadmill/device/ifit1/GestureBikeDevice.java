@@ -13,12 +13,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class BikeDevice extends IFit1Device {
+public abstract class GestureBikeDevice extends GestureDevice {
 
     private final Slider incline;
     private final Slider resistance;  // null if this device has no resistance control
 
-    protected BikeDevice(Slider incline, Slider resistance) {
+    protected GestureBikeDevice(Slider incline, Slider resistance) {
         this.incline    = incline;
         this.resistance = resistance;
     }

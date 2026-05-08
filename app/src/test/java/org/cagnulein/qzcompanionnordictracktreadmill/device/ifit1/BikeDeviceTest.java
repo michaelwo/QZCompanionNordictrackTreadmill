@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureBikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.Ntex71021Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.ProformCarbonC10Device;
@@ -30,7 +30,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
- * Verifies that BikeDevice subclasses generate correct "input swipe" commands
+ * Verifies that GestureBikeDevice subclasses generate correct "input swipe" commands
  * for incline and resistance gestures.
  *
  * Tests install a capturing CommandExecutor so no Android or ADB calls happen.
@@ -101,7 +101,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22i_isInstanceOfBikeDevice() {
-        assertTrue(new S22iDevice() instanceof BikeDevice);
+        assertTrue(new S22iDevice() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -149,7 +149,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22iNtex02117_isInstanceOfBikeDevice() {
-        assertTrue(new S22iNtex02117Device() instanceof BikeDevice);
+        assertTrue(new S22iNtex02117Device() instanceof GestureBikeDevice);
     }
 
     // ── S22iNtex02121Device ───────────────────────────────────────────────────
@@ -157,7 +157,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s22iNtex02121_isInstanceOfBikeDevice() {
-        assertTrue(new S22iNtex02121Device() instanceof BikeDevice);
+        assertTrue(new S22iNtex02121Device() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -179,7 +179,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s15i_isInstanceOfBikeDevice() {
-        assertTrue(new S15iDevice() instanceof BikeDevice);
+        assertTrue(new S15iDevice() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -207,7 +207,7 @@ public class BikeDeviceTest {
 
     @Test
     public void tdf10_isInstanceOfBikeDevice() {
-        assertTrue(new Tdf10Device() instanceof BikeDevice);
+        assertTrue(new Tdf10Device() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -222,7 +222,7 @@ public class BikeDeviceTest {
 
     @Test
     public void proformStudioBikePro22_isInstanceOfBikeDevice() {
-        assertTrue(new ProformStudioBikePro22Device() instanceof BikeDevice);
+        assertTrue(new ProformStudioBikePro22Device() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -237,7 +237,7 @@ public class BikeDeviceTest {
 
     @Test
     public void se9iElliptical_isInstanceOfBikeDevice() {
-        assertTrue(new Se9iEllipticalDevice() instanceof BikeDevice);
+        assertTrue(new Se9iEllipticalDevice() instanceof GestureBikeDevice);
     }
 
     // ── S22iDevice resistance slider (x=1845, calibrated) ────────────────────
@@ -312,7 +312,7 @@ public class BikeDeviceTest {
 
     @Test
     public void s27i_isInstanceOfBikeDevice() {
-        assertTrue(new S27iDevice() instanceof BikeDevice);
+        assertTrue(new S27iDevice() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -342,7 +342,7 @@ public class BikeDeviceTest {
 
     @Test
     public void proformCarbonC10_isInstanceOfBikeDevice() {
-        assertTrue(new ProformCarbonC10Device() instanceof BikeDevice);
+        assertTrue(new ProformCarbonC10Device() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -364,7 +364,7 @@ public class BikeDeviceTest {
 
     @Test
     public void proformCarbonE7_isInstanceOfBikeDevice() {
-        assertTrue(new ProformCarbonE7Device() instanceof BikeDevice);
+        assertTrue(new ProformCarbonE7Device() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -470,7 +470,7 @@ public class BikeDeviceTest {
 
     @Test
     public void tdf10Inclination_isInstanceOfBikeDevice() {
-        assertTrue(new Tdf10InclinationDevice() instanceof BikeDevice);
+        assertTrue(new Tdf10InclinationDevice() instanceof GestureBikeDevice);
     }
 
     @Test
@@ -495,7 +495,7 @@ public class BikeDeviceTest {
         assertEquals("input swipe 75 482 75 419 200", lastCommand);
     }
 
-    // ── BikeDevice.decodeCommands ─────────────────────────────────────────────
+    // ── GestureBikeDevice.decodeCommands ─────────────────────────────────────────────
 
     @Test
     public void decodeCommands_onePart_setsResistanceLvl() {
