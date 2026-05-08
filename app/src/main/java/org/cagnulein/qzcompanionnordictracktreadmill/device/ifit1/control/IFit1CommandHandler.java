@@ -10,7 +10,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.RawSwipeComm
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.GearSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;

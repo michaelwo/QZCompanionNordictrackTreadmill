@@ -16,7 +16,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
 
 import java.util.concurrent.TimeUnit;
 

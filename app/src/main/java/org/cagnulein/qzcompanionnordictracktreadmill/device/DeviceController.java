@@ -2,7 +2,7 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
