@@ -29,12 +29,12 @@ QZCommandListenerService
 DeviceController
   -> asks GlassOsControlTransport to apply the command first
 GlassOsControlTransport
-  -> sends InclineRequest or ResistanceRequest over mTLS gRPC
+  -> sends InclineRequest, ResistanceRequest, or SpeedRequest over mTLS gRPC
 glassos_service (localhost:54321)
   -> moves the hardware axis
 ```
 
-`GlassOsControlTransport.tryApply()` returns `true` on success. If the gRPC call fails or is rejected, it returns `false` and `DeviceController` falls through to the gesture path described in the iFit1 section below.
+`GlassOsControlTransport.tryApply()` returns `true` on success. On any gRPC error it shuts the channel down and returns `false`. On a committed-iFit2 platform `gesturesEnabled=false`, so a `false` return means the command is not applied — there is no gesture fallback.
 
 ### Telemetry: hardware to Zwift (iFit2)
 
@@ -54,7 +54,7 @@ QZ app
 Zwift
 ```
 
-`TelemetryHub` tries `GlassOsTelemetryReader` first. If it succeeds, it becomes the active reader and the iFit1 reader is never started.
+`iFitPlatform.detect()` commits to exactly one reader at startup. On iFit2, `TelemetryHub` is configured with `GlassOsTelemetryReader` only — `MonoStdoutTelemetryReader` is never installed. On iFit1, the reverse. There is no runtime fallback between readers.
 
 ### Credentials
 
@@ -111,7 +111,7 @@ QZ app
 Zwift
 ```
 
-`TelemetryHub` falls back to `MonoStdoutTelemetryReader` when `GlassOsTelemetryReader` fails to connect — which happens on any device not running an active iFit2 workout session.
+On iFit1 (committed by `iFitPlatform.detect()`), `MonoStdoutTelemetryReader` is the only configured reader.
 
 ---
 
@@ -162,13 +162,13 @@ Important non-code areas:
 
 `TelemetryHub` is the process-wide telemetry fanout. It holds a prioritized list of `TelemetryReader` implementations and starts the first one that succeeds. All subscribers — QZ metric output, device drift correction, calibration — observe the same stream regardless of which reader is active.
 
-`configure(Context)` installs the production reader priority: `GlassOsTelemetryReader` first, then `MonoStdoutTelemetryReader`. Both `MainActivity` and `QZTelemetryUnicastingService` call `configure()` before subscribing; the configuration is idempotent once a reader has started.
+`configure(TelemetryReader)` installs the single platform-committed reader. On iFit2 it receives a `GlassOsTelemetryReader`; on iFit1 a `MonoStdoutTelemetryReader`. Both `MainActivity` and `QZTelemetryUnicastingService` call `configure()` before subscribing; the configuration is idempotent once a reader has started.
 
 ### GlassOS transport (iFit2)
 
-`GlassOsTelemetryReader` opens the gRPC channel and registers one async `StreamObserver` per axis. On each `onNext` event it emits a `Telemetry` domain object through the listener registered by `TelemetryHub`. If the channel cannot be established, `read()` throws `IOException` and `TelemetryHub` falls back.
+`GlassOsTelemetryReader` opens the gRPC channel, subscribes to `WorkoutService.WorkoutStateChanged`, and activates per-axis metric subscriptions (incline, resistance, speed, cadence, watts, HR) when the workout state transitions to `WORKOUT_STATE_RUNNING`. If the workout is already running at startup, `GetWorkoutState()` triggers immediate activation. `read()` only throws `IOException` for hard failures (credential load, channel open); a missing or not-yet-started workout is handled transparently.
 
-`GlassOsControlTransport` implements `ControlTransport`. `DeviceController` calls `tryApply(command, device)` before the gesture path; the transport sends the command over gRPC and returns `true` on success. On any gRPC error it shuts the channel down and returns `false`.
+`GlassOsControlTransport` implements `ControlTransport`. `DeviceController` calls `tryApply(command, device)` before the gesture path; the transport handles `InclineCommand`, `ResistanceCommand`, and `SpeedCommand` via their respective gRPC services, and returns `true` on success. On any gRPC error it shuts the channel down and returns `false`.
 
 `GlassOsCredentials` loads the mTLS credentials from the installed rivendell APK and builds the `SSLContext` used by both transports.
 

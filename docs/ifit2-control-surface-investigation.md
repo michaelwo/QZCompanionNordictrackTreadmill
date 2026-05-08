@@ -3,7 +3,7 @@
 **Goal:** find programmable interfaces on NordicTrack/ProForm devices running iFit2 (the Kotlin/gRPC rewrite, APK `com.ifit.rivendell` + `com.ifit.glassos_service`) that allow QZCompanion to set incline, resistance, and speed without simulating touchscreen input.
 
 **Verdict (confirmed — investigation complete):**
-- **gRPC works for commands.** `glassos_service` exposes a local gRPC server on `localhost:54321`; `InclineRequest` and `ResistanceRequest` are confirmed working on physical hardware. `SpeedRequest` and `GearRequest` are present in the proto but not yet exercised.
+- **gRPC works for commands.** `glassos_service` exposes a local gRPC server on `localhost:54321`; `InclineRequest`, `ResistanceRequest`, and `SpeedRequest` are confirmed working on physical hardware. `GearRequest` is present in the proto but not yet exercised.
 - **GlassOS works for telemetry.** Live metrics stream from `glassos_service` at ~1 Hz over gRPC async subscriptions.
 - **mTLS credentials are extracted from the rivendell APK at runtime.** No hardcoded keys; the CA cert, client cert, and private key are discovered dynamically by scanning the installed APK's `resources.arsc`.
 - **BLE FTMS control was not added.** The iFit2 GATT server contains no FTMS service or Control Point — see below.
@@ -33,10 +33,10 @@ The decompiled sources were extracted under `/tmp/rivendell_installed_decompile/
 |-------------|-----------------|---------|
 | `InclineServiceGrpc` | `InclineRequest.setPercent(double)` | `WorkoutResult` |
 | `ResistanceServiceGrpc` | `ResistanceRequest.setResistance(double)` | `WorkoutResult` |
-| `SpeedServiceGrpc` | `SpeedRequest` | `WorkoutResult` |
+| `SpeedServiceGrpc` | `SpeedRequest.setKph(double)` | `WorkoutResult` |
 | `GearServiceGrpc` | `GearRequest` | `WorkoutResult` |
 
-Each service also exposes a `canRead(Empty)` → `AvailabilityResponse` method that returns `isAvailable = true` only when an active workout session is in progress. Each service also exposes an async `*Subscription(Empty)` stream that pushes live metric updates at ~1 Hz.
+Each service exposes a `canRead(Empty)` → `AvailabilityResponse` method and an async `*Subscription(Empty)` stream that pushes live metric updates at ~1 Hz. `GlassOsTelemetryReader` does not call `canRead()`; it uses `WorkoutService.WorkoutStateChanged` to defer metric subscriptions until `WORKOUT_STATE_RUNNING` (see below).
 
 ### Security model
 
@@ -89,9 +89,24 @@ QZ:Dispatch: glassos applied: resistance=1.0
 
 Round-trip latency from UDP command receipt to `glassos applied` is ~200 ms.
 
-### Failure mode: canRead() during inactive session
+### Workout-state-gated telemetry activation
 
-If `InclineServiceGrpc.canRead()` is called while no workout is active (e.g. iFit2 is on its dashboard), it returns `PERMISSION_DENIED`. `GlassOsTelemetryReader` treats this as a startup failure and `TelemetryHub` falls back to `MonoStdoutTelemetryReader`. Starting a workout in iFit2 before launching QZCompanion resolves this.
+`GlassOsTelemetryReader` subscribes to `WorkoutService.WorkoutStateChanged` at startup. Metric subscriptions (incline, resistance, speed, cadence, watts, HR) are activated only when the workout state transitions to `WORKOUT_STATE_RUNNING`. If the workout is already running at QZ startup, `GetWorkoutState()` triggers immediate activation.
+
+The `WorkoutService` proto (extracted from the `glassos_service` APK) uses the following state enum:
+
+```proto
+enum WorkoutState {
+  WORKOUT_STATE_UNKNOWN = 0;
+  WORKOUT_STATE_IDLE    = 1;
+  WORKOUT_STATE_DMK     = 2;
+  WORKOUT_STATE_RUNNING = 3;
+  WORKOUT_STATE_PAUSED  = 4;
+  WORKOUT_STATE_RESULTS = 5;
+}
+```
+
+This means QZCompanion no longer requires an active workout to be in progress before it is launched. `read()` throws `IOException` only for hard failures (credential load, channel open); a missing or paused workout is handled transparently.
 
 ---
 
@@ -141,7 +156,8 @@ BLE FTMS control was not added in iFit2. The absence is complete — no service 
 | Surface | Status | Notes |
 |---------|--------|-------|
 | gRPC commands (`InclineRequest`, `ResistanceRequest`) | **Confirmed working** | Verified on physical S22i with iFit2 |
-| gRPC commands (`SpeedRequest`, `GearRequest`) | **Present, untested** | Classes in proto; not exercised |
+| gRPC command (`SpeedRequest`) | **Confirmed working** | Verified on physical S22i (iFit2 treadmills) |
+| gRPC command (`GearRequest`) | **Present, untested** | Class in proto; not exercised |
 | GlassOS telemetry subscriptions | **Confirmed working** | ~1 Hz stream; incline, resistance, speed, cadence, watts, HR |
 | BLE FTMS Control Point (`0x2AD9`) | **Absent** | UUID not present in any form in either APK |
 | BLE FTMS Service (`0x1826`) | **Absent** | UUID not present in any form in either APK |

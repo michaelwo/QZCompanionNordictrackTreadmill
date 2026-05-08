@@ -126,13 +126,20 @@ cached speed commands.
 shelling out, and branching on iFit version-specific paths and keywords. That
 created a matrix of device strategy times iFit version.
 
-4.x uses one default source: `logcat -s mono-stdout`. iFit's fitness logic runs
-inside Xamarin/Mono, and metric changes are emitted on that logcat tag across the
-supported device family. `MonoStdoutTelemetryReader` parses those lines once,
-then `MonoStdoutTelemetryHub` fans domain telemetry out to QZ UDP output, the
-active device controller, and calibration.
+4.x uses one source per platform, committed at startup by `iFitPlatform.detect()`:
 
-Device classes do not choose a metric reader anymore.
+**iFit1 (Xamarin/Mono, `com.ifit.standalone`):** `MonoStdoutTelemetryReader` reads
+`logcat -s mono-stdout`. Metric changes are emitted on that logcat tag across the
+supported device family. This is the only reader for iFit1 devices.
+
+**iFit2 (Kotlin/gRPC, `com.ifit.rivendell`):** `GlassOsTelemetryReader` opens the
+gRPC channel to `glassos_service` on `localhost:54321`, subscribes to
+`WorkoutService.WorkoutStateChanged`, and activates per-axis subscriptions (incline,
+resistance, speed, cadence, watts, HR) when the workout transitions to
+`WORKOUT_STATE_RUNNING`. There is no iFit1 fallback on a committed-iFit2 platform.
+
+Device classes do not choose a metric reader anymore, and there is no runtime
+fallback between the two readers.
 
 ---
 
@@ -164,7 +171,7 @@ the build number.
 - QZ still sends commands to QZ Companion over UDP port 8003.
 - QZ Companion still unicasts metrics back to QZ on UDP port 8002.
 - The QZ app does not need a wire-format change for the 4.x refactor.
-- The app still controls iFit by injecting accessibility gestures.
+- On iFit1, the app still controls iFit by injecting accessibility gestures. On iFit2, commands go over gRPC — gesture injection is bypassed entirely.
 - Device support still depends on accurate screen-coordinate formulas and real
   hardware feedback.
 
