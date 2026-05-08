@@ -136,7 +136,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 |   |   |-- bike/      One class per supported bike or bike-like device
 |   |   |-- treadmill/ One class per supported treadmill
 |   |   `-- slider/    Typed slider abstractions for speed, incline, resistance, gear
-|   `-- ifit2/      GrpcBikeDevice, GrpcTreadmillDevice
+|   `-- ifit2/      GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
 |-- platform/       IFitPlatform; boot/restart receivers and crash handling
 `-- ui/             MainActivity, CalibrationActivity, DeviceAdapter
 ```
@@ -183,7 +183,7 @@ Important non-code areas:
 
 `GestureDevice`, `GestureBikeDevice`, and `GestureTreadmillDevice` define the iFit1 gesture path: they fan commands through typed sliders and apply telemetry to correct drift. Individual iFit1 devices live in `device/ifit1/bike/` or `device/ifit1/treadmill/` and contain their own pixel formulas, screen profile, and any special slider behavior.
 
-`GrpcBikeDevice` and `GrpcTreadmillDevice` hold an injected `GrpcCommandTransport` and forward every command directly to it.
+`GrpcDevice` holds the injected `GrpcCommandTransport` and implements `applyCommand` and `shutdown`. `GrpcBikeDevice` and `GrpcTreadmillDevice` extend it and only add `decodeCommands`.
 
 `DeviceRegistry` is the single registry of selectable devices. UI and services look up devices by `DeviceId`; they should not reference concrete device classes directly.
 

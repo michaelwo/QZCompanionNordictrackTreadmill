@@ -38,7 +38,7 @@ org.cagnulein.qzcompanionnordictracktreadmill
 │   │   ├── bike/     One class per bike device (S22iDevice, S15iDevice, …)
 │   │   ├── treadmill/ One class per treadmill device (X11iDevice, X32iDevice, …)
 │   │   └── slider/   Slider, InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
-│   └── ifit2/        GrpcBikeDevice, GrpcTreadmillDevice
+│   └── ifit2/        GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
 ├── platform/         IFitPlatform; boot/restart receivers and crash handling
 │   ├── crash/        CrashHandler
 │   └── receiver/     BootReceiver, ServiceRestartReceiver
