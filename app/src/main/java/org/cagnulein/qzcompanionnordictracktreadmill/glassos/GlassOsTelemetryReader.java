@@ -11,7 +11,7 @@ import com.ifit.glassos.workout.SpeedServiceGrpc;
 import com.ifit.glassos.workout.WattsServiceGrpc;
 import com.ifit.glassos.workout.WorkoutServiceGrpc;
 import com.ifit.glassos.workout.WorkoutState;
-import com.ifit.glassos.workout.WorkoutStateEvent;
+import com.ifit.glassos.workout.WorkoutStateMessage;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.CadenceTelemetry;
@@ -71,17 +71,17 @@ public final class GlassOsTelemetryReader implements TelemetryReader {
             Empty empty = Empty.newBuilder().build();
 
             safePoll(() -> {
-                WorkoutStateEvent event = WorkoutServiceGrpc.newBlockingStub(channel)
+                WorkoutStateMessage event = WorkoutServiceGrpc.newBlockingStub(channel)
                         .withDeadlineAfter(2, TimeUnit.SECONDS)
                         .getWorkoutState(Empty.newBuilder().build());
-                if (event.getState() == WorkoutState.ACTIVE) activateMetrics();
+                if (event.getWorkoutState() == WorkoutState.WORKOUT_STATE_RUNNING) activateMetrics();
             });
 
             WorkoutServiceGrpc.WorkoutServiceStub workoutAsync = WorkoutServiceGrpc.newStub(channel);
-            workoutAsync.workoutStateChanged(empty, new StreamObserver<WorkoutStateEvent>() {
+            workoutAsync.workoutStateChanged(empty, new StreamObserver<WorkoutStateMessage>() {
                 @Override
-                public void onNext(WorkoutStateEvent event) {
-                    if (event.getState() == WorkoutState.ACTIVE) activateMetrics();
+                public void onNext(WorkoutStateMessage event) {
+                    if (event.getWorkoutState() == WorkoutState.WORKOUT_STATE_RUNNING) activateMetrics();
                     else deactivateMetrics();
                 }
                 @Override
