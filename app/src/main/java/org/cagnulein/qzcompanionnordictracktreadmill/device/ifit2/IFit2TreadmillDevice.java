@@ -3,9 +3,9 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.ArrayList;

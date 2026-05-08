@@ -1,8 +1,8 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.RawSwipeCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.RawSwipeCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 

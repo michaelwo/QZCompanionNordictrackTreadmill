@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public abstract class Command {
     public final float value;

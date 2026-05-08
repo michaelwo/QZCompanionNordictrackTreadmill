@@ -15,12 +15,12 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.Se9iEllip
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.Tdf10Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.Tdf10InclinationDevice;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.Command;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDispatcher;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.ResistanceCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.GearSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;

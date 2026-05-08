@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public final class RawSwipeCommand extends Command {
     private final float x;

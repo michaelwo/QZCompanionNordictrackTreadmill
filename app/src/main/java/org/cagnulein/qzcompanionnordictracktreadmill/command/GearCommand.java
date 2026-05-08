@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public final class GearCommand extends Command {
     public GearCommand(float gear) { super(gear); }

@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 import java.util.ArrayDeque;
 import java.util.concurrent.Executors;

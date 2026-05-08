@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public final class SpeedCommand extends Command {
     public SpeedCommand(float speedKmh) { super(speedKmh); }

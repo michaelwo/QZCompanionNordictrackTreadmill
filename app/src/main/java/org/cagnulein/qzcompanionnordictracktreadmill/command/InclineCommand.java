@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device.command;
+package org.cagnulein.qzcompanionnordictracktreadmill.command;
 
 public final class InclineCommand extends Command {
     public InclineCommand(float inclinePct) { super(inclinePct); }
