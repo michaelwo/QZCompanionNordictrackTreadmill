@@ -1,6 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.RawSwipeCommand;
@@ -16,7 +15,7 @@ import java.util.List;
  * This is not a registry device. It exists so CALSWIPE uses the same
  * decodeCommands -> CommandDispatcher -> Command path as regular device control.
  */
-public final class CalibrationDevice extends Device {
+public final class CalibrationDevice extends IFit1Device {
 
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
 

@@ -1,23 +1,18 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public final class IFit2TreadmillDevice extends TreadmillDevice {
-
-    public IFit2TreadmillDevice() { super(null, null); }
+public final class IFit2TreadmillDevice extends Device {
 
     @Override public String displayName() { return "iFit2 Treadmill"; }
-
-    @Override public List<Slider> sliders() { return Collections.emptyList(); }
 
     @Override
     public List<Command> decodeCommands(QZCommandPacket pkt) {

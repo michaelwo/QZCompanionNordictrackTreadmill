@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
@@ -9,9 +9,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import java.util.Collections;
 import java.util.List;
 
-public final class IFit2BikeDevice extends BikeDevice {
-
-    public IFit2BikeDevice() { super(null, null); }
+public final class IFit2BikeDevice extends Device {
 
     @Override public String displayName() { return "iFit2 Bike"; }
 

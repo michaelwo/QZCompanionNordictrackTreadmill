@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.Ntex71021Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.ProformCarbonC10Device;

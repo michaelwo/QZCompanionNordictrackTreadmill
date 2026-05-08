@@ -1,29 +1,12 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
 import java.util.List;
 
 public abstract class Device {
-    /** All sliders on this device, in declaration order. Used for metric routing and command dispatch. */
-    public abstract List<Slider> sliders();
-
-    /** Returns the first slider of the given type, or null if none. */
-    public final <S extends Slider> S sliderOf(Class<S> type) {
-        for (Slider s : sliders()) {
-            if (type.isInstance(s)) return type.cast(s);
-        }
-        return null;
-    }
-
-    /** Routes a live telemetry update to all matching sliders on this device. */
-    public final void applyTelemetry(Telemetry telemetry) {
-        for (Slider s : sliders()) s.applyTelemetry(telemetry, this);
-    }
-
     /** Functional interface so the executor can be set without Android imports. */
     public interface CommandExecutor { void send(String command); }
 
@@ -50,4 +33,7 @@ public abstract class Device {
 
     /** Returns a log label for confirmed telemetry this device handles, or null to suppress logging. */
     public String telemetryLabel(Telemetry t) { return null; }
+
+    /** Handles a live telemetry update. Devices without telemetry-driven controls can ignore it. */
+    public void applyTelemetry(Telemetry telemetry) {}
 }

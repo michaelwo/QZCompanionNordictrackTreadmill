@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.device;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
@@ -15,7 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class TreadmillDevice extends Device {
+public abstract class TreadmillDevice extends IFit1Device {
 
     protected static final double KMH_TO_MPH = 0.621371;
 

@@ -49,12 +49,12 @@ All devices are self-contained classes. There is no enum switch or coordinate lo
 
 ### 1. Create the device class
 
-Bike device (`device/bike/MyNewDevice.java`):
+Bike device (`device/ifit1/bike/MyNewDevice.java`):
 ```java
-package org.cagnulein.qzcompanionnordictracktreadmill.device.bike;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.ScreenProfile;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider;
+package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.BikeDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.ScreenProfile;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 
 public class MyNewDevice extends BikeDevice {
     private static final int ORIGIN_INCLINE_THUMBY = /* formula intercept */;

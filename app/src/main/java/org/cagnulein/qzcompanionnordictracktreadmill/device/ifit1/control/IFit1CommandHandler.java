@@ -11,6 +11,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCo
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.IFit1Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.GearSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.InclineSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.slider.ResistanceSlider;
@@ -22,25 +23,33 @@ public final class IFit1CommandHandler implements CommandHandler {
     @Override
     public boolean apply(Command command, Device device) {
         if (command instanceof InclineCommand) {
-            InclineSlider slider = device.sliderOf(InclineSlider.class);
+            IFit1Device ifit1Device = ifit1Device(device);
+            if (ifit1Device == null) return false;
+            InclineSlider slider = ifit1Device.sliderOf(InclineSlider.class);
             if (slider == null) return false;
             slider.handle(((InclineCommand) command).inclinePct, device);
             return true;
         }
         if (command instanceof ResistanceCommand) {
-            ResistanceSlider slider = device.sliderOf(ResistanceSlider.class);
+            IFit1Device ifit1Device = ifit1Device(device);
+            if (ifit1Device == null) return false;
+            ResistanceSlider slider = ifit1Device.sliderOf(ResistanceSlider.class);
             if (slider == null) return false;
             slider.handle(((ResistanceCommand) command).resistanceLvl, device);
             return true;
         }
         if (command instanceof SpeedCommand) {
-            SpeedSlider slider = device.sliderOf(SpeedSlider.class);
+            IFit1Device ifit1Device = ifit1Device(device);
+            if (ifit1Device == null) return false;
+            SpeedSlider slider = ifit1Device.sliderOf(SpeedSlider.class);
             if (slider == null) return false;
             slider.handle(((SpeedCommand) command).speedKmh, device);
             return true;
         }
         if (command instanceof GearCommand) {
-            GearSlider slider = device.sliderOf(GearSlider.class);
+            IFit1Device ifit1Device = ifit1Device(device);
+            if (ifit1Device == null) return false;
+            GearSlider slider = ifit1Device.sliderOf(GearSlider.class);
             if (slider == null) return false;
             slider.handle(((GearCommand) command).gear, device);
             return true;
@@ -54,6 +63,10 @@ public final class IFit1CommandHandler implements CommandHandler {
             return true;
         }
         return false;
+    }
+
+    private static IFit1Device ifit1Device(Device device) {
+        return device instanceof IFit1Device ? (IFit1Device) device : null;
     }
 
     private static void applyRawSwipe(RawSwipeCommand command, Device device) {

@@ -19,7 +19,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.S40D
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T65sDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T85sDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.T95sDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X14iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X22iDevice;
