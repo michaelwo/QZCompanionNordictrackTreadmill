@@ -70,7 +70,7 @@ public final class GlassOsControlTransport implements ControlTransport {
             return false;
         } catch (Exception e) {
             device.logger.log(Device.Logger.WARN, LOG_TAG,
-                    "glassos unavailable, falling back to sliders: " + e.getMessage());
+                    "glassos channel error: " + e.getMessage());
             shutdown();
             return false;
         }

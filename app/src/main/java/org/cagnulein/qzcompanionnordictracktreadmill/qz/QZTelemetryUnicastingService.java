@@ -14,6 +14,7 @@ import android.util.Log;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsTelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.glassos.iFitPlatform;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.IOException;
@@ -72,7 +73,9 @@ public class QZTelemetryUnicastingService extends Service {
         GlassOsTelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
         GlassOsTelemetryReader.onLine = line -> writeLog(line);
         try {
-            TelemetryHub.configure(this);
+            iFitPlatform platform = iFitPlatform.detect(this);
+            Log.i(LOG_TAG, "platform: " + platform.kind + " machine: " + platform.machineClass);
+            TelemetryHub.configure(platform.createTelemetryReader(this));
             telemetrySubscription = TelemetryHub.shared().subscribe(this::publishTelemetry);
             Log.i(LOG_TAG, "telemetry reader streaming active: "
                     + TelemetryHub.shared().activeReader().getClass().getSimpleName());

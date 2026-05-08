@@ -48,6 +48,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.glassos.iFitPlatform;
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.R;
 import org.cagnulein.qzcompanionnordictracktreadmill.platform.crash.CrashHandler;
@@ -61,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private DeviceAdapter deviceAdapter;
     private DeviceController activeController = null;
     private static SharedPreferences sharedPreferences;
+    private iFitPlatform platform;
 
     private DeviceRegistry.DeviceId committedDeviceId = null;
     private DeviceRegistry.DeviceId pendingDeviceId   = null;
@@ -131,9 +133,15 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
         loadCalibration();
         initLogFile();
+        platform = iFitPlatform.detect(this);
         initUi();
         startServices();
-        restoreDeviceSelection();
+        if (platform.kind == iFitPlatform.Kind.IFIT2_GRPC) {
+            configurePickerForiFit2();
+            selectDevice(null);
+        } else {
+            restoreDeviceSelection();
+        }
         updateStatusChip();
         rebindAccessibilityService();
     }
@@ -195,7 +203,15 @@ public class MainActivity extends AppCompatActivity {
         } catch (IllegalArgumentException ignored) {}
     }
 
+    private void configurePickerForiFit2() {
+        selectedDeviceLabel.setText(platform.createDevice().displayName());
+        devicePickerChevron.setVisibility(View.GONE);
+        devicePickerCard.setOnClickListener(null);
+        deviceListContainer.setVisibility(View.GONE);
+    }
+
     private void syncDeviceSelectionFromPrefs() {
+        if (platform != null && platform.kind == iFitPlatform.Kind.IFIT2_GRPC) return;
         String savedId = sharedPreferences.getString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.other.name());
         if (committedDeviceId != null && committedDeviceId.name().equals(savedId)) return;
         restoreDeviceSelection();
@@ -560,13 +576,19 @@ public class MainActivity extends AppCompatActivity {
         return "no IP";
     }
 
-    /** Selects {@code device} as the active device and wires it to command and telemetry streams. */
+    /** Selects the active device and wires it to command and telemetry streams.
+     *  On iFit2, {@code device} is ignored — the platform auto-selects the machine.
+     *  On iFit1, {@code device} is the user's picker selection. */
     private void selectDevice(Device device) {
-        Log.i("QZ:Main", "device selected: " + device.displayName());
-        TelemetryHub.configure(this);
-        device.logger = (level, tag, msg) -> Log.println(level, tag, msg);
+        Device effectiveDevice = (platform != null && platform.kind == iFitPlatform.Kind.IFIT2_GRPC)
+                ? platform.createDevice()
+                : device;
+        if (effectiveDevice == null) return;
+        Log.i("QZ:Main", "device selected: " + effectiveDevice.displayName());
+        TelemetryHub.configure(platform.createTelemetryReader(this));
+        effectiveDevice.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
-        activeController = new DeviceController(device, this);
+        activeController = new DeviceController(effectiveDevice, platform.createControlTransport(this));
         QZCommandListenerService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();

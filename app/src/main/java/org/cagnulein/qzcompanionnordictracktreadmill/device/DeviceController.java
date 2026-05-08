@@ -1,7 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
-import android.content.Context;
-
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
@@ -24,20 +22,18 @@ public class DeviceController implements QZCommandSubscriber {
     private final CommandDispatcher dispatcher;
     private final ControlTransport controlTransport;
     private final TelemetryHub.Subscription telemetrySubscription;
+    private final boolean gesturesEnabled;
 
     public DeviceController(Device device) {
         this(device, ControlTransport.none());
     }
 
-    public DeviceController(Device device, Context context) {
-        this(device, new GlassOsControlTransport(context));
-    }
-
-    private DeviceController(Device device, ControlTransport controlTransport) {
+    public DeviceController(Device device, ControlTransport controlTransport) {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
         this.controlTransport = controlTransport;
+        this.gesturesEnabled = !(controlTransport instanceof GlassOsControlTransport);
         this.dispatcher = new CommandDispatcher(this::executeCommand);
         this.telemetrySubscription = subscribeTelemetry();
     }
@@ -48,6 +44,7 @@ public class DeviceController implements QZCommandSubscriber {
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
         this.controlTransport = ControlTransport.none();
+        this.gesturesEnabled = true;
         this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
         this.telemetrySubscription = null;
     }
@@ -55,7 +52,12 @@ public class DeviceController implements QZCommandSubscriber {
     private void executeCommand(Command cmd) {
         device.logger.log(Device.Logger.DEBUG, LOG_TAG, "drain: " + cmd);
         if (controlTransport.tryApply(cmd, device)) return;
-        device.applyCommand(cmd);
+        if (gesturesEnabled) {
+            device.applyCommand(cmd);
+        } else {
+            device.logger.log(Device.Logger.WARN, LOG_TAG,
+                    "gRPC declined: " + cmd + " (no gesture fallback on iFit2)");
+        }
     }
 
     public void onTelemetry(Telemetry telemetry) {

@@ -1,8 +1,5 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.console;
 
-import android.content.Context;
-
-import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.IOException;
@@ -15,9 +12,9 @@ import java.util.function.Consumer;
 /**
  * Process-wide fanout wrapper for telemetry.
  *
- * The hub owns one active reader and fans its telemetry to QZ UDP output, device state,
- * and calibration. Production config tries GlassOS first on iFit2 and falls back to
- * mono-stdout for older iFit stacks.
+ * The hub owns one committed reader (configured by {@link #configure}) and fans its telemetry
+ * to QZ UDP output, device state, and calibration. The reader is selected once based on the
+ * detected iFit platform — there is no fallback.
  */
 public final class TelemetryHub {
 
@@ -44,10 +41,8 @@ public final class TelemetryHub {
         return SHARED;
     }
 
-    public static synchronized void configure(Context context) {
-        SHARED.configureReaders(
-                new GlassOsTelemetryReader(context.getApplicationContext()),
-                new MonoStdoutTelemetryReader());
+    public static synchronized void configure(TelemetryReader reader) {
+        SHARED.configureReaders(reader);
     }
 
     private synchronized void configureReaders(TelemetryReader... newReaders) {
@@ -67,21 +62,10 @@ public final class TelemetryHub {
 
     public synchronized void start() throws IOException {
         if (started) return;
-        IOException lastError = null;
-        for (TelemetryReader reader : readers) {
-            try {
-                reader.read();
-                activeReader = reader;
-                started = true;
-                return;
-            } catch (IOException e) {
-                android.util.Log.w("QZ:TelemetryHub",
-                        reader.getClass().getSimpleName() + " failed: " + e.getMessage(), e);
-                lastError = e;
-            }
-        }
-        if (lastError != null) throw lastError;
-        throw new IOException("No telemetry readers configured");
+        if (readers.isEmpty()) throw new IOException("No telemetry reader configured");
+        readers.get(0).read();
+        activeReader = readers.get(0);
+        started = true;
     }
 
     public int subscriberCount() {
