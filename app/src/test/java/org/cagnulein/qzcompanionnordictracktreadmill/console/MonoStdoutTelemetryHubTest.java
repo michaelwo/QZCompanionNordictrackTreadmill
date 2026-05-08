@@ -16,11 +16,11 @@ public class MonoStdoutTelemetryHubTest {
     @Test
     public void subscribe_startsReaderOnceAndFansOutPackets() throws Exception {
         FakeReader reader = new FakeReader();
-        MonoStdoutTelemetryHub hub = new MonoStdoutTelemetryHub(reader);
+        TelemetryHub hub = new TelemetryHub(reader);
         List<Telemetry> first = new ArrayList<>();
         List<Telemetry> second = new ArrayList<>();
 
-        MonoStdoutTelemetryHub.Subscription firstSub = hub.subscribe(first::add);
+        TelemetryHub.Subscription firstSub = hub.subscribe(first::add);
         hub.subscribe(second::add);
         reader.emit(new InclineTelemetry(4.0f));
 

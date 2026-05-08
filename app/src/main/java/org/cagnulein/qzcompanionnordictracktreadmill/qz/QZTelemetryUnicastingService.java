@@ -11,8 +11,9 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsTelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.io.IOException;
@@ -30,8 +31,8 @@ public class QZTelemetryUnicastingService extends Service {
     private static final StrictMode.ThreadPolicy PERMIT_ALL =
             new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-    /** Shared mono-stdout subscription — the hub owns the single process-wide reader. */
-    private MonoStdoutTelemetryHub.Subscription telemetrySubscription = null;
+    /** Shared telemetry subscription — the hub owns the single process-wide reader. */
+    private TelemetryHub.Subscription telemetrySubscription = null;
 
     /** Singleton pointer — set in onCreate, cleared in onDestroy. */
     private static volatile QZTelemetryUnicastingService instance;
@@ -68,9 +69,13 @@ public class QZTelemetryUnicastingService extends Service {
     private void applyDeviceInternal() {
         MonoStdoutTelemetryReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutTelemetryReader.onLine  = line -> writeLog("ifit: " + line);
+        GlassOsTelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
+        GlassOsTelemetryReader.onLine = line -> writeLog(line);
         try {
-            telemetrySubscription = MonoStdoutTelemetryHub.shared().subscribe(this::publishTelemetry);
-            Log.i(LOG_TAG, "telemetry reader streaming active");
+            TelemetryHub.configure(this);
+            telemetrySubscription = TelemetryHub.shared().subscribe(this::publishTelemetry);
+            Log.i(LOG_TAG, "telemetry reader streaming active: "
+                    + TelemetryHub.shared().activeReader().getClass().getSimpleName());
             writeLog("Telemetry reader: streaming active");
         } catch (IOException e) {
             Log.e(LOG_TAG, "stream start failed", e);

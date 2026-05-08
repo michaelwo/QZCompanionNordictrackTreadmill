@@ -47,6 +47,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.R;
 import org.cagnulein.qzcompanionnordictracktreadmill.platform.crash.CrashHandler;
@@ -562,9 +563,10 @@ public class MainActivity extends AppCompatActivity {
     /** Selects {@code device} as the active device and wires it to command and telemetry streams. */
     private void selectDevice(Device device) {
         Log.i("QZ:Main", "device selected: " + device.displayName());
+        TelemetryHub.configure(this);
         device.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
-        activeController = new DeviceController(device);
+        activeController = new DeviceController(device, this);
         QZCommandListenerService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();

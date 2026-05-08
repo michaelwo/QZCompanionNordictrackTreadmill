@@ -1,8 +1,12 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
+import android.content.Context;
+
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
@@ -18,12 +22,22 @@ public class DeviceController implements QZCommandSubscriber {
     private final Device device;
     private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
-    private final MonoStdoutTelemetryHub.Subscription telemetrySubscription;
+    private final ControlTransport controlTransport;
+    private final TelemetryHub.Subscription telemetrySubscription;
 
     public DeviceController(Device device) {
+        this(device, ControlTransport.none());
+    }
+
+    public DeviceController(Device device, Context context) {
+        this(device, new GlassOsControlTransport(context));
+    }
+
+    private DeviceController(Device device, ControlTransport controlTransport) {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
+        this.controlTransport = controlTransport;
         this.dispatcher = new CommandDispatcher(this::executeCommand);
         this.telemetrySubscription = subscribeTelemetry();
     }
@@ -33,12 +47,14 @@ public class DeviceController implements QZCommandSubscriber {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
+        this.controlTransport = ControlTransport.none();
         this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
         this.telemetrySubscription = null;
     }
 
     private void executeCommand(Command cmd) {
         device.logger.log(Device.Logger.DEBUG, LOG_TAG, "drain: " + cmd);
+        if (controlTransport.tryApply(cmd, device)) return;
         device.applyCommand(cmd);
     }
 
@@ -66,14 +82,15 @@ public class DeviceController implements QZCommandSubscriber {
 
     public void shutdown() {
         if (telemetrySubscription != null) telemetrySubscription.close();
+        controlTransport.shutdown();
         dispatcher.shutdown();
     }
 
     public Device device() { return device; }
 
-    private MonoStdoutTelemetryHub.Subscription subscribeTelemetry() {
+    private TelemetryHub.Subscription subscribeTelemetry() {
         try {
-            return MonoStdoutTelemetryHub.shared().subscribe(this::onTelemetry);
+            return TelemetryHub.shared().subscribe(this::onTelemetry);
         } catch (IOException e) {
             device.logger.log(Device.Logger.ERROR, LOG_TAG,
                     "telemetry subscription failed: " + e.getMessage());

@@ -1,6 +1,6 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.GearTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
@@ -234,7 +234,7 @@ public class CalibrationRunnerTest {
         boolean closed = false;
 
         @Override
-        public MonoStdoutTelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber) {
+        public TelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber) {
             this.subscriber = subscriber;
             return () -> closed = true;
         }

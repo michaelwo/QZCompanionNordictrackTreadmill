@@ -4,7 +4,7 @@ import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
@@ -85,7 +85,7 @@ public final class CalibrationRunner {
     public CalibrationRunner(DisplayMetrics displayMetrics) {
         this(displayMetrics.widthPixels, displayMetrics.heightPixels,
                 new Config(), new CalibrationGestureDriver(), new CalibrationTelemetryCollector(),
-                subscriber -> MonoStdoutTelemetryHub.shared().subscribe(subscriber),
+                subscriber -> TelemetryHub.shared().subscribe(subscriber),
                 Thread::sleep, System::currentTimeMillis);
     }
 
@@ -120,7 +120,7 @@ public final class CalibrationRunner {
     }
 
     void run(Listener listener) {
-        MonoStdoutTelemetryHub.Subscription subscription = null;
+        TelemetryHub.Subscription subscription = null;
         try {
             state(listener, State.PREFLIGHT, "Checking Accessibility gestures and metric stream");
             if (!gestures.isReady()) {
@@ -350,7 +350,7 @@ public final class CalibrationRunner {
 
     @FunctionalInterface
     public interface MetricSubscriptionSource {
-        MonoStdoutTelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber)
+        TelemetryHub.Subscription subscribe(Consumer<Telemetry> subscriber)
                 throws IOException;
     }
 
