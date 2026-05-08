@@ -2,9 +2,9 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
@@ -21,20 +21,18 @@ public class DeviceController implements QZCommandSubscriber {
     private final Device device;
     private final CalibrationDevice calibrationDevice;
     private final CommandDispatcher dispatcher;
-    private final ControlTransport controlTransport;
+    private final CommandHandler commandHandler;
     private final TelemetryHub.Subscription telemetrySubscription;
-    private final boolean gesturesEnabled;
 
     public DeviceController(Device device) {
-        this(device, ControlTransport.none());
+        this(device, new IFit1CommandHandler());
     }
 
-    public DeviceController(Device device, ControlTransport controlTransport) {
+    public DeviceController(Device device, CommandHandler commandHandler) {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
-        this.controlTransport = controlTransport;
-        this.gesturesEnabled = !(controlTransport instanceof IFit2ControlTransport);
+        this.commandHandler = commandHandler;
         this.dispatcher = new CommandDispatcher(this::executeCommand);
         this.telemetrySubscription = subscribeTelemetry();
     }
@@ -44,21 +42,15 @@ public class DeviceController implements QZCommandSubscriber {
         this.device     = device;
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
-        this.controlTransport = ControlTransport.none();
-        this.gesturesEnabled = true;
+        this.commandHandler = new IFit1CommandHandler();
         this.dispatcher = new CommandDispatcher(this::executeCommand, clock);
         this.telemetrySubscription = null;
     }
 
     private void executeCommand(Command cmd) {
         device.logger.log(Device.Logger.DEBUG, LOG_TAG, "drain: " + cmd);
-        if (controlTransport.tryApply(cmd, device)) return;
-        if (gesturesEnabled) {
-            device.applyCommand(cmd);
-        } else {
-            device.logger.log(Device.Logger.WARN, LOG_TAG,
-                    "gRPC declined: " + cmd + " (no gesture fallback on iFit2)");
-        }
+        if (commandHandler.apply(cmd, device)) return;
+        device.logger.log(Device.Logger.WARN, LOG_TAG, "command rejected: " + cmd);
     }
 
     public void onTelemetry(Telemetry telemetry) {
@@ -87,7 +79,7 @@ public class DeviceController implements QZCommandSubscriber {
 
     public void shutdown() {
         if (telemetrySubscription != null) telemetrySubscription.close();
-        controlTransport.shutdown();
+        commandHandler.shutdown();
         dispatcher.shutdown();
     }
 

@@ -1,6 +1,7 @@
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S22iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 import org.junit.Test;
@@ -19,7 +20,7 @@ import java.util.List;
  * Pipeline per interval:
  *   actualGrade × 0.5  →  roundToOneDecimal  →  quantize (0.5% steps)  →  targetThumbY swipe
  *
- * Each interval is dispatched directly via applyCommand() — throttle logic
+ * Each interval is dispatched directly via the iFit1 command handler — throttle logic
  * lives in CommandDispatcher, not in the device, so de-dup logic is exercised
  * in isolation here.
  *
@@ -78,11 +79,12 @@ public class HillyRouteReplayTest {
     public void hillyRoute_replayAt50pctZwiftScaling_dispatchesCorrectSwipes() {
         List<String> dispatched = new ArrayList<>();
         S22iDevice dev = new S22iDevice();
+        IFit1CommandHandler handler = new IFit1CommandHandler();
         dev.commandExecutor = cmd -> dispatched.add(cmd);
 
         for (int i = 0; i < ACTUAL_GRADES.length; i++) {
             int sizeBefore = dispatched.size();
-            dev.applyCommand(new InclineCommand(QZCommandPacket.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f)));
+            handler.apply(new InclineCommand(QZCommandPacket.roundToOneDecimal(ACTUAL_GRADES[i] * 0.5f)), dev);
 
             if (EXPECTED[i] == null) {
                 assertEquals("interval " + (i + 1) + " should be de-duped — no command expected",

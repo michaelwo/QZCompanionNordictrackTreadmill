@@ -14,7 +14,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2Credenti
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2BikeDevice;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit2.IFit2TreadmillDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryReader;
 
@@ -107,10 +108,10 @@ public final class IFitPlatform {
                 : new MonoStdoutTelemetryReader();
     }
 
-    public ControlTransport createControlTransport(Context context) {
+    public CommandHandler createCommandHandler(Context context) {
         return kind == Kind.IFIT2_GRPC
                 ? new IFit2ControlTransport(context)
-                : ControlTransport.none();
+                : new IFit1CommandHandler();
     }
 
     public Device createDevice() {

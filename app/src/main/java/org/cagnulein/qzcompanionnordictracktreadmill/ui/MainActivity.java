@@ -588,7 +588,7 @@ public class MainActivity extends AppCompatActivity {
         TelemetryHub.configure(platform.createTelemetryReader(this));
         effectiveDevice.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
-        activeController = new DeviceController(effectiveDevice, platform.createControlTransport(this));
+        activeController = new DeviceController(effectiveDevice, platform.createCommandHandler(this));
         QZCommandListenerService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();

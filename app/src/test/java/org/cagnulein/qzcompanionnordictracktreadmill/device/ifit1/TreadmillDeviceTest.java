@@ -28,6 +28,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X32i
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X32iNtl39019Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X32iNtl39221Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X9iDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.control.IFit1CommandHandler;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
@@ -1244,9 +1245,10 @@ public class TreadmillDeviceTest {
         // X11i targetSpeedY(8.0) = 447; fromY = 600 (initialSpeedY)
         java.util.List<String> commands = new java.util.ArrayList<>();
         X11iDevice dev = new X11iDevice();
+        IFit1CommandHandler handler = new IFit1CommandHandler();
         dev.commandExecutor = commands::add;
 
-        dev.applyCommand(new SpeedCommand(8.0f));  // belt stopped → cached, no swipe
+        handler.apply(new SpeedCommand(8.0f), dev);  // belt stopped → cached, no swipe
         assertEquals(0, commands.size());
 
         dev.applyTelemetry(new SpeedTelemetry(5.0f));  // belt starts → self-flush fires

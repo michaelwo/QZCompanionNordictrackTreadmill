@@ -31,7 +31,7 @@ import static org.junit.Assert.*;
  *
  * These tests send multiple UDP messages through the live QZCommandListenerService
  * socket, verifying that the full pipeline — service receive loop →
- * CommandDispatcher → Device.applyCommand() → Device.swipe() — produces
+ * CommandDispatcher → iFit1 command handler → Device.swipe() — produces
  * the correct swipe chain across throttle window boundaries.
  *
  * Unlike ZwiftRideSimulationTest (which injects time), these tests use real

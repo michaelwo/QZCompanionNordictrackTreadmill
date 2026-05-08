@@ -19,9 +19,6 @@ public abstract class Device {
         return null;
     }
 
-    /** Routes a parsed command to the appropriate handler on this device. */
-    public final void applyCommand(Command cmd) { cmd.applyTo(this); }
-
     /** Routes a live telemetry update to all matching sliders on this device. */
     public final void applyTelemetry(Telemetry telemetry) {
         for (Slider s : sliders()) s.applyTelemetry(telemetry, this);

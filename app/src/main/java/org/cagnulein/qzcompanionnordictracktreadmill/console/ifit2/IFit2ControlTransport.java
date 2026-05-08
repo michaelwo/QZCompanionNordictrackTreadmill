@@ -16,7 +16,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
-import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.control.CommandHandler;
 
 import java.util.concurrent.TimeUnit;
 
@@ -30,7 +30,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class IFit2ControlTransport implements ControlTransport {
+public final class IFit2ControlTransport implements CommandHandler {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
@@ -47,7 +47,7 @@ public final class IFit2ControlTransport implements ControlTransport {
     }
 
     @Override
-    public boolean tryApply(Command command, Device device) {
+    public boolean apply(Command command, Device device) {
         if (!(command instanceof InclineCommand) && !(command instanceof ResistanceCommand) && !(command instanceof SpeedCommand)) {
             return false;
         }

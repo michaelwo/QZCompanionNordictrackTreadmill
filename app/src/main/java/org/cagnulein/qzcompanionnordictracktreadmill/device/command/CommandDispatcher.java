@@ -14,9 +14,8 @@ import java.util.function.Consumer;
  * active drain, independent of incoming commands. {@link #enqueue} also attempts an immediate
  * drain when the window is open. Both paths synchronize on {@code this} to prevent double-drain.
  *
- * The executor callback supplied at construction performs the actual command execution (e.g.
- * calling {@code cmd.applyTo(device)}) and any associated logging. CommandDispatcher itself
- * has no device knowledge.
+ * The executor callback supplied at construction performs the actual command execution and any
+ * associated logging. CommandDispatcher itself has no device knowledge.
  *
  * The test constructor takes an injectable {@link Clock} and starts no background thread —
  * tests remain fully deterministic.
