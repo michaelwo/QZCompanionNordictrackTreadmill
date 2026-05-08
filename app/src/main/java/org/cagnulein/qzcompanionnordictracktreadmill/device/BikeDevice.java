@@ -4,6 +4,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SnapToOriginCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,5 +53,12 @@ public abstract class BikeDevice extends Device {
             return Collections.singletonList(resistance.commandFor(QZCommandPacket.roundToOneDecimal(v)));
         }
         return Collections.emptyList();
+    }
+
+    @Override
+    public String telemetryLabel(Telemetry t) {
+        if (t instanceof InclineTelemetry)    return "grade=" + t.value;
+        if (t instanceof ResistanceTelemetry) return "resistance=" + t.value;
+        return null;
     }
 }

@@ -61,6 +61,8 @@ public class DeviceController implements QZCommandSubscriber {
     }
 
     public void onTelemetry(Telemetry telemetry) {
+        String label = device.telemetryLabel(telemetry);
+        if (label != null) device.logger.log(Device.Logger.DEBUG, LOG_TAG, "telemetry: " + label);
         device.applyTelemetry(telemetry);
     }
 

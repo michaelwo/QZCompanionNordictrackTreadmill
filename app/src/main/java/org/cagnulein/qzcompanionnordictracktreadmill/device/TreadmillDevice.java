@@ -6,6 +6,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.InclineSlider
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.Slider;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.slider.SpeedSlider;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,5 +49,12 @@ public abstract class TreadmillDevice extends Device {
             }
         }
         return cmds;
+    }
+
+    @Override
+    public String telemetryLabel(Telemetry t) {
+        if (t instanceof InclineTelemetry) return "grade=" + t.value;
+        if (t instanceof SpeedTelemetry)   return "speed=" + t.value;
+        return null;
     }
 }

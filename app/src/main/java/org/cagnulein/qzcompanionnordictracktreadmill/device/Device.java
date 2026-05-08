@@ -50,4 +50,7 @@ public abstract class Device {
 
     /** Interprets a parsed QZ UDP packet and returns one Command per actionable field. */
     public abstract List<Command> decodeCommands(QZCommandPacket pkt);
+
+    /** Returns a log label for confirmed telemetry this device handles, or null to suppress logging. */
+    public String telemetryLabel(Telemetry t) { return null; }
 }
