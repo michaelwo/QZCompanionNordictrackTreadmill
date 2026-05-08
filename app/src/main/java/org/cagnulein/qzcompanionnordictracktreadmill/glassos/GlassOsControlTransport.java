@@ -6,6 +6,8 @@ import com.ifit.glassos.workout.InclineRequest;
 import com.ifit.glassos.workout.InclineServiceGrpc;
 import com.ifit.glassos.workout.ResistanceRequest;
 import com.ifit.glassos.workout.ResistanceServiceGrpc;
+import com.ifit.glassos.workout.SpeedRequest;
+import com.ifit.glassos.workout.SpeedServiceGrpc;
 import com.ifit.glassos.workout.WorkoutResult;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
@@ -13,6 +15,7 @@ import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceLogTags;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.InclineCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.ResistanceCommand;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.command.SpeedCommand;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
 
 import java.util.concurrent.TimeUnit;
@@ -36,6 +39,7 @@ public final class GlassOsControlTransport implements ControlTransport {
     private ManagedChannel channel;
     private InclineServiceGrpc.InclineServiceBlockingStub incline;
     private ResistanceServiceGrpc.ResistanceServiceBlockingStub resistance;
+    private SpeedServiceGrpc.SpeedServiceBlockingStub speed;
     private boolean disabled;
 
     public GlassOsControlTransport(Context context) {
@@ -44,7 +48,7 @@ public final class GlassOsControlTransport implements ControlTransport {
 
     @Override
     public boolean tryApply(Command command, Device device) {
-        if (!(command instanceof InclineCommand) && !(command instanceof ResistanceCommand)) {
+        if (!(command instanceof InclineCommand) && !(command instanceof ResistanceCommand) && !(command instanceof SpeedCommand)) {
             return false;
         }
         if (disabled) return false;
@@ -56,10 +60,14 @@ public final class GlassOsControlTransport implements ControlTransport {
                 double value = ((InclineCommand) command).inclinePct;
                 result = incline.withDeadlineAfter(2, TimeUnit.SECONDS)
                         .setIncline(InclineRequest.newBuilder().setPercent(value).build());
-            } else {
+            } else if (command instanceof ResistanceCommand) {
                 double value = ((ResistanceCommand) command).resistanceLvl;
                 result = resistance.withDeadlineAfter(2, TimeUnit.SECONDS)
                         .setResistance(ResistanceRequest.newBuilder().setResistance(value).build());
+            } else {
+                double value = ((SpeedCommand) command).speedKmh;
+                result = speed.withDeadlineAfter(2, TimeUnit.SECONDS)
+                        .setSpeed(SpeedRequest.newBuilder().setKph(value).build());
             }
 
             if (result.hasSuccess() && result.getSuccess()) {
@@ -83,6 +91,7 @@ public final class GlassOsControlTransport implements ControlTransport {
             channel = null;
             incline = null;
             resistance = null;
+            speed = null;
         }
     }
 
@@ -99,6 +108,7 @@ public final class GlassOsControlTransport implements ControlTransport {
                 .build();
         incline = InclineServiceGrpc.newBlockingStub(channel);
         resistance = ResistanceServiceGrpc.newBlockingStub(channel);
+        speed = SpeedServiceGrpc.newBlockingStub(channel);
     }
 
     private static ClientInterceptor clientIdInterceptor() {
