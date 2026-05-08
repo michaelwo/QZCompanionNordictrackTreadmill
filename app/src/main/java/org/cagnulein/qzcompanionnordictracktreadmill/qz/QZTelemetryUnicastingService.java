@@ -11,11 +11,11 @@ import android.os.IBinder;
 import android.os.StrictMode;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.glassos.iFitPlatform;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.platform.IFitPlatform;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -70,10 +70,10 @@ public class QZTelemetryUnicastingService extends Service {
     private void applyDeviceInternal() {
         MonoStdoutTelemetryReader.onError = e -> Log.e(LOG_TAG, "mono-stdout stream error", e);
         MonoStdoutTelemetryReader.onLine  = line -> writeLog("ifit: " + line);
-        GlassOsTelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
-        GlassOsTelemetryReader.onLine = line -> writeLog(line);
+        IFit2TelemetryReader.onError = e -> Log.e(LOG_TAG, "glassos stream error", e);
+        IFit2TelemetryReader.onLine = line -> writeLog(line);
         try {
-            iFitPlatform platform = iFitPlatform.detect(this);
+            IFitPlatform platform = IFitPlatform.detect(this);
             Log.i(LOG_TAG, "platform: " + platform.kind + " machine: " + platform.machineClass);
             TelemetryHub.configure(platform.createTelemetryReader(this));
             telemetrySubscription = TelemetryHub.shared().subscribe(this::publishTelemetry);

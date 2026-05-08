@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.glassos;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -27,8 +27,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-final class GlassOsCredentials {
-    static final String CLIENT_ID_HEADER_VALUE = "com.ifit.rivendell";
+public final class IFit2Credentials {
+    public static final String CLIENT_ID_HEADER_VALUE = "com.ifit.rivendell";
 
     private static final String[] RESOURCE_PACKAGES = {
             "com.ifit.rivendell",
@@ -37,15 +37,15 @@ final class GlassOsCredentials {
 
     private final SSLContext sslContext;
 
-    private GlassOsCredentials(SSLContext sslContext) {
+    private IFit2Credentials(SSLContext sslContext) {
         this.sslContext = sslContext;
     }
 
-    SSLContext sslContext() {
+    public SSLContext sslContext() {
         return sslContext;
     }
 
-    static GlassOsCredentials load(Context context) throws Exception {
+    public static IFit2Credentials load(Context context) throws Exception {
         PackageManager pm = context.getPackageManager();
         SharedPreferences prefs = context.getSharedPreferences("glassos_cred_v2", Context.MODE_PRIVATE);
         List<Exception> failures = new ArrayList<>();
@@ -56,7 +56,7 @@ final class GlassOsCredentials {
                 String certPem = readPem(resources, packageName, keys.cert, "CERTIFICATE");
                 String keyPem  = readPem(resources, packageName, keys.key,  "PRIVATE KEY");
                 String caPem   = readPem(resources, packageName, keys.ca,   "CERTIFICATE");
-                return new GlassOsCredentials(buildSslContext(certPem, keyPem, caPem));
+                return new IFit2Credentials(buildSslContext(certPem, keyPem, caPem));
             } catch (Exception e) {
                 failures.add(e);
             }

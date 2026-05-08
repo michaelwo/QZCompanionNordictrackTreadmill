@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.glassos;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2;
 
 import android.content.Context;
 
@@ -30,7 +30,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class GlassOsControlTransport implements ControlTransport {
+public final class IFit2ControlTransport implements ControlTransport {
     private static final String LOG_TAG = DeviceLogTags.DISPATCH;
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
@@ -42,7 +42,7 @@ public final class GlassOsControlTransport implements ControlTransport {
     private SpeedServiceGrpc.SpeedServiceBlockingStub speed;
     private boolean disabled;
 
-    public GlassOsControlTransport(Context context) {
+    public IFit2ControlTransport(Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -98,7 +98,7 @@ public final class GlassOsControlTransport implements ControlTransport {
     private synchronized void ensureChannel() throws Exception {
         if (channel != null) return;
 
-        GlassOsCredentials credentials = GlassOsCredentials.load(context);
+        IFit2Credentials credentials = IFit2Credentials.load(context);
         channel = OkHttpChannelBuilder
                 .forAddress("localhost", 54321)
                 .overrideAuthority("localhost:54321")
@@ -122,7 +122,7 @@ public final class GlassOsControlTransport implements ControlTransport {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, GlassOsCredentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.console;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.CadenceTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.HeartRateTelemetry;

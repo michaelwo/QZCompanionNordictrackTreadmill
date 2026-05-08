@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.glassos;
+package org.cagnulein.qzcompanionnordictracktreadmill.platform;
 
 import android.content.Context;
 import android.util.Log;
@@ -8,12 +8,15 @@ import com.ifit.glassos.console.KnownConsoleInfo;
 import com.ifit.glassos.console.MachineType;
 import com.ifit.glassos.util.Empty;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.MonoStdoutTelemetryReader;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2Credentials;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.bike.iFit2BikeDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.treadmill.iFit2TreadmillDevice;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryReader;
 
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +30,7 @@ import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class iFitPlatform {
+public final class IFitPlatform {
 
     private static final String LOG_TAG = "QZ:Platform";
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
@@ -39,26 +42,26 @@ public final class iFitPlatform {
     public final Kind kind;
     public final MachineClass machineClass;
 
-    private iFitPlatform(Kind kind, MachineClass machineClass) {
+    private IFitPlatform(Kind kind, MachineClass machineClass) {
         this.kind = kind;
         this.machineClass = machineClass;
     }
 
-    public static iFitPlatform detect(Context context) {
+    public static IFitPlatform detect(Context context) {
         Context appContext = context.getApplicationContext();
-        GlassOsCredentials credentials;
+        IFit2Credentials credentials;
         try {
-            credentials = GlassOsCredentials.load(appContext);
+            credentials = IFit2Credentials.load(appContext);
         } catch (Exception e) {
             Log.i(LOG_TAG, "iFit2 credentials unavailable — iFit1 path: " + e.getMessage());
-            return new iFitPlatform(Kind.IFIT1_GESTURE, MachineClass.UNKNOWN);
+            return new IFitPlatform(Kind.IFIT1_GESTURE, MachineClass.UNKNOWN);
         }
         MachineClass mc = queryMachineClass(credentials);
         Log.i(LOG_TAG, "detected: IFIT2_GRPC / " + mc);
-        return new iFitPlatform(Kind.IFIT2_GRPC, mc);
+        return new IFitPlatform(Kind.IFIT2_GRPC, mc);
     }
 
-    private static MachineClass queryMachineClass(GlassOsCredentials credentials) {
+    private static MachineClass queryMachineClass(IFit2Credentials credentials) {
         ManagedChannel channel = null;
         try {
             channel = OkHttpChannelBuilder
@@ -100,13 +103,13 @@ public final class iFitPlatform {
 
     public TelemetryReader createTelemetryReader(Context context) {
         return kind == Kind.IFIT2_GRPC
-                ? new GlassOsTelemetryReader(context.getApplicationContext())
+                ? new IFit2TelemetryReader(context.getApplicationContext())
                 : new MonoStdoutTelemetryReader();
     }
 
     public ControlTransport createControlTransport(Context context) {
         return kind == Kind.IFIT2_GRPC
-                ? new GlassOsControlTransport(context)
+                ? new IFit2ControlTransport(context)
                 : ControlTransport.none();
     }
 
@@ -126,7 +129,7 @@ public final class iFitPlatform {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, GlassOsCredentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

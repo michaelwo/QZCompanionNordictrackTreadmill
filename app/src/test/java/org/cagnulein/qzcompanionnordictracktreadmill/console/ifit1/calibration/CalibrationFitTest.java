@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
 import org.junit.Test;
 

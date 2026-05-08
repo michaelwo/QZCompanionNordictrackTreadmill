@@ -1,8 +1,8 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 
 /** Thin logging wrapper around Accessibility gestures used by calibration. */
 public final class CalibrationGestureDriver implements CalibrationRunner.Gestures {

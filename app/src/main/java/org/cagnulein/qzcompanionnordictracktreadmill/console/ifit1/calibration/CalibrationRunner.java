@@ -1,10 +1,10 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
 import android.os.Environment;
 import android.util.DisplayMetrics;
 import android.util.Log;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
 

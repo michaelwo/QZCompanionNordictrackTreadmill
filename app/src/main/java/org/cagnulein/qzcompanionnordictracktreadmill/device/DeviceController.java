@@ -3,9 +3,9 @@ package org.cagnulein.qzcompanionnordictracktreadmill.device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.Command;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.command.CommandDispatcher;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.control.ControlTransport;
-import org.cagnulein.qzcompanionnordictracktreadmill.glassos.GlassOsControlTransport;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2.IFit2ControlTransport;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandSubscriber;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandPacket;
 
@@ -33,7 +33,7 @@ public class DeviceController implements QZCommandSubscriber {
         this.calibrationDevice = new CalibrationDevice();
         this.calibrationDevice.logger = device.logger;
         this.controlTransport = controlTransport;
-        this.gesturesEnabled = !(controlTransport instanceof GlassOsControlTransport);
+        this.gesturesEnabled = !(controlTransport instanceof IFit2ControlTransport);
         this.dispatcher = new CommandDispatcher(this::executeCommand);
         this.telemetrySubscription = subscribeTelemetry();
     }

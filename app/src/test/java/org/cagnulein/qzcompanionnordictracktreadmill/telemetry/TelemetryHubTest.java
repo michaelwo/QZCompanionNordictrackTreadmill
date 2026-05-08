@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.console;
+package org.cagnulein.qzcompanionnordictracktreadmill.telemetry;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
 
-public class MonoStdoutTelemetryHubTest {
+public class TelemetryHubTest {
 
     @Test
     public void subscribe_startsReaderOnceAndFansOutPackets() throws Exception {

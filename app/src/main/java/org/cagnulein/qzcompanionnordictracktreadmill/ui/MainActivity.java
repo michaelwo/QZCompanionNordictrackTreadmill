@@ -38,17 +38,17 @@ import java.io.IOException;
 
 
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZCommandListenerService;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationFit;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationFit;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationResult;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationRunner;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryHub;
-import org.cagnulein.qzcompanionnordictracktreadmill.glassos.iFitPlatform;
+import org.cagnulein.qzcompanionnordictracktreadmill.platform.IFitPlatform;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryHub;
 import org.cagnulein.qzcompanionnordictracktreadmill.BuildConfig;
 import org.cagnulein.qzcompanionnordictracktreadmill.R;
 import org.cagnulein.qzcompanionnordictracktreadmill.platform.crash.CrashHandler;
@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     private DeviceAdapter deviceAdapter;
     private DeviceController activeController = null;
     private static SharedPreferences sharedPreferences;
-    private iFitPlatform platform;
+    private IFitPlatform platform;
 
     private DeviceRegistry.DeviceId committedDeviceId = null;
     private DeviceRegistry.DeviceId pendingDeviceId   = null;
@@ -133,10 +133,10 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferences = getSharedPreferences("QZ", MODE_PRIVATE);
         loadCalibration();
         initLogFile();
-        platform = iFitPlatform.detect(this);
+        platform = IFitPlatform.detect(this);
         initUi();
         startServices();
-        if (platform.kind == iFitPlatform.Kind.IFIT2_GRPC) {
+        if (platform.kind == IFitPlatform.Kind.IFIT2_GRPC) {
             configurePickerForiFit2();
             selectDevice(null);
         } else {
@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void syncDeviceSelectionFromPrefs() {
-        if (platform != null && platform.kind == iFitPlatform.Kind.IFIT2_GRPC) return;
+        if (platform != null && platform.kind == IFitPlatform.Kind.IFIT2_GRPC) return;
         String savedId = sharedPreferences.getString(PREF_DEVICE_ID, DeviceRegistry.DeviceId.other.name());
         if (committedDeviceId != null && committedDeviceId.name().equals(savedId)) return;
         restoreDeviceSelection();
@@ -249,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void rebindAccessibilityService() {
-        String svc = getPackageName() + "/.console.GestureService";
+        String svc = getPackageName() + "/.console.ifit1.GestureService";
         try {
             Settings.Secure.putString(getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, svc);
@@ -580,7 +580,7 @@ public class MainActivity extends AppCompatActivity {
      *  On iFit2, {@code device} is ignored — the platform auto-selects the machine.
      *  On iFit1, {@code device} is the user's picker selection. */
     private void selectDevice(Device device) {
-        Device effectiveDevice = (platform != null && platform.kind == iFitPlatform.Kind.IFIT2_GRPC)
+        Device effectiveDevice = (platform != null && platform.kind == IFitPlatform.Kind.IFIT2_GRPC)
                 ? platform.createDevice()
                 : device;
         if (effectiveDevice == null) return;

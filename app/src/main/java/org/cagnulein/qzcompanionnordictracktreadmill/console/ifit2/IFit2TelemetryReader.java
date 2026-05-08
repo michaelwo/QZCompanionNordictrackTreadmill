@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.glassos;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit2;
 
 import android.content.Context;
 
@@ -13,13 +13,13 @@ import com.ifit.glassos.workout.WorkoutServiceGrpc;
 import com.ifit.glassos.workout.WorkoutState;
 import com.ifit.glassos.workout.WorkoutStateMessage;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.console.TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.CadenceTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.HeartRateTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.InclineTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.ResistanceTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.TelemetryReader;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.WattsTelemetry;
 
 import java.io.IOException;
@@ -38,7 +38,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.stub.StreamObserver;
 import io.grpc.okhttp.OkHttpChannelBuilder;
 
-public final class GlassOsTelemetryReader implements TelemetryReader {
+public final class IFit2TelemetryReader implements TelemetryReader {
     private static final Metadata.Key<String> CLIENT_ID_HEADER =
             Metadata.Key.of("client_id", Metadata.ASCII_STRING_MARSHALLER);
 
@@ -51,7 +51,7 @@ public final class GlassOsTelemetryReader implements TelemetryReader {
     private boolean started;
     private final AtomicBoolean workoutActive = new AtomicBoolean(false);
 
-    public GlassOsTelemetryReader(Context context) {
+    public IFit2TelemetryReader(Context context) {
         this.context = context.getApplicationContext();
     }
 
@@ -59,7 +59,7 @@ public final class GlassOsTelemetryReader implements TelemetryReader {
     public synchronized void read() throws IOException {
         if (started) return;
         try {
-            GlassOsCredentials credentials = GlassOsCredentials.load(context);
+            IFit2Credentials credentials = IFit2Credentials.load(context);
             channel = OkHttpChannelBuilder
                     .forAddress("localhost", 54321)
                     .overrideAuthority("localhost:54321")
@@ -207,7 +207,7 @@ public final class GlassOsTelemetryReader implements TelemetryReader {
                         next.newCall(method, callOptions)) {
                     @Override
                     public void start(Listener<RespT> responseListener, Metadata headers) {
-                        headers.put(CLIENT_ID_HEADER, GlassOsCredentials.CLIENT_ID_HEADER_VALUE);
+                        headers.put(CLIENT_ID_HEADER, IFit2Credentials.CLIENT_ID_HEADER_VALUE);
                         super.start(responseListener, headers);
                     }
                 };

@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.calibration;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration;
 
 import java.util.ArrayList;
 import java.util.Collections;

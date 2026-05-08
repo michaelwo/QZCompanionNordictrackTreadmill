@@ -27,12 +27,12 @@ import android.widget.TextView;
 import com.google.android.material.button.MaterialButton;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.R;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationFit;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationResult;
-import org.cagnulein.qzcompanionnordictracktreadmill.calibration.CalibrationRunner;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationFit;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationResult;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceRegistry;
-import org.cagnulein.qzcompanionnordictracktreadmill.console.GestureService;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 
 import java.util.Locale;
 

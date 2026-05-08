@@ -1,4 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.console;
+package org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

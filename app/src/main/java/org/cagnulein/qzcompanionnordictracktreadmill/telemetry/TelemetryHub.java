@@ -1,6 +1,6 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.console;
+package org.cagnulein.qzcompanionnordictracktreadmill.telemetry;
 
-import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.MonoStdoutTelemetryReader;
 
 import java.io.IOException;
 import java.util.ArrayList;

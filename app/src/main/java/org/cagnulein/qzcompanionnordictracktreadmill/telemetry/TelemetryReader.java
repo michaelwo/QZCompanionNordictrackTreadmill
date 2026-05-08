@@ -1,6 +1,4 @@
-package org.cagnulein.qzcompanionnordictracktreadmill.console;
-
-import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.Telemetry;
+package org.cagnulein.qzcompanionnordictracktreadmill.telemetry;
 
 import java.io.IOException;
 import java.util.function.Consumer;
