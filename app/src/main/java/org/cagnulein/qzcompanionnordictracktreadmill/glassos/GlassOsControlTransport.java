@@ -89,7 +89,7 @@ public final class GlassOsControlTransport implements ControlTransport {
     private synchronized void ensureChannel() throws Exception {
         if (channel != null) return;
 
-        GlassOsCredentials credentials = GlassOsCredentials.load(context);
+        GlassOsCredentials credentials = GlassOsCredentials.load(context.getPackageManager());
         channel = OkHttpChannelBuilder
                 .forAddress("localhost", 54321)
                 .overrideAuthority("localhost:54321")
