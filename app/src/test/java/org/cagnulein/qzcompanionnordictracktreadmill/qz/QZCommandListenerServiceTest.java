@@ -18,6 +18,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike.S15iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.treadmill.X11iDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.telemetry.SpeedTelemetry;
@@ -161,7 +162,7 @@ public class QZCommandListenerServiceTest {
 
         controller = Robolectric.buildService(QZCommandListenerService.class);
         controller.create().startCommand(0, 1);
-        QZCommandListenerService.setSubscriber(new DeviceController(s15i));
+        QZCommandListenerService.setSubscriber(new DeviceController(s15i, new CalibrationDevice()::decodeCommands));
 
         sendUdp("CALSWIPE:57:250:450");
 

@@ -43,7 +43,9 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.C
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDecoder;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
+import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceCalibration;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.DeviceController;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.DeviceRegistry;
@@ -588,7 +590,9 @@ public class MainActivity extends AppCompatActivity {
         TelemetryHub.configure(platform.createTelemetryReader(this));
         effectiveDevice.logger = (level, tag, msg) -> Log.println(level, tag, msg);
         if (activeController != null) activeController.shutdown();
-        activeController = new DeviceController(effectiveDevice);
+        boolean isGrpc = platform != null && platform.kind == IFitPlatform.Kind.IFIT2_GRPC;
+        CommandDecoder preDecoder = isGrpc ? null : new CalibrationDevice()::decodeCommands;
+        activeController = new DeviceController(effectiveDevice, preDecoder);
         QZCommandListenerService.setSubscriber(activeController);
         updateStatusChip();
         updateRequirementsCard();
