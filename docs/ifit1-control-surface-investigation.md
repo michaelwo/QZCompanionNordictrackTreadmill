@@ -1,8 +1,8 @@
-# iFit Control Surface Investigation
+# iFit1 Control Surface Investigation
 
-**Goal:** find a programmable interface on NordicTrack/ProForm iFit 1/2 devices that allows a third-party Android app (QZCompanion) to set incline, resistance, and speed without simulating touchscreen input.
+**Goal:** find a programmable interface on NordicTrack/ProForm iFit1 devices (`com.ifit.standalone`) that allows a third-party Android app (QZCompanion) to set incline, resistance, and speed without simulating touchscreen input.
 
-**Verdict:** no such interface exists. Every candidate surface — BLE FTMS control, TCP, IPC, and USB HID — was tested and ruled out. Touchscreen swipe injection is the only viable path.
+**Verdict for iFit1:** no such interface exists. Every candidate surface — BLE FTMS control, TCP, IPC, and USB HID — was tested and ruled out for the iFit1/Xamarin stack. Touchscreen swipe injection is the only viable iFit1 path. iFit2 is different: see [ifit2-control-surface-investigation.md](ifit2-control-surface-investigation.md) for the GlassOS gRPC path.
 
 ---
 

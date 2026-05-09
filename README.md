@@ -29,6 +29,8 @@ phone or tablet, or iOS iPhone or iPad). A 2nd device could be used to
 run both QZ and Zwift, eliminating the need for a 3rd device, as long
 as QZ runs in the background while Zwift runs in the foreground.
 
+**iFit Integration Paths:** QZ Companion supports two iFit integration paths. iFit2 / GlassOS gRPC is the preferred path when available: commands and telemetry go through the local GlassOS service without Accessibility gesture injection. iFit1 / gesture + logcat remains supported as a legacy compatibility path for older consoles that do not expose a programmable local control API.
+
 **New Feature:** QZ Companion now works with QZ to control the incline of your treadmill (auto-incline),
 and speed as well (auto-speed), or in the case of a bike, it automatically controls incline and resistance. 
 For example, you can choose to have Zwift control your

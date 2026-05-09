@@ -1,6 +1,6 @@
 # Contributing
 
-QZ Companion is an Android app that bridges NordicTrack/ProForm fitness devices to the [QZ](https://github.com/cagnulein/qdomyos-zwift) ecosystem. It controls speed and incline by injecting accessibility gestures directly on the iFit console.
+QZ Companion is an Android app that bridges NordicTrack/ProForm fitness devices to the [QZ](https://github.com/cagnulein/qdomyos-zwift) ecosystem. It supports two iFit integration paths: iFit2 / GlassOS gRPC is the preferred path when available, while iFit1 / gesture + logcat remains supported as a legacy compatibility path for older consoles.
 
 ## Quick Start
 
@@ -14,7 +14,7 @@ Open the `app/` directory in Android Studio to build and sideload to a device.
 
 ## Adding a Device
 
-The most common contribution is support for a new treadmill or bike model. Follow the step-by-step pattern in [CLAUDE.md](CLAUDE.md#new-device-implementation-pattern), then add tests following [testing-methodology.md](app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
+The most common contribution is support for a new treadmill or bike model. Prefer the iFit2/gRPC path when the target console runs GlassOS; add or modify iFit1 gesture devices only for older hardware that cannot use the gRPC path. Follow the step-by-step pattern in [CLAUDE.md](CLAUDE.md#new-device-implementation-pattern), then add tests following [testing-methodology.md](app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 See [docs/architecture.md](docs/architecture.md) for a full picture of how the system fits together, and [docs/migrating-from-3x.md](docs/migrating-from-3x.md) for context on how the codebase evolved.
 

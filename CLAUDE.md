@@ -1,7 +1,7 @@
 # QZ Companion NordicTrack Treadmill - Claude Documentation
 
 ## Project Structure
-Android app for controlling NordicTrack and ProForm fitness devices via AccessibilityService gesture injection.
+Android app for controlling NordicTrack and ProForm fitness devices through QZ Companion's two iFit integration paths: preferred iFit2 / GlassOS gRPC control, and legacy iFit1 / AccessibilityService gesture control.
 
 The build is a multi-module Gradle project. Business logic lives in three library modules under `lib/`; the `app/` module is a thin Android shell (services, platform, UI).
 
@@ -11,8 +11,8 @@ The build is a multi-module Gradle project. Business logic lives in three librar
 |--------|------|
 | `app/` | Android shell — UDP services, UI, platform receivers. Depends on all three lib modules. |
 | `lib/core/` | Platform-agnostic domain layer — command model, telemetry bus, abstract `Device`. No Android imports; JVM-testable without Robolectric. |
-| `lib/ifit1/` | Gesture-based control for iFit1 consoles. Depends on `lib:core`. Requires `AccessibilityService` at runtime. |
-| `lib/ifit2/` | gRPC-based control for iFit2 consoles. Depends on `lib:core` + gRPC stack. |
+| `lib/ifit1/` | Legacy gesture-based compatibility for iFit1 consoles. Depends on `lib:core`. Requires `AccessibilityService` at runtime. |
+| `lib/ifit2/` | Preferred gRPC-based integration for iFit2 / GlassOS consoles. Depends on `lib:core` + gRPC stack. |
 
 Each module has a `README.md` with its dependency rules and entry points.
 
@@ -74,7 +74,7 @@ lib/ifit2/
 
 ## New Device Implementation Pattern
 
-All devices are self-contained classes. There is no enum switch or coordinate lookup table.
+All devices are self-contained classes. There is no enum switch or coordinate lookup table. New integration work should target iFit2 first when the device runs GlassOS. Add or modify iFit1 gesture devices only when supporting older iFit1 hardware that cannot use the gRPC path.
 
 ### 1. Create the device class
 
@@ -154,7 +154,7 @@ Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a
 Most docs live in `docs/`. A few live adjacent to the code they describe:
 
 - `lib/core/README.md`, `lib/ifit1/README.md`, `lib/ifit2/README.md` — module boundary contracts (purpose, dependency rules, entry points); edit when module responsibilities change
-- `docs/device-reference.md` — per-device pixel formulas, ScreenProfile table, validator notes; edit alongside device classes
+- `docs/ifit1-device-reference.md` — iFit1 per-device pixel formulas, ScreenProfile table, validator notes; edit alongside iFit1 gesture device classes
 - `app/src/test/java/.../testing-methodology.md` — test file inventory, swipe assertion patterns, how to add tests for a new device; edit alongside test files
 
 ---

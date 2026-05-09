@@ -1,6 +1,8 @@
-# Device Reference
+# iFit1 Device Reference
 
-All coordinates are screen pixels on the iFit touch display, standardised to **iFit APK 2.6.90** (versionCode 4963, `com.ifit.standalone`). TrackX values are derived from the APK layout resources and expressed via the `ScreenProfile` enum in source — see `device/ScreenProfile.java`. If the iFit app is updated to a version with different slider geometry, re-derive the constants from the new APK before editing device classes. Swipe format:
+This document covers the legacy iFit1 gesture devices only. iFit2 / GlassOS devices should use the preferred gRPC integration path and do not need pixel-coordinate formulas.
+
+All coordinates are screen pixels on the iFit1 touch display, standardised to **iFit APK 2.6.90** (versionCode 4963, `com.ifit.standalone`). TrackX values are derived from the APK layout resources and expressed via the `ScreenProfile` enum in source — see `device/ScreenProfile.java`. If the iFit1 app is updated to a version with different slider geometry, re-derive the constants from the new APK before editing iFit1 device classes. Swipe format:
 
 ```
 input swipe <trackX> <fromY> <trackX> <targetThumbY(v)> 200
@@ -12,9 +14,9 @@ For the full dispatch pipeline see [architecture.md](architecture.md). For how t
 
 ---
 
-## All Devices at a Glance
+## iFit1 Devices at a Glance
 
-All 44 devices use `AccessibilityService` for swipe injection and `MonoStdoutTelemetryReader` for metric reading.
+All 44 iFit1 devices use `AccessibilityService` for swipe injection and `MonoStdoutTelemetryReader` for metric reading.
 
 | DeviceId | Display name |
 |----------|-------------|
@@ -67,7 +69,7 @@ All 44 devices use `AccessibilityService` for swipe injection and `MonoStdoutTel
 
 ## Command Execution Modes
 
-All 44 devices use `GestureService.performSwipe()`. Enable the **QZCompanion** accessibility service in **Settings → Accessibility** before using any device.
+All 44 iFit1 devices use `GestureService.performSwipe()`. Enable the **QZCompanion** accessibility service in **Settings → Accessibility** before using any iFit1 gesture device.
 
 ---
 
@@ -465,11 +467,13 @@ Fallback device. Uses ProForm 2000 geometry without `currentThumbY`. Useful for 
 
 ---
 
-## Adding a New Device
+## Adding a New iFit1 Device
+
+Prefer the iFit2/gRPC path when the target console runs GlassOS. Add a new iFit1 gesture device only for older hardware that cannot use the gRPC path.
 
 1. Create a class in `device/bike/` (extends `BikeDevice`) or `device/treadmill/` (extends `TreadmillDevice`).
 2. Declare `private static int offsetInclineThumbY(double v)` (and `offsetSpeedThumbY` / `offsetResistanceThumbY` as needed). Pass one or two typed slider instances to `super()`: `new InclineSlider(ScreenProfile.Wxxx.leftTrackX, ORIGIN_INCLINE_THUMBY, MyDevice::offsetInclineThumbY)` for the incline axis; `new SpeedSlider(...)` for speed; `new ResistanceSlider(...)` for resistance; `new GearSlider(...)` for gear-based bikes. Choose the `ScreenProfile` that matches the device's screen width (W1920, W1280, W1024, W800). Set `ORIGIN_xxx_THUMBY` equal to `offsetXxxThumbY(0)` (the formula's y-intercept). When `quantize()`, `currentThumbY()`, or `hysteresisPixels()` also need overriding, use an anonymous typed-slider subclass instead.
-3. Override `displayName()`. There is no `requiresAdb()` or `requiresAccessibility()` to implement — all devices use `AccessibilityService` exclusively and `Slider.moveTo()` handles gesture dispatch.
+3. Override `displayName()`. There is no `requiresAdb()` or `requiresAccessibility()` to implement — all iFit1 devices use `AccessibilityService` exclusively and `Slider.moveTo()` handles gesture dispatch.
 4. Add a `DeviceId` enum value to `DeviceRegistry.DeviceId` and a `m.put(DeviceId.my_device, new MyDevice())` line in `DeviceRegistry.DEVICES`.
 5. Add the `DeviceId` to the appropriate list in `DeviceAdapter` — `BIKE_DEVICES`, `TREADMILL_DEVICES`, or `OTHER_DEVICES`. The UI is not automatic; if you skip this step the device will not appear in the app.
 6. Add formula tests in `BikeDeviceTest` or `TreadmillDeviceTest`. See [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for the pattern.

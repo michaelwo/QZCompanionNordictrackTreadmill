@@ -83,7 +83,7 @@ ride with `custom_calibrated`, and contributors can copy the fitted origin and
 scale values into a permanent device class.
 
 For the full current pattern, use [architecture.md](architecture.md) and
-[device-reference.md](device-reference.md). For test examples, use
+[ifit1-device-reference.md](ifit1-device-reference.md). For test examples, use
 [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md).
 
 ---
@@ -121,6 +121,8 @@ cached speed commands.
 ---
 
 ## Metric Reading
+
+4.x has two committed platform paths. iFit2 / GlassOS gRPC is the preferred path when available; iFit1 / gesture + logcat remains the legacy compatibility path for older consoles.
 
 3.x had multiple ways to read iFit metrics: tailing files, grepping snapshots,
 shelling out, and branching on iFit version-specific paths and keywords. That

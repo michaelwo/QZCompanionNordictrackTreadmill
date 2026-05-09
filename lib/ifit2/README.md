@@ -1,6 +1,6 @@
 # lib:ifit2
 
-gRPC-based control for iFit Generation 2 consoles. Sends commands directly over the local network — no `AccessibilityService` required. Proto definitions live in `src/main/proto/` and are compiled by the protobuf Gradle plugin at build time.
+Preferred integration module for iFit Generation 2 / GlassOS consoles. It sends commands directly through the local GlassOS gRPC service — no `AccessibilityService` required. Proto definitions live in `src/main/proto/` and are compiled by the protobuf Gradle plugin at build time.
 
 ## Dependency rules
 

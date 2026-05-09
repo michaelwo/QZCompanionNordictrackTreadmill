@@ -120,7 +120,7 @@ Can a new contributor understand and extend the app without reading every file?
 | Build Reproducibility | 2 | CI signs and publishes on every master push; version from version.properties; versionCode from run number; action refs unpinned (checkout@v2, sign-android-release@v1, add-and-commit@v9, create-release-with-debugapk@v2.0.0) |
 | Failure Resilience | 3 | UDP listener loop catches per-packet exceptions and continues (no permanent thread death); MonoStdoutTelemetryReader stream errors caught in-loop (reader thread survives); performSwipe logs Log.e on null instance and dispatchGesture=false; CrashHandler logs QZ:Crash + saves to CrashPrefs before kill |
 | Calibration Capability | 3 | In-app guided calibration: Accessibility gesture sweep, shared mono-stdout metric stream, least-squares fit, R² gate, JSON save/apply, immediate `custom_calibrated` selection; optional resistance support with skip-on-insufficient-points behavior; discover-device.py retained as ADB fallback with --a11y mode for Xamarin/API 25 devices; unattended test plan in tools/test-calibration-unattended.md; DeviceCalibrationRegressionTest verifies formula tolerance ±1px (< 0.5% quantize step) across full incline and resistance ranges |
-| Documentation | 2 | architecture.md, migrating-from-3x.md in docs/; device-reference.md in docs/; testing-methodology.md adjacent to test/; discover-device-runbook.md adjacent to tools/discover-device.py; runbooks not tested end-to-end |
+| Documentation | 2 | architecture.md, migrating-from-3x.md in docs/; ifit1-device-reference.md in docs/; testing-methodology.md adjacent to test/; discover-device-runbook.md adjacent to tools/discover-device.py; runbooks not tested end-to-end |
 
 **Overall: 20 / 24**
 

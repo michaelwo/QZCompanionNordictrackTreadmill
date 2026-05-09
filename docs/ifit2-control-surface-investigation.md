@@ -12,7 +12,7 @@
 
 ## Background
 
-iFit2 is a ground-up rewrite of the iFit Android app. Where iFit 1 was a Xamarin.Android application backed by the Sindarin C# engine (see `docs/ifit-control-surface-investigation.md`), iFit2 is a Kotlin app with two APKs:
+iFit2 is a ground-up rewrite of the iFit Android app. Where iFit 1 was a Xamarin.Android application backed by the Sindarin C# engine (see [ifit1-control-surface-investigation.md](ifit1-control-surface-investigation.md)), iFit2 is a Kotlin app with two APKs:
 
 | APK | Package | Role |
 |-----|---------|------|
@@ -114,7 +114,7 @@ This means QZCompanion no longer requires an active workout to be in progress be
 
 ### What was tested
 
-The iFit 1 investigation (see `docs/ifit-control-surface-investigation.md`, Surface 1) found that iFit 1 exposed BLE read/notify characteristics but no FTMS Control Point (`0x2AD9`). The question here was whether iFit2 added FTMS control as part of the rewrite.
+The iFit 1 investigation (see [ifit1-control-surface-investigation.md](ifit1-control-surface-investigation.md), Surface 1) found that iFit 1 exposed BLE read/notify characteristics but no FTMS Control Point (`0x2AD9`). The question here was whether iFit2 added FTMS control as part of the rewrite.
 
 ### Methodology
 

@@ -1,6 +1,6 @@
 # lib:ifit1
 
-Gesture-based control for iFit Generation 1 consoles (NordicTrack/ProForm devices that run a monolithic Android UI). Translates abstract `Command` values into precise pixel-coordinate swipe gestures delivered through the Android `AccessibilityService`.
+Legacy compatibility module for iFit Generation 1 consoles (NordicTrack/ProForm devices that run a monolithic Android UI). It translates abstract `Command` values into precise pixel-coordinate swipe gestures delivered through the Android `AccessibilityService`.
 
 ## Dependency rules
 
@@ -22,4 +22,4 @@ Tests use Robolectric (the only module that does). This is unavoidable because g
 
 ## Key constraints
 
-Each device is a self-contained class with its slider pixel formulas hardcoded as constants. There is no coordinate lookup table or switch statement — adding a device means adding a class, not touching shared data. See `docs/device-reference.md` for the per-device formula derivations and `CLAUDE.md` for the full implementation pattern.
+Each device is a self-contained class with its slider pixel formulas hardcoded as constants. There is no coordinate lookup table or switch statement — adding an iFit1 device means adding a class, not touching shared data. See `docs/ifit1-device-reference.md` for the per-device formula derivations and `CLAUDE.md` for the full implementation pattern.

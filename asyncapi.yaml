@@ -5,7 +5,9 @@ info:
   version: 4.0.0
   description: |
     Two-channel UDP bridge between the QZ/Zwift app and NordicTrack/ProForm
-    iFit treadmills and bikes via Android AccessibilityService swipe injection.
+    iFit treadmills and bikes. QZ sends control targets over UDP; QZ Companion
+    dispatches them through the preferred iFit2 / GlassOS gRPC path when
+    available, or through the legacy iFit1 AccessibilityService gesture path.
 
     The Android device listens on port 8003 for control commands and unicasts
     metric updates to the QZ app on port 8002.  Both endpoints run on the same
@@ -83,8 +85,8 @@ operations:
     description: |
       Android device receives and dispatches inbound UDP commands.
       Implemented by CommandListenerService (port 8003).
-      Commands are throttled (500 ms window) and de-duplicated before
-      driving AccessibilityService swipe gestures on the iFit screen.
+      Commands are throttled (500 ms window) and de-duplicated before dispatch
+      through the active platform path: iFit2 gRPC or iFit1 gesture injection.
     messages:
       - $ref: "#/channels/commands/messages/treadmillCommand"
       - $ref: "#/channels/commands/messages/bikeCommand"
@@ -99,8 +101,9 @@ operations:
     description: |
       Android device publishes changed metric values to the QZ app.
       Implemented by QZTelemetryUnicastingService (port 8002).
-      Metrics are read from iFit via MonoStdout logcat and unicast only
-      when a value changes (delta encoding).
+      Metrics are read from the active platform reader: iFit2 gRPC subscriptions
+      or iFit1 MonoStdout logcat. Values are unicast only when they change
+      (delta encoding).
     messages:
       - $ref: "#/channels/metrics/messages/speedUpdate"
       - $ref: "#/channels/metrics/messages/gradeUpdate"
@@ -178,9 +181,9 @@ components:
       name: CalSwipe
       contentType: text/plain
       description: |
-        Calibration swipe command. Instructs the Android device to perform a
-        raw AccessibilityService swipe at the given pixel coordinates.
-        Used by tools/discover-device.py during slider formula derivation.
+        iFit1 calibration swipe command. Instructs the Android device to perform
+        a raw AccessibilityService swipe at the given pixel coordinates.
+        Used by tools/discover-device.py during iFit1 slider formula derivation.
         Format: CALSWIPE:x:fromY:toY
       payload:
         type: string
@@ -194,7 +197,7 @@ components:
     SpeedUpdate:
       name: SpeedUpdate
       contentType: text/plain
-      description: Current belt speed in km/h, read from iFit MonoStdout logcat.
+      description: Current belt speed in km/h, read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed KPH [0-9]+(\.[0-9]+)?$'
@@ -205,7 +208,7 @@ components:
     GradeUpdate:
       name: GradeUpdate
       contentType: text/plain
-      description: Current incline percentage (negative = decline), read from iFit MonoStdout logcat.
+      description: Current incline percentage (negative = decline), read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed Grade -?[0-9]+(\.[0-9]+)?$'
@@ -217,7 +220,7 @@ components:
     RpmUpdate:
       name: RpmUpdate
       contentType: text/plain
-      description: Current cadence in RPM, read from iFit MonoStdout logcat.
+      description: Current cadence in RPM, read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed RPM [0-9]+(\.[0-9]+)?$'
@@ -227,7 +230,7 @@ components:
     ResistanceUpdate:
       name: ResistanceUpdate
       contentType: text/plain
-      description: Current resistance level, read from iFit MonoStdout logcat.
+      description: Current resistance level, read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed Resistance [0-9]+(\.[0-9]+)?$'
@@ -237,7 +240,7 @@ components:
     WattsUpdate:
       name: WattsUpdate
       contentType: text/plain
-      description: Current power output in watts (integer, truncated). Read from iFit MonoStdout logcat.
+      description: Current power output in watts (integer, truncated), read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed Watts [0-9]+$'
@@ -247,7 +250,7 @@ components:
     GearUpdate:
       name: GearUpdate
       contentType: text/plain
-      description: Current gear level, read from iFit MonoStdout logcat.
+      description: Current gear level, read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^Changed CurrentGear [0-9]+(\.[0-9]+)?$'
@@ -257,7 +260,7 @@ components:
     HeartRateUpdate:
       name: HeartRateUpdate
       contentType: text/plain
-      description: Current heart rate in BPM (integer, truncated). Read from iFit MonoStdout logcat.
+      description: Current heart rate in BPM (integer, truncated), read from iFit2 gRPC or iFit1 MonoStdout logcat.
       payload:
         type: string
         pattern: '^HeartRateDataUpdate [0-9]+$'

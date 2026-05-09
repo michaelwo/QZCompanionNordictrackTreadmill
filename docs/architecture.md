@@ -1,11 +1,11 @@
 # Architecture
 
-QZ Companion is an Android app that runs on a NordicTrack/ProForm iFit tablet. It bridges the QZ app to the physical machine:
+QZ Companion is an Android app that runs on a NordicTrack/ProForm iFit tablet. It supports two iFit integration paths and bridges the QZ app to the physical machine:
 
 - QZ receives Zwift FTMS control over BLE on a phone, tablet, or computer.
 - QZ forwards control targets to QZ Companion over UDP.
-- QZ Companion turns those targets into hardware commands — via gRPC on iFit2, or via touchscreen gesture injection on iFit1.
-- QZ Companion reads live telemetry from the machine — via gRPC subscription on iFit2, or via `mono-stdout` logcat on iFit1.
+- QZ Companion turns those targets into hardware commands — preferably via GlassOS gRPC on iFit2, or via touchscreen gesture injection on legacy iFit1 consoles.
+- QZ Companion reads live telemetry from the machine — preferably via gRPC subscription on iFit2, or via `mono-stdout` logcat on legacy iFit1 consoles.
 - QZ Companion unicasts changed metrics back to QZ over UDP.
 - QZ relays those metrics to Zwift over BLE.
 
@@ -15,7 +15,7 @@ This document is the contributor map: where code lives, which classes own each p
 
 ## iFit2 — GlassOS gRPC path
 
-iFit2 is the Kotlin/gRPC rewrite of the iFit app (`com.ifit.rivendell` + `com.ifit.glassos_service`). It exposes a local gRPC server on `localhost:54321` that accepts direct control commands and streams live telemetry. This is the primary path for devices running iFit2.
+iFit2 is the Kotlin/gRPC rewrite of the iFit app (`com.ifit.rivendell` + `com.ifit.glassos_service`). It exposes a local gRPC server on `localhost:54321` that accepts direct control commands and streams live telemetry. This is the preferred integration path for devices running iFit2.
 
 ### Control: Zwift to hardware (iFit2)
 
@@ -68,7 +68,7 @@ Full details on the credential scheme and server security model are in [ifit2-co
 
 ## iFit1 — Gesture + mono-stdout path
 
-iFit1 is the Xamarin/Mono app (`com.ifit.standalone`) used on older NordicTrack/ProForm hardware. It exposes no local control API, so QZ Companion injects touchscreen swipe gestures through Android Accessibility Services and reads telemetry from a logcat tag.
+iFit1 is the Xamarin/Mono app (`com.ifit.standalone`) used on older NordicTrack/ProForm hardware. It is the legacy compatibility path: iFit1 exposes no local control API, so QZ Companion injects touchscreen swipe gestures through Android Accessibility Services and reads telemetry from a logcat tag.
 
 ### Control: Zwift to hardware (iFit1)
 
@@ -239,7 +239,7 @@ The in-app calibration flow lives in `ui/CalibrationActivity` and `calibration/`
 6. Add focused unit coverage for command decoding, swipe output, quantization, hysteresis, or live telemetry behavior that differs from the base classes.
 7. Run `python3 tools/discover-device/validate_swipe_targets.py` after changing screen coordinates or formulas.
 
-See [device-reference.md](device-reference.md) for current device formulas, screen profiles, and validator notes. See [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for test patterns.
+For new integration work, prefer iFit2/gRPC when the target console exposes GlassOS services. Add or modify iFit1 gesture devices only for older hardware that cannot use the gRPC path. See [ifit1-device-reference.md](ifit1-device-reference.md) for current iFit1 device formulas, screen profiles, and validator notes. See [testing-methodology.md](../app/src/test/java/org/cagnulein/qzcompanionnordictracktreadmill/testing-methodology.md) for test patterns.
 
 ### Changing command behavior
 
@@ -266,7 +266,7 @@ Keep metric parsing in the appropriate `TelemetryReader` (`GrpcTelemetryReader` 
 
 ### Why swipe simulation on iFit1?
 
-iFit1 (`com.ifit.standalone`) exposes no programmable local control surface for incline, resistance, or speed. BLE FTMS control, local sockets, Android IPC, and direct USB HID were investigated and ruled out. Accessibility gestures work because iFit receives them through the normal Android touch event pipeline. The full investigation is in [ifit-control-surface-investigation.md](ifit-control-surface-investigation.md).
+iFit1 (`com.ifit.standalone`) exposes no programmable local control surface for incline, resistance, or speed. BLE FTMS control, local sockets, Android IPC, and direct USB HID were investigated and ruled out for iFit1. Accessibility gestures work because iFit receives them through the normal Android touch event pipeline. The full investigation is in [ifit1-control-surface-investigation.md](ifit1-control-surface-investigation.md).
 
 ### Why mono-stdout on iFit1?
 
