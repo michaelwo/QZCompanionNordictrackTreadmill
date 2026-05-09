@@ -3,46 +3,71 @@
 ## Project Structure
 Android app for controlling NordicTrack and ProForm fitness devices via AccessibilityService gesture injection.
 
-### Main Files
-- `app/src/main/java/.../qz/QZCommandListenerService.java` — UDP listener (port 8003); pure publisher — calls `QZCommandSubscriber.onPacket()` or `onCalibrationSwipe()` for each received datagram
-- `app/src/main/java/.../qz/QZTelemetryUnicastingService.java` — subscribes to `MonoStdoutTelemetryHub`, encodes telemetry as QZ UDP metric packets, unicasts on port 8002
-- `app/src/main/java/.../device/DeviceController.java` — owns `Device` + `CommandDispatcher` + telemetry subscription; implements `QZCommandSubscriber`; the seam between command packets, telemetry, and the device layer
-- `app/src/main/java/.../console/ifit1/GestureService.java` — performs swipe gestures for all devices via the Android Accessibility API
-- `app/src/main/java/.../ui/MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
-- `app/src/main/java/.../device/ifit1/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
-- `app/src/main/java/.../device/Device.java` — abstract base class for all fitness devices
-- `app/src/main/java/.../device/ifit1/DeviceCalibration.java` — loads `qz-calibration.json` (written by `tools/discover-device.py`) at startup
-- `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI (no radio buttons)
+The build is a multi-module Gradle project. Business logic lives in three library modules under `lib/`; the `app/` module is a thin Android shell (services, platform, UI).
+
+### Gradle Modules
+
+| Module | Role |
+|--------|------|
+| `app/` | Android shell — UDP services, UI, platform receivers. Depends on all three lib modules. |
+| `lib/core/` | Platform-agnostic domain layer — command model, telemetry bus, abstract `Device`. No Android imports; JVM-testable without Robolectric. |
+| `lib/ifit1/` | Gesture-based control for iFit1 consoles. Depends on `lib:core`. Requires `AccessibilityService` at runtime. |
+| `lib/ifit2/` | gRPC-based control for iFit2 consoles. Depends on `lib:core` + gRPC stack. |
+
+Each module has a `README.md` with its dependency rules and entry points.
+
+### Key Files
+
+**app/**
+- `qz/QZCommandListenerService.java` — UDP listener (port 8003); calls `QZCommandSubscriber.onPacket()` for each datagram
+- `qz/QZTelemetryUnicastingService.java` — subscribes to `TelemetryHub`, encodes and unicasts QZ metric packets on port 8002
+- `ui/MainActivity.java` — main UI; sectioned device list, status chip, requirements card, overflow debug menu
+- `app/src/main/res/layout/activity_main.xml` — sectioned RecyclerView UI
 - `app/build.gradle` — Android build configuration
 - `app/src/main/AndroidManifest.xml` — Android manifest
 - `.github/workflows/main.yml` — GitHub Actions CI/CD
 
+**lib/core/**
+- `device/Device.java` — abstract base class for all fitness devices
+- `device/DeviceController.java` — owns `Device` + `CommandDispatcher` + telemetry subscription; the seam between command packets, telemetry, and the device layer
+
+**lib/ifit1/**
+- `console/ifit1/GestureService.java` — performs swipe gestures via the Android Accessibility API
+- `device/ifit1/DeviceRegistry.java` — `DeviceId` enum + `EnumMap` of all supported devices
+- `device/ifit1/DeviceCalibration.java` — loads `qz-calibration.json` at startup
+
 ### Package Layout
 
+All modules share the root package `org.cagnulein.qzcompanionnordictracktreadmill`.
+
 ```
-org.cagnulein.qzcompanionnordictracktreadmill
-├── qz/               QZCommandListenerService, QZTelemetryUnicastingService,
-│                     QZCommandPacket, QZMetricPacket,
-│                     QZCommandSubscriber, QZTelemetryEncoder
-├── command/          Command, CommandDispatcher, SpeedCommand, InclineCommand,
-│                     ResistanceCommand, GearCommand, RawSwipeCommand
-├── console/
-│   ├── ifit1/        GestureService, MonoStdoutTelemetryReader
-│   │   └── calibration/  CalibrationRunner and supporting classes
-│   └── ifit2/        GrpcTelemetryReader, GrpcCommandTransport, GrpcCredentials
-├── telemetry/        TelemetryHub, TelemetryReader, Telemetry, SpeedTelemetry,
-│                     InclineTelemetry, ResistanceTelemetry, GearTelemetry
-├── device/           Device, DeviceController
-│   ├── ifit1/        GestureDevice, GestureBikeDevice, GestureTreadmillDevice, DeviceRegistry,
-│   │                 DeviceCalibration, ScreenProfile, SnapToOriginCommand
-│   │   ├── bike/     One class per bike device (S22iDevice, S15iDevice, …)
-│   │   ├── treadmill/ One class per treadmill device (X11iDevice, X32iDevice, …)
-│   │   └── slider/   Slider, InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
-│   └── ifit2/        GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
+app/
+├── qz/               QZCommandListenerService, QZTelemetryUnicastingService
 ├── platform/         IFitPlatform; boot/restart receivers and crash handling
 │   ├── crash/        CrashHandler
 │   └── receiver/     BootReceiver, ServiceRestartReceiver
 └── ui/               MainActivity, CalibrationActivity, DeviceAdapter
+
+lib/core/
+├── qz/               QZCommandPacket, QZMetricPacket, QZCommandSubscriber, QZTelemetryEncoder
+├── command/          Command, CommandDispatcher, SpeedCommand, InclineCommand,
+│                     ResistanceCommand, GearCommand, RawSwipeCommand
+├── telemetry/        TelemetryHub, TelemetryReader, Telemetry, SpeedTelemetry,
+│                     InclineTelemetry, ResistanceTelemetry, GearTelemetry
+└── device/           Device, DeviceController
+
+lib/ifit1/
+├── console/ifit1/    GestureService, MonoStdoutTelemetryReader
+│   └── calibration/  CalibrationRunner and supporting classes
+└── device/ifit1/     GestureDevice, GestureBikeDevice, GestureTreadmillDevice, DeviceRegistry,
+                      DeviceCalibration, ScreenProfile, SnapToOriginCommand
+    ├── bike/          One class per bike device (S22iDevice, S15iDevice, …)
+    ├── treadmill/     One class per treadmill device (X11iDevice, X32iDevice, …)
+    └── slider/        Slider, InclineSlider, SpeedSlider, ResistanceSlider, GearSlider
+
+lib/ifit2/
+├── console/ifit2/    GrpcTelemetryReader, GrpcCommandTransport, GrpcCredentials, CommandTransport
+└── device/ifit2/     GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
 ```
 
 ---
@@ -53,7 +78,7 @@ All devices are self-contained classes. There is no enum switch or coordinate lo
 
 ### 1. Create the device class
 
-Bike device (`device/ifit1/bike/MyNewDevice.java`):
+Bike device (`lib/ifit1/src/main/java/.../device/ifit1/bike/MyNewDevice.java`):
 ```java
 package org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.bike;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.GestureBikeDevice;
@@ -126,8 +151,9 @@ Local debug builds show `dev-<git-hash>` in the action bar subtitle instead of a
 
 ## Documentation
 
-Most docs live in `docs/`. Two live adjacent to the code they describe:
+Most docs live in `docs/`. A few live adjacent to the code they describe:
 
+- `lib/core/README.md`, `lib/ifit1/README.md`, `lib/ifit2/README.md` — module boundary contracts (purpose, dependency rules, entry points); edit when module responsibilities change
 - `docs/device-reference.md` — per-device pixel formulas, ScreenProfile table, validator notes; edit alongside device classes
 - `app/src/test/java/.../testing-methodology.md` — test file inventory, swipe assertion patterns, how to add tests for a new device; edit alongside test files
 

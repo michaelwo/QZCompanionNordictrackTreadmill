@@ -119,35 +119,44 @@ On iFit1 (committed by `IFitPlatform.detect()`), `MonoStdoutTelemetryReader` is 
 
 ## Package Layout
 
-Main Java package:
+The build is a multi-module Gradle project. All modules share the root package `org.cagnulein.qzcompanionnordictracktreadmill`.
 
 ```text
-org.cagnulein.qzcompanionnordictracktreadmill
-|-- qz/             UDP input/output adapters and QZ wire packet types
-|-- command/        Command, CommandDispatcher, and all typed command subclasses
-|-- console/
-|   |-- ifit1/      GestureService, MonoStdoutTelemetryReader
-|   |   `-- calibration/  CalibrationRunner and supporting classes
-|   `-- ifit2/      GrpcTelemetryReader, GrpcCommandTransport, GrpcCredentials
-|-- telemetry/      TelemetryHub, TelemetryReader, domain telemetry value objects
-|-- device/         Device (base), DeviceController
-|   |-- ifit1/      GestureDevice, GestureBikeDevice, GestureTreadmillDevice, DeviceRegistry,
-|   |               DeviceCalibration, ScreenProfile, SnapToOriginCommand
-|   |   |-- bike/      One class per supported bike or bike-like device
-|   |   |-- treadmill/ One class per supported treadmill
-|   |   `-- slider/    Typed slider abstractions for speed, incline, resistance, gear
-|   `-- ifit2/      GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
-|-- platform/       IFitPlatform; boot/restart receivers and crash handling
-`-- ui/             MainActivity, CalibrationActivity, DeviceAdapter
+app/                            Android shell — depends on all three lib modules
+  qz/                           QZCommandListenerService, QZTelemetryUnicastingService
+  platform/                     IFitPlatform; boot/restart receivers and crash handling
+  ui/                           MainActivity, CalibrationActivity, DeviceAdapter
+
+lib/core/                       Platform-agnostic domain layer (no Android imports)
+  qz/                           QZCommandPacket, QZMetricPacket, QZCommandSubscriber, QZTelemetryEncoder
+  command/                      Command, CommandDispatcher, and all typed command subclasses
+  telemetry/                    TelemetryHub, TelemetryReader, domain telemetry value objects
+  device/                       Device (base), DeviceController
+
+lib/ifit1/                      Gesture-based control; depends on lib:core
+  console/ifit1/                GestureService, MonoStdoutTelemetryReader
+    calibration/                CalibrationRunner and supporting classes
+  device/ifit1/                 GestureDevice, GestureBikeDevice, GestureTreadmillDevice,
+                                DeviceRegistry, DeviceCalibration, ScreenProfile, SnapToOriginCommand
+    bike/                       One class per supported bike or bike-like device
+    treadmill/                  One class per supported treadmill
+    slider/                     Typed slider abstractions for speed, incline, resistance, gear
+
+lib/ifit2/                      gRPC-based control; depends on lib:core + gRPC stack
+  console/ifit2/                GrpcTelemetryReader, GrpcCommandTransport, GrpcCredentials, CommandTransport
+  device/ifit2/                 GrpcDevice, GrpcBikeDevice, GrpcTreadmillDevice
 ```
 
 Important non-code areas:
 
 | Path | Purpose |
 |------|---------|
+| `lib/*/README.md` | Module boundary contracts: dependency rules, entry points. |
 | `docs/` | Contributor and investigation docs. |
 | `tools/discover-device/` | ADB-based discovery, calibration, and coordinate validation tools. |
-| `app/src/test/java/...` | JVM and Robolectric tests, plus `testing-methodology.md`. |
+| `app/src/test/java/...` | JVM tests for the app shell; `testing-methodology.md` lives here. |
+| `lib/ifit1/src/test/java/...` | JVM + Robolectric tests for iFit1 gesture devices. |
+| `lib/core/src/test/java/...` | Plain JVM tests for core domain logic. |
 | `InstallPackage/` | End-user install scripts and packaged APK assets. |
 | `version.properties` | Single source for release `versionName`. |
 
