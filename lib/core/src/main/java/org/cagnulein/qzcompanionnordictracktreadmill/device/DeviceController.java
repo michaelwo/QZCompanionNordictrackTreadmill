@@ -51,6 +51,18 @@ public class DeviceController implements QZCommandSubscriber {
         device.applyCommand(cmd);
     }
 
+    /** Allows non-QZ ingress adapters, such as Direct Connect, to reuse this controller. */
+    public int enqueueCommand(Command cmd) {
+        int depth = dispatcher.enqueue(cmd);
+        if (depth >= 0)
+            device.logger.log(Device.Logger.DEBUG, LOG_TAG,
+                    "enqueue: " + cmd + " depth=" + depth + "/" + CommandDispatcher.QUEUE_CAPACITY);
+        else
+            device.logger.log(Device.Logger.WARN, LOG_TAG,
+                    "drop: " + cmd + " (queue full at " + CommandDispatcher.QUEUE_CAPACITY + ")");
+        return depth;
+    }
+
     public void onTelemetry(Telemetry telemetry) {
         String label = device.telemetryLabel(telemetry);
         if (label != null) device.logger.log(Device.Logger.DEBUG, LOG_TAG, "telemetry: " + label);
@@ -62,13 +74,7 @@ public class DeviceController implements QZCommandSubscriber {
         List<Command> commands = preDecoder != null ? preDecoder.decode(packet) : Collections.emptyList();
         if (commands.isEmpty()) commands = device.decodeCommands(packet);
         for (Command cmd : commands) {
-            int depth = dispatcher.enqueue(cmd);
-            if (depth >= 0)
-                device.logger.log(Device.Logger.DEBUG, LOG_TAG,
-                        "enqueue: " + cmd + " depth=" + depth + "/" + CommandDispatcher.QUEUE_CAPACITY);
-            else
-                device.logger.log(Device.Logger.WARN, LOG_TAG,
-                        "drop: " + cmd + " (queue full at " + CommandDispatcher.QUEUE_CAPACITY + ")");
+            enqueueCommand(cmd);
         }
         // Sentinel packets (empty command list) still act as passive drain drivers.
         if (commands.isEmpty()) dispatcher.drain();

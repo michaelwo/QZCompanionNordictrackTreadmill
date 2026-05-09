@@ -43,6 +43,8 @@ import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.C
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.calibration.CalibrationRunner;
 import org.cagnulein.qzcompanionnordictracktreadmill.console.ifit1.GestureService;
 import org.cagnulein.qzcompanionnordictracktreadmill.qz.QZTelemetryUnicastingService;
+import org.cagnulein.qzcompanionnordictracktreadmill.dircon.DirectConnectCommandBridge;
+import org.cagnulein.qzcompanionnordictracktreadmill.dircon.ZwiftDirectConnectService;
 import org.cagnulein.qzcompanionnordictracktreadmill.command.CommandDecoder;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.Device;
 import org.cagnulein.qzcompanionnordictracktreadmill.device.ifit1.CalibrationDevice;
@@ -111,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String PREF_DEVICE_ID = "deviceId";
     public static final String PREF_DEBUG_LOG = "debugLog";
+    public static final String PREF_DIRECT_CONNECT = ZwiftDirectConnectService.PREF_ENABLED;
 
     public static SharedPreferences prefs() { return sharedPreferences; }
     public static boolean isDebugLog() { return sharedPreferences != null && sharedPreferences.getBoolean(PREF_DEBUG_LOG, false); }
@@ -144,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             restoreDeviceSelection();
         }
+        applyDirectConnectPreference();
         updateStatusChip();
         rebindAccessibilityService();
     }
@@ -226,6 +230,14 @@ public class MainActivity extends AppCompatActivity {
         getApplicationContext().startService(in);
     }
 
+    private void applyDirectConnectPreference() {
+        boolean enabled = sharedPreferences.getBoolean(PREF_DIRECT_CONNECT, false);
+        Intent intent = new Intent(getApplicationContext(), ZwiftDirectConnectService.class);
+        if (enabled) getApplicationContext().startService(intent);
+        else getApplicationContext().stopService(intent);
+        updateRequirementsCard();
+    }
+
     private boolean isAccessibilityServiceEnabled(Context context, Class<?> accessibilityService) {
         int accessibilityEnabled = 0;
         try {
@@ -270,6 +282,8 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         menu.findItem(R.id.menu_verbose_logging).setChecked(
                 sharedPreferences.getBoolean(PREF_DEBUG_LOG, false));
+        menu.findItem(R.id.menu_direct_connect).setChecked(
+                sharedPreferences.getBoolean(PREF_DIRECT_CONNECT, false));
         updateCalibrationMenu(menu);
         return true;
     }
@@ -308,6 +322,15 @@ public class MainActivity extends AppCompatActivity {
                     .setMessage("Restart the app to apply logging changes.")
                     .setPositiveButton("OK", (d, w) -> d.dismiss())
                     .show();
+            return true;
+        } else if (id == R.id.menu_direct_connect) {
+            boolean next = !item.isChecked();
+            item.setChecked(next);
+            sharedPreferences.edit().putBoolean(PREF_DIRECT_CONNECT, next).apply();
+            applyDirectConnectPreference();
+            Toast.makeText(this,
+                    next ? "Zwift Direct Connect enabled" : "Zwift Direct Connect disabled",
+                    Toast.LENGTH_SHORT).show();
             return true;
         } else if (id == R.id.menu_calibrate) {
             startActivity(new Intent(this, CalibrationActivity.class));
@@ -431,6 +454,27 @@ public class MainActivity extends AppCompatActivity {
                 heartbeatActive
                         ? "QZ heartbeat received from " + qzAddr.getHostAddress() + " on port " + QZCommandListenerService.LISTEN_PORT + ". Device telemetry unicast active."
                         : "Waiting for QZ heartbeat commands on port " + QZCommandListenerService.LISTEN_PORT + ". Device telemetry unicast paused.",
+                null);
+
+        boolean directEnabled = sharedPreferences.getBoolean(PREF_DIRECT_CONNECT, false);
+        String directDetail;
+        boolean directOk = !directEnabled || ZwiftDirectConnectService.isAdvertising()
+                || ZwiftDirectConnectService.connectedClient() != null;
+        if (!directEnabled) {
+            directDetail = "Disabled — enable from the overflow menu to advertise on port 36866";
+        } else if (ZwiftDirectConnectService.connectedClient() != null) {
+            directDetail = "Connected to Zwift client "
+                    + ZwiftDirectConnectService.connectedClient() + " on port 36866";
+        } else if (ZwiftDirectConnectService.isAdvertising()) {
+            directDetail = "Advertising _wahoo-fitness-tnp._tcp on port 36866";
+        } else if (ZwiftDirectConnectService.lastError() != null) {
+            directDetail = ZwiftDirectConnectService.lastError();
+        } else {
+            directDetail = "Starting advertisement on port 36866";
+        }
+        addRequirementRow(list, directOk,
+                "Zwift Direct Connect",
+                directDetail,
                 null);
 
         boolean canAdvertise = false;
@@ -594,6 +638,7 @@ public class MainActivity extends AppCompatActivity {
         CommandDecoder preDecoder = isGrpc ? null : new CalibrationDevice()::decodeCommands;
         activeController = new DeviceController(effectiveDevice, preDecoder);
         QZCommandListenerService.setSubscriber(activeController);
+        DirectConnectCommandBridge.setSink(activeController::enqueueCommand);
         updateStatusChip();
         updateRequirementsCard();
     }

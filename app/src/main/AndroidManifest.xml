@@ -29,6 +29,7 @@
         android:theme="@style/Theme.QZCompanionNordictrackTreadmill">
         <service android:name=".qz.QZTelemetryUnicastingService"/>
         <service android:name=".qz.QZCommandListenerService"/>
+        <service android:name=".dircon.ZwiftDirectConnectService"/>
 
         <service
             android:name=".console.ifit1.GestureService"
