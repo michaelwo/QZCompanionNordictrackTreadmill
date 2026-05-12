@@ -84,7 +84,7 @@ The intended public project narrowed sharply:
 - Runtime log tags renamed from `QZ:*` to `FZ:*`.
 - Public AGPL-3.0 source with explicit QZ and QZ Companion attribution.
 
-The tone of that plan matters. `fitzdircon` is not framed as a criticism of QZ, QZ Companion, or qdomyos-zwift. Those projects made the work possible and remain broader tools. The fork's contribution is narrower: document and package the iFit2 / GlassOS gRPC findings clearly enough that iFit2 owners can use them directly and QZ contributors can reuse them upstream if useful.
+The tone of that plan matters. `fitzdircon` is not framed as a criticism or a competitor of QZ, QZ Companion, or qdomyos-zwift. Those projects made the work possible and remain broader tools. The fork's contribution is narrower: document and package the iFit2 / GlassOS gRPC findings clearly enough that iFit2 owners can use them directly and QZ contributors can reuse them upstream if useful.
 
 ## Where The Fork Stands
 
