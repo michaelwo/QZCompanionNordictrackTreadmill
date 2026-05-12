@@ -1,6 +1,6 @@
 # QZ Companion NordicTrack Treadmill Fork
 
-This repository is Michael Wojciechowski's development fork of QZ Companion for NordicTrack and ProForm iFit consoles. It builds on the original QZ Companion work by Al Udell and Roberto Viola / Cagnulein, and on QZ / qdomyos-zwift by Roberto Viola / Cagnulein.
+This repository is a development fork of QZ Companion for NordicTrack and ProForm iFit consoles. It builds on the original QZ Companion work by Al Udell and Roberto Viola / Cagnulein, and on QZ / qdomyos-zwift by Roberto Viola / Cagnulein.
 
 The fork is now primarily a workbench and archive for two related paths:
 
